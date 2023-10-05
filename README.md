@@ -1,5 +1,4 @@
 [![Tests](https://github.com/kordax/basic-utils/actions/workflows/Tests.yml/badge.svg?branch=main)](https://github.com/kordax/basic-utils/actions/workflows/Tests.yml)
-[![Go Coverage](https://github.com/kordax/basic-utils/wiki/coverage.svg)](https://raw.githack.com/wiki/kordax/basic-utils/coverage.html)
 
 # Basic Utils
 
