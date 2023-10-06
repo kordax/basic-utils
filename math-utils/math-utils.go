@@ -345,18 +345,20 @@ func MinMaxFromMap[K comparable, T Ordered](m map[K]T) (T, T) {
 		return *new(T), *new(T)
 	}
 
-	min := *new(T)
-	max := *new(T)
+	var mn T
+	mx := *new(T)
+	first := true
 	for _, a := range m {
-		if a < min {
-			min = a
+		if a < mn || first {
+			first = false
+			mn = a
 		}
-		if a > max {
-			max = a
+		if a > mx {
+			mx = a
 		}
 	}
 
-	return min, max
+	return mn, mx
 }
 
 func RoundWithPrecision[T Numeric](value T, precision int) T {
