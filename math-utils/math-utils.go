@@ -46,16 +46,16 @@ func AbsValInt(val int) int {
 	return val
 }
 
-// ValOrMin returns value or min if value is less than min
-func ValOrMin(val int, min int) int {
-	if val < min {
-		return min
+// ValOrMin returns value or mn if value is less than mn
+func ValOrMin(val int, mn int) int {
+	if val < mn {
+		return mn
 	}
 
 	return val
 }
 
-// MaxInt returns max value in array correspondingly
+// MaxInt returns mx value in array correspondingly
 func MaxInt(array []int) int {
 	if len(array) == 0 {
 		return 0
@@ -66,116 +66,116 @@ func MaxInt(array []int) int {
 	return array[len(array)-1]
 }
 
-// Min returns min numeric value found in array
+// Min returns mn numeric value found in array
 func Min[T Numeric](array []T) T {
 	if len(array) == 0 {
 		return *new(T)
 	}
 
-	min := array[0]
+	mn := array[0]
 	for _, a := range array {
-		if a < min {
-			min = a
+		if a < mn {
+			mn = a
 		}
 	}
 
-	return min
+	return mn
 }
 
-// Max returns max numeric value found in array
+// Max returns mx numeric value found in array
 func Max[T Numeric](array []T) T {
 	if len(array) == 0 {
 		return *new(T)
 	}
 
-	max := array[0]
+	mx := array[0]
 	for _, a := range array {
-		if a > max {
-			max = a
+		if a > mx {
+			mx = a
 		}
 	}
 
-	return max
+	return mx
 }
 
-// MinMaxInt returns min and max value in array correspondingly
+// MinMaxInt returns mn and mx value in array correspondingly
 func MinMaxInt(array []int) (int, int) {
 	if len(array) == 0 {
 		return 0, 0
 	}
 
-	min := array[0]
-	max := array[0]
+	mn := array[0]
+	mx := array[0]
 	for _, a := range array {
-		if a < min {
-			min = a
+		if a < mn {
+			mn = a
 		}
-		if a > max {
-			max = a
+		if a > mx {
+			mx = a
 		}
 	}
 
-	return min, max
+	return mn, mx
 }
 
-// MinMaxUInt32 returns min and max value in array correspondingly
+// MinMaxUInt32 returns mn and mx value in array correspondingly
 func MinMaxUInt32(array []uint32) (uint32, uint32) {
 	if len(array) == 0 {
 		return 0, 0
 	}
 
-	min := array[0]
-	max := array[0]
+	mn := array[0]
+	mx := array[0]
 	for _, a := range array {
-		if a < min {
-			min = a
+		if a < mn {
+			mn = a
 		}
-		if a > max {
-			max = a
+		if a > mx {
+			mx = a
 		}
 	}
 
-	return min, max
+	return mn, mx
 }
 
-// MinMaxUInt64 returns min and max value in array correspondingly
+// MinMaxUInt64 returns mn and mx value in array correspondingly
 func MinMaxUInt64(array []uint64) (uint64, uint64) {
 	if len(array) == 0 {
 		return 0, 0
 	}
 
-	min := array[0]
-	max := array[0]
+	mn := array[0]
+	mx := array[0]
 	for _, a := range array {
-		if a < min {
-			min = a
+		if a < mn {
+			mn = a
 		}
-		if a > max {
-			max = a
+		if a > mx {
+			mx = a
 		}
 	}
 
-	return min, max
+	return mn, mx
 }
 
-// MinMaxFloat64 returns min and max value in array correspondingly
+// MinMaxFloat64 returns mn and mx value in array correspondingly
 func MinMaxFloat64(array []float64) (float64, float64) {
 	if len(array) == 0 {
 		return 0, 0
 	}
 
-	min := array[0]
-	max := array[0]
+	mn := array[0]
+	mx := array[0]
 	for _, a := range array {
-		if a < min {
-			min = a
+		if a < mn {
+			mn = a
 		}
-		if a > max {
-			max = a
+		if a > mx {
+			mx = a
 		}
 	}
 
-	return min, max
+	return mn, mx
 }
 
 // AvgInt returns average value from the array
@@ -326,18 +326,18 @@ func MinMax[T Ordered](array []T) (T, T) {
 		return *new(T), *new(T)
 	}
 
-	min := array[0]
-	max := array[0]
+	mn := array[0]
+	mx := array[0]
 	for _, a := range array {
-		if a < min {
-			min = a
+		if a < mn {
+			mn = a
 		}
-		if a > max {
-			max = a
+		if a > mx {
+			mx = a
 		}
 	}
 
-	return min, max
+	return mn, mx
 }
 
 func MinMaxFromMap[K comparable, T Ordered](m map[K]T) (T, T) {
