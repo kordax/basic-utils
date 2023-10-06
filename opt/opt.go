@@ -84,7 +84,7 @@ func OfString(v string) Opt[string] {
 
 // OfBool creates an Opt containing a boolean, or a null Opt if the boolean is false.
 func OfBool(v bool) Opt[bool] {
-	if v {
+	if !v {
 		return Null[bool]()
 	}
 
