@@ -111,8 +111,8 @@ func MinMaxInt(array []int) (int, int) {
 	return mn, mx
 }
 
-// AvgInt returns average value from the array
-func AvgInt[T basic_utils.Numeric](array []T) T {
+// Avg returns average value from the array
+func Avg[T basic_utils.Numeric](array []T) T {
 	if len(array) == 0 {
 		return 0
 	}
