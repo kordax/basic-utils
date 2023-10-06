@@ -75,3 +75,63 @@ func TestFromString(t *testing.T) {
 	}
 	assert.Equal(t, num.T(), number.BigFloat)
 }
+
+func TestNewInt(t *testing.T) {
+	val := 5
+	num := number.NewInt(val)
+	if num.T() != number.Int || num.I() != val {
+		t.Errorf("Expected Int type with value %d, but got %v with value %d", val, num.T(), num.I())
+	}
+}
+
+func TestNewFloat(t *testing.T) {
+	val := 5.5
+	num := number.NewFloat(val)
+	if num.T() != number.Float || num.F() != val {
+		t.Errorf("Expected Float type with value %f, but got %v with value %f", val, num.T(), num.F())
+	}
+}
+
+func TestNewUint(t *testing.T) {
+	val := uint64(5)
+	num := number.NewUint(val)
+	if num.T() != number.Uint || num.Ui() != val {
+		t.Errorf("Expected Uint type with value %d, but got %v with value %d", val, num.T(), num.Ui())
+	}
+}
+
+func TestNewBigInt(t *testing.T) {
+	val := big.NewInt(5)
+	num := number.NewBigInt(val)
+	if num.T() != number.BigInt || num.Bi().Cmp(val) != 0 {
+		t.Errorf("Expected BigInt type with value %v, but got %v with value %v", val, num.T(), num.Bi())
+	}
+}
+
+func TestNewBigFloat(t *testing.T) {
+	val := big.NewFloat(5.5)
+	num := number.NewBigFloat(val)
+	if num.T() != number.BigFloat || num.Bf().Cmp(val) != 0 {
+		t.Errorf("Expected BigFloat type with value %v, but got %v with value %v", val, num.T(), num.Bf())
+	}
+}
+
+func TestNumberString(t *testing.T) {
+	tests := []struct {
+		num      *number.Number
+		expected string
+	}{
+		{number.NewInt(5), "5"},
+		{number.NewFloat(5.5), "5.5"},
+		{number.NewUint(5), "5"},
+		{number.NewBigInt(big.NewInt(5)), "5"},
+		{number.NewBigFloat(big.NewFloat(5.5)), "5.5"},
+	}
+
+	for _, test := range tests {
+		str := test.num.String()
+		if str != test.expected {
+			t.Errorf("Expected %s, but got %s", test.expected, str)
+		}
+	}
+}
