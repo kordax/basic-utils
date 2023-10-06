@@ -7,17 +7,21 @@
 package mathutils
 
 import (
+	"fmt"
 	"math"
 	"sort"
+
+	basic_utils "github.com/kordax/basic-utils"
 )
 
 // ClosestMatch finds the closest match in a slice. This implementation doesn't use Round.
-func ClosestMatch(toMatch uint32, slice []uint32) (int, uint32) {
-	var diff uint32 = math.MaxUint32
-	var value uint32 = 0
-	index := 0
+// Returns index of a found element and the element. If no element was found then -1 as index will be returned.
+func ClosestMatch[T basic_utils.Numeric](toMatch T, slice []T) (int, T) {
+	diff := MaxValue[T]()
+	var value T
+	index := -1
 	for i, val := range slice {
-		d := AbsDiffUInt32(val, toMatch)
+		d := AbsDiff(val, toMatch)
 		if d < diff {
 			diff = d
 			index = i
@@ -28,8 +32,8 @@ func ClosestMatch(toMatch uint32, slice []uint32) (int, uint32) {
 	return index, value
 }
 
-// AbsDiffUInt32 returns absolute diff result of a numeric type
-func AbsDiffUInt32(one uint32, two uint32) uint32 {
+// AbsDiff returns absolute diff result of a numeric type
+func AbsDiff[T basic_utils.Numeric](one T, two T) T {
 	if one < two {
 		return two - one
 	}
@@ -37,8 +41,8 @@ func AbsDiffUInt32(one uint32, two uint32) uint32 {
 	return one - two
 }
 
-// AbsValInt returns absolute value of a numeric type
-func AbsValInt(val int) int {
+// AbsVal returns absolute value of a numeric type
+func AbsVal[T basic_utils.Numeric](val T) T {
 	if val < 0 {
 		return -val
 	}
@@ -55,19 +59,8 @@ func ValOrMin(val int, mn int) int {
 	return val
 }
 
-// MaxInt returns mx value in array correspondingly
-func MaxInt(array []int) int {
-	if len(array) == 0 {
-		return 0
-	}
-
-	sort.Ints(array)
-
-	return array[len(array)-1]
-}
-
 // Min returns mn numeric value found in array
-func Min[T Numeric](array []T) T {
+func Min[T basic_utils.Numeric](array []T) T {
 	if len(array) == 0 {
 		return *new(T)
 	}
@@ -83,7 +76,7 @@ func Min[T Numeric](array []T) T {
 }
 
 // Max returns mx numeric value found in array
-func Max[T Numeric](array []T) T {
+func Max[T basic_utils.Numeric](array []T) T {
 	if len(array) == 0 {
 		return *new(T)
 	}
@@ -118,111 +111,18 @@ func MinMaxInt(array []int) (int, int) {
 	return mn, mx
 }
 
-// MinMaxUInt32 returns mn and mx value in array correspondingly
-func MinMaxUInt32(array []uint32) (uint32, uint32) {
-	if len(array) == 0 {
-		return 0, 0
-	}
-
-	mn := array[0]
-	mx := array[0]
-	for _, a := range array {
-		if a < mn {
-			mn = a
-		}
-		if a > mx {
-			mx = a
-		}
-	}
-
-	return mn, mx
-}
-
-// MinMaxUInt64 returns mn and mx value in array correspondingly
-func MinMaxUInt64(array []uint64) (uint64, uint64) {
-	if len(array) == 0 {
-		return 0, 0
-	}
-
-	mn := array[0]
-	mx := array[0]
-	for _, a := range array {
-		if a < mn {
-			mn = a
-		}
-		if a > mx {
-			mx = a
-		}
-	}
-
-	return mn, mx
-}
-
-// MinMaxFloat64 returns mn and mx value in array correspondingly
-func MinMaxFloat64(array []float64) (float64, float64) {
-	if len(array) == 0 {
-		return 0, 0
-	}
-
-	mn := array[0]
-	mx := array[0]
-	for _, a := range array {
-		if a < mn {
-			mn = a
-		}
-		if a > mx {
-			mx = a
-		}
-	}
-
-	return mn, mx
-}
-
 // AvgInt returns average value from the array
-func AvgInt(array []int) int {
+func AvgInt[T basic_utils.Numeric](array []T) T {
 	if len(array) == 0 {
 		return 0
 	}
 
-	sum := SumInt(array)
+	sum := Sum(array)
 
-	return sum / len(array)
+	return sum / T(len(array))
 }
 
-// AvgUInt64 returns average value from the array
-func AvgUInt64(array []uint64) uint64 {
-	if len(array) == 0 {
-		return 0
-	}
-
-	sum := SumUInt64(array)
-
-	return sum / uint64(len(array))
-}
-
-// AvgInt64 returns average value from the array
-func AvgInt64(array []int64) int64 {
-	if len(array) == 0 {
-		return 0
-	}
-
-	sum := SumInt64(array)
-
-	return sum / int64(len(array))
-}
-
-// AvgFloat64 returns average value from the array
-func AvgFloat64(array []float64) float64 {
-	if len(array) == 0 {
-		return 0
-	}
-
-	sum := SumFloat64(array)
-
-	return sum / float64(len(array))
-}
-
-func MedInt(array []int) int {
+func Med[T basic_utils.Numeric](array []T) T {
 	if len(array) == 0 {
 		return 0.0
 	}
@@ -233,7 +133,7 @@ func MedInt(array []int) int {
 		return array[0]
 	}
 
-	var med int
+	var med T
 	if ln%2 != 0 {
 		med = array[(ln / 2)]
 	} else {
@@ -243,50 +143,8 @@ func MedInt(array []int) int {
 	return med
 }
 
-func MedUInt64(array []uint64) uint64 {
-	if len(array) == 0 {
-		return 0.0
-	}
-	sort.Slice(array, func(i, j int) bool { return array[i] < array[j] })
-
-	ln := len(array)
-	if ln == 1 {
-		return array[0]
-	}
-
-	var med uint64
-	if ln%2 != 0 {
-		med = array[(ln / 2)]
-	} else {
-		med = (array[(ln/2)-1] + array[(ln/2)]) / 2
-	}
-
-	return med
-}
-
-func MedFloat64(array []float64) float64 {
-	if len(array) == 0 {
-		return 0.0
-	}
-	sort.Float64s(array)
-
-	ln := len(array)
-	if ln == 1 {
-		return array[0]
-	}
-
-	var med float64
-	if ln%2 != 0 {
-		med = array[(ln / 2)]
-	} else {
-		med = (array[(ln/2)-1] + array[(ln/2)]) / 2
-	}
-
-	return med
-}
-
-func SumInt(array []int) int {
-	sum := 0
+func Sum[T basic_utils.Numeric](array []T) T {
+	var sum T
 	for _, v := range array {
 		sum = sum + v
 	}
@@ -294,34 +152,7 @@ func SumInt(array []int) int {
 	return sum
 }
 
-func SumInt64(array []int64) int64 {
-	sum := int64(0)
-	for _, v := range array {
-		sum = sum + v
-	}
-
-	return sum
-}
-
-func SumUInt64(array []uint64) uint64 {
-	sum := uint64(0)
-	for _, v := range array {
-		sum = sum + v
-	}
-
-	return sum
-}
-
-func SumFloat64(array []float64) float64 {
-	sum := 0.0
-	for _, a := range array {
-		sum = sum + a
-	}
-
-	return sum
-}
-
-func MinMax[T Ordered](array []T) (T, T) {
+func MinMax[T basic_utils.Numeric](array []T) (T, T) {
 	if len(array) == 0 {
 		return *new(T), *new(T)
 	}
@@ -340,7 +171,7 @@ func MinMax[T Ordered](array []T) (T, T) {
 	return mn, mx
 }
 
-func MinMaxFromMap[K comparable, T Ordered](m map[K]T) (T, T) {
+func MinMaxFromMap[K comparable, T basic_utils.Numeric](m map[K]T) (T, T) {
 	if len(m) == 0 {
 		return *new(T), *new(T)
 	}
@@ -361,24 +192,39 @@ func MinMaxFromMap[K comparable, T Ordered](m map[K]T) (T, T) {
 	return mn, mx
 }
 
-func RoundWithPrecision[T Numeric](value T, precision int) T {
+func RoundWithPrecision[T basic_utils.Numeric](value T, precision int) T {
 	ratio := math.Pow(10, float64(precision))
 
 	return T(math.Round(float64(value)*ratio) / ratio)
 }
 
-type Numeric interface {
-	int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | float32 | float64
-}
-
-type Float interface {
-	float32 | float64
-}
-
-type SignedNumeric interface {
-	int | int8 | int16 | int32 | int64 | float32 | float64
-}
-
-type Ordered interface {
-	int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | float32 | float64
+func MaxValue[T basic_utils.Numeric]() T {
+	switch v := any(*new(T)).(type) {
+	case float32:
+		return any(float32(math.MaxFloat32)).(T)
+	case float64:
+		return any(math.MaxFloat64).(T)
+	case int:
+		return any(math.MaxInt).(T)
+	case int8:
+		return any(int8(math.MaxInt8)).(T)
+	case int16:
+		return any(int16(math.MaxInt16)).(T)
+	case int32:
+		return any(int32(math.MaxInt32)).(T)
+	case int64:
+		return any(int64(math.MaxInt64)).(T)
+	case uint:
+		return any(^uint(0)).(T)
+	case uint8:
+		return any(uint8(math.MaxUint8)).(T)
+	case uint16:
+		return any(uint16(math.MaxUint16)).(T)
+	case uint32:
+		return any(uint32(math.MaxUint32)).(T)
+	case uint64:
+		return any(^uint64(0)).(T)
+	default:
+		panic(fmt.Sprintf("Unhandled type: %T", v))
+	}
 }
