@@ -49,6 +49,42 @@ func TestContainsPredicate(t *testing.T) {
 	}
 }
 
+func TestContains(t *testing.T) {
+	tests := []struct {
+		element  int
+		values   map[string]int
+		expected *int
+	}{
+		{
+			element:  5,
+			values:   map[string]int{"a": 5, "b": 6, "c": 7},
+			expected: &[]int{5}[0], // workaround to get a pointer to int literal
+		},
+		{
+			element:  8,
+			values:   map[string]int{"a": 5, "b": 6, "c": 7},
+			expected: nil,
+		},
+		{
+			element:  6,
+			values:   map[string]int{"d": 6},
+			expected: &[]int{6}[0],
+		},
+		{
+			element:  9,
+			values:   map[string]int{},
+			expected: nil,
+		},
+	}
+
+	for _, test := range tests {
+		result := maputils.Contains(test.element, test.values)
+		if (result == nil && test.expected != nil) || (result != nil && test.expected == nil) || (result != nil && *result != *test.expected) {
+			t.Errorf("Expected %v for element %d in map %v, but got %v", test.expected, test.element, test.values, result)
+		}
+	}
+}
+
 func TestEquals(t *testing.T) {
 	// Test case 1: Maps are equal
 	m1 := map[string]int{"a": 1, "b": 2, "c": 3}
