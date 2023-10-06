@@ -32,9 +32,7 @@ jobs:
         uses: action-badges/core@0.2.2
         if: contains(github.ref, 'main')
         with:
-          label: coverage
-          message: ${{ steps.coverage.outputs.badge-text }}
-          message-color: ${{ steps.coverage.outputs.badge-color }}
+          label: Coverage
           file-name: coverage.svg
           badge-branch: badges ## orphan branch where badge will be committed
           github-token: "${{ secrets.GITHUB_TOKEN }}"
