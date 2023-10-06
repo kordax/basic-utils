@@ -140,6 +140,30 @@ func TestRoundWithPrecision(t *testing.T) {
 	}
 }
 
+func TestAbsVal(t *testing.T) {
+	// Test for int type
+	intResult := mathutils.AbsVal[int](-5)
+	if intResult != 5 {
+		t.Errorf("Expected AbsVal of -5 to be 5 for int type, but got %v", intResult)
+	}
+
+	intResultPos := mathutils.AbsVal[int](5)
+	if intResultPos != 5 {
+		t.Errorf("Expected AbsVal of 5 to be 5 for int type, but got %v", intResultPos)
+	}
+
+	// Test for float32 type
+	floatResult := mathutils.AbsVal[float32](-5.5)
+	if floatResult != 5.5 {
+		t.Errorf("Expected AbsVal of -5.5 to be 5.5 for float32 type, but got %v", floatResult)
+	}
+
+	floatResultPos := mathutils.AbsVal[float32](5.5)
+	if floatResultPos != 5.5 {
+		t.Errorf("Expected AbsVal of 5.5 to be 5.5 for float32 type, but got %v", floatResultPos)
+	}
+}
+
 func TestMaxValue(t *testing.T) {
 	// float32
 	if val := mathutils.MaxValue[float32](); val != math.MaxFloat32 {
