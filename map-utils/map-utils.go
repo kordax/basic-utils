@@ -6,6 +6,18 @@
 
 package maputils
 
+// Contains checks if map contains specified element.
+// Returns value if found, nil otherwise.
+func Contains[K comparable, T comparable](e T, values map[K]T) *T {
+	for _, v := range values {
+		if v == e {
+			return &v
+		}
+	}
+
+	return nil
+}
+
 // ContainsPredicate checks if map contains specified struct element matching a predicate.
 // Returns value if found, nil otherwise.
 func ContainsPredicate[K comparable, T any](predicate func(k K, v *T) bool, values map[K]T) *T {
