@@ -54,12 +54,98 @@ func TestValOrMin(t *testing.T) {
 	}
 }
 
-// ... Add tests for other functions in a similar fashion ...
-
-func TestAvgInt(t *testing.T) {
+func TestAvg(t *testing.T) {
 	array := []int{1, 2, 3, 4, 5}
 	if mathutils.Avg(array) != 3 {
 		t.Error("Expected average value of 3")
+	}
+}
+
+func TestAvgFloat(t *testing.T) {
+	tests := []struct {
+		name     string
+		array    []float64
+		expected float64
+	}{
+		{
+			name:     "With large values",
+			array:    []float64{math.MaxInt32, math.MaxInt32, math.MaxInt32},
+			expected: float64(math.MaxInt32),
+		},
+		{
+			name:     "With negative large values",
+			array:    []float64{math.MinInt32, math.MinInt32, math.MinInt32},
+			expected: float64(math.MinInt32),
+		},
+		{
+			name:     "Mixed large and small values",
+			array:    []float64{math.MaxInt32, 0, math.MinInt32},
+			expected: -0.3333333333333333,
+		},
+		{
+			name:     "Repeated number sequence",
+			array:    []float64{1, 2, 3, 1, 2, 3, 1, 2, 3},
+			expected: 2,
+		},
+		{
+			name:     "With zero crossings",
+			array:    []float64{-3, -2, -1, 0, 1, 2, 3},
+			expected: 0,
+		},
+		{
+			name:     "Array of length just below max int32",
+			array:    make([]float64, 100),
+			expected: 0, // since all are initialized to 0
+		},
+		{
+			name:     "Array with multiple zeros",
+			array:    []float64{0, 0, 0, 0, 0},
+			expected: 0,
+		},
+		{
+			name:     "Array with alternating zeros and ones",
+			array:    []float64{0, 1, 0, 1, 0, 1, 0, 1, 0},
+			expected: 0.4444444444444444, // 4 ones divided by 9
+		},
+		{
+			name:     "Involving very small numbers",
+			array:    []float64{1e-10, 1e-10, 1e-10},
+			expected: 1e-10,
+		},
+		{
+			name:     "Involving very large numbers",
+			array:    []float64{1e10, 1e10, 1e10},
+			expected: 1e10,
+		},
+		{
+			name:     "Mix of very small and very large numbers",
+			array:    []float64{1e-10, 1e10, 1e-10},
+			expected: (1e-10 + 1e10 + 1e-10) / 3,
+		},
+		{
+			name:     "Numbers around machine epsilon",
+			array:    []float64{math.SmallestNonzeroFloat64, math.SmallestNonzeroFloat64, math.SmallestNonzeroFloat64},
+			expected: math.SmallestNonzeroFloat64,
+		},
+		{
+			name:     "A sequence with expected average close to zero",
+			array:    []float64{1.1, 2.2, 3.3, -1.1, -2.2, -3.3},
+			expected: 0,
+		},
+		{
+			name:     "Values leading to potential precision loss",
+			array:    []float64{0.1, 0.2, 0.3},
+			expected: 0.2,
+		},
+	}
+
+	tolerance := 1e-16
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if result := mathutils.AvgFloat(test.array); math.Abs(result-test.expected) > tolerance {
+				t.Errorf("Expected average of %v to be %v, but got %v", test.array, test.expected, result)
+			}
+		})
 	}
 }
 

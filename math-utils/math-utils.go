@@ -122,6 +122,17 @@ func Avg[T basic_utils.Numeric](array []T) T {
 	return sum / T(len(array))
 }
 
+// AvgFloat returns average value from the array as float64
+func AvgFloat[T basic_utils.Numeric](array []T) float64 {
+	if len(array) == 0 {
+		return 0
+	}
+
+	sum := Sum(array)
+
+	return float64(sum) / float64(T(len(array)))
+}
+
 func Med[T basic_utils.Numeric](array []T) T {
 	if len(array) == 0 {
 		return 0.0
