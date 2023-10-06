@@ -17,6 +17,7 @@ jobs:
         run: go test ./... -coverprofile=./cover.out
     
       - name: check test coverage
+        id: coverage
         uses: vladopajic/go-test-coverage@v2
         with:
           # Configure action using config file (option 1)
@@ -32,6 +33,8 @@ jobs:
         uses: action-badges/core@0.2.2
         if: contains(github.ref, 'main')
         with:
+          message: ${{ steps.coverage.outputs.badge-text }}
+          message-color: ${{ steps.coverage.outputs.badge-color }}
           label: Coverage
           file-name: coverage.svg
           badge-branch: badges ## orphan branch where badge will be committed
