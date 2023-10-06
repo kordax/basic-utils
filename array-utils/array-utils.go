@@ -9,6 +9,7 @@ package arrayutils
 import (
 	"sort"
 
+	maputils "github.com/kordax/basic-utils/map-utils"
 	"golang.org/x/exp/constraints"
 )
 
@@ -240,16 +241,17 @@ func Uniq[V any, F comparable](values []V, getter func(v *V) F) []V {
 
 // GroupBy groups and aggregates elements with aggregator method func
 func GroupBy[V any, G comparable](values []V, group func(v *V) G, aggregator func(v1, v2 *V) V) []V {
-	result := make([]V, 0)
+	result := make(map[G]V)
 	for _, v := range values {
-		if ind, _ := ContainsPredicate(result, func(i *V) bool { return group(i) == group(&v) }); ind == -1 {
-			result = append(result, v)
+		g := group(&v)
+		if existing, contains := result[g]; contains {
+			result[g] = aggregator(&existing, &v)
 		} else {
-			result[ind] = aggregator(&result[ind], &v)
+			result[g] = v
 		}
 	}
 
-	return result
+	return maputils.Values(result)
 }
 
 // GroupToMapBy groups elements with group method func
