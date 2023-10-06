@@ -281,10 +281,6 @@ func CollectAsMap[K comparable, V, R any](values []V, key func(v *V) K, val func
 	return result
 }
 
-func equals[T comparable](t1, t2 T) bool {
-	return t1 == t2
-}
-
 // EqualsWithOrder compares two slices taking into consideration elements order
 func EqualsWithOrder[T comparable](left []T, right []T) bool {
 	if len(left) != len(right) {
@@ -397,4 +393,8 @@ func Merge[K comparable, T any](t1 []T, t2 []T, key func(t1 *T) K) []T {
 	}
 
 	return result
+}
+
+func equals[T comparable](t1, t2 T) bool {
+	return t1 == t2
 }
