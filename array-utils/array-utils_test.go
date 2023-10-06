@@ -7,6 +7,9 @@
 package arrayutils_test
 
 import (
+	"fmt"
+	"reflect"
+	"sort"
 	"testing"
 
 	arrayutils "github.com/kordax/basic-utils/array-utils"
@@ -196,5 +199,213 @@ func TestAnyMatch(t *testing.T) {
 	match = arrayutils.AnyMatch(slice, predicate)
 	if match {
 		t.Errorf("Expected AnyMatch to return false, but got true")
+	}
+}
+
+func TestFilter(t *testing.T) {
+	values := []int{1, 2, 3, 4, 5}
+	filtered := arrayutils.Filter(values, func(v *int) bool {
+		return *v%2 == 0
+	})
+	if !reflect.DeepEqual(filtered, []int{2, 4}) {
+		t.Error("Filter function failed")
+	}
+}
+
+func TestFilterAll(t *testing.T) {
+	values := []int{1, 2, 3, 4, 5}
+	matching, nonMatching := arrayutils.FilterAll(values, func(v *int) bool {
+		return *v%2 == 0
+	})
+	if !reflect.DeepEqual(matching, []int{2, 4}) || !reflect.DeepEqual(nonMatching, []int{1, 3, 5}) {
+		t.Error("FilterAll function failed")
+	}
+}
+
+func TestFilterBySet(t *testing.T) {
+	values := []int{1, 2, 3, 4, 5}
+	filter := []int{2, 4}
+	filtered := arrayutils.FilterBySet(values, filter)
+	if !reflect.DeepEqual(filtered, []int{2, 4}) {
+		t.Error("FilterBySet function failed")
+	}
+}
+
+func TestFind(t *testing.T) {
+	values := []int{1, 2, 3, 4, 5}
+	found := arrayutils.Find(values, func(v *int) bool {
+		return *v == 3
+	})
+	if *found != 3 {
+		t.Error("Find function failed")
+	}
+}
+
+func TestMapAggr(t *testing.T) {
+	values := []int{1, 2, 3}
+	result := arrayutils.MapAggr(values, func(v *int) []string {
+		return []string{fmt.Sprintf("%d-item", *v)}
+	})
+	expected := []string{"1-item", "2-item", "3-item"}
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("MapAggr function failed")
+	}
+}
+
+func TestMap(t *testing.T) {
+	values := []int{1, 2, 3}
+	result := arrayutils.Map(values, func(v *int) string {
+		return fmt.Sprintf("%d-item", *v)
+	})
+	expected := []string{"1-item", "2-item", "3-item"}
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("Map function failed")
+	}
+}
+
+func TestFlatMap(t *testing.T) {
+	values := [][]int{{1, 2}, {3, 4}}
+	result := arrayutils.FlatMap(values, func(v *int) string {
+		return fmt.Sprintf("%d-item", *v)
+	})
+	expected := []string{"1-item", "2-item", "3-item", "4-item"}
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("FlatMap function failed")
+	}
+}
+
+func TestFlat(t *testing.T) {
+	values := [][]int{{1, 2}, {3, 4}}
+	result := arrayutils.Flat(values)
+	expected := []int{1, 2, 3, 4}
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("Flat function failed")
+	}
+}
+
+func TestToMap(t *testing.T) {
+	values := []string{"apple", "banana"}
+	result := arrayutils.ToMap(values, func(v *string) (int, string) {
+		return len(*v), *v
+	})
+	expected := map[int]string{5: "apple", 6: "banana"}
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("ToMap function failed")
+	}
+}
+
+func TestToMultiMap(t *testing.T) {
+	values := []string{"apple", "banana", "cherry"}
+	result := arrayutils.ToMultiMap(values, func(v *string) (int, string) {
+		return len(*v), *v
+	})
+	expected := map[int][]string{5: {"apple"}, 6: {"banana", "cherry"}}
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("ToMultiMap function failed")
+	}
+}
+
+func TestUniq(t *testing.T) {
+	values := []int{1, 2, 2, 3, 3, 3}
+	unique := arrayutils.Uniq(values, func(v *int) int {
+		return *v
+	})
+	if !reflect.DeepEqual(unique, []int{1, 2, 3}) {
+		t.Error("Uniq function failed")
+	}
+}
+
+func TestGroupBy(t *testing.T) {
+	values := []int{1, 2, 3, 4, 5}
+	grouped := arrayutils.GroupBy(values, func(v *int) bool {
+		return (*v)%2 == 0
+	}, func(v1, v2 *int) int {
+		return *v1 + *v2
+	})
+	expected := []int{9, 6}
+	if !reflect.DeepEqual(grouped, expected) {
+		t.Error("GroupBy function failed")
+	}
+}
+
+func TestGroupToMapBy(t *testing.T) {
+	values := []string{"apple", "banana", "cherry"}
+	result := arrayutils.GroupToMapBy(values, func(v *string) int {
+		return len(*v)
+	})
+	expected := map[int][]string{5: {"apple"}, 6: {"banana", "cherry"}}
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("GroupToMapBy function failed")
+	}
+}
+
+func TestCopyWithoutIndex(t *testing.T) {
+	src := []int{1, 2, 3, 4, 5}
+	cpy := arrayutils.CopyWithoutIndex(src, 2)
+	if !reflect.DeepEqual(cpy, []int{1, 2, 4, 5}) {
+		t.Error("CopyWithoutIndex function failed")
+	}
+}
+
+func TestCollectAsMap(t *testing.T) {
+	values := []string{"apple", "banana"}
+	result := arrayutils.CollectAsMap(values, func(v *string) int {
+		return len(*v)
+	}, func(v string) string {
+		return v
+	})
+	expected := map[int]string{5: "apple", 6: "banana"}
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("CollectAsMap function failed")
+	}
+}
+
+func TestEqualsWithOrder(t *testing.T) {
+	left := []int{1, 2, 3}
+	right := []int{1, 2, 3}
+	if !arrayutils.EqualsWithOrder(left, right) {
+		t.Error("EqualsWithOrder function failed")
+	}
+}
+
+func TestEqualValues(t *testing.T) {
+	left := []int{3, 1, 2}
+	right := []int{1, 2, 3}
+	if !arrayutils.EqualValues(left, right) {
+		t.Error("EqualValues function failed")
+	}
+}
+
+func TestMapKeys(t *testing.T) {
+	m := map[string]int{"apple": 1, "banana": 2}
+	keys := arrayutils.MapKeys(m)
+	expected := []string{"apple", "banana"}
+	sort.Strings(keys)
+	sort.Strings(expected)
+	if !reflect.DeepEqual(keys, expected) {
+		t.Error("MapKeys function failed")
+	}
+}
+
+func TestMapValues(t *testing.T) {
+	m := map[string]int{"apple": 1, "banana": 2}
+	values := arrayutils.MapValues(m)
+	expected := []int{1, 2}
+	sort.Ints(values)
+	sort.Ints(expected)
+	if !reflect.DeepEqual(values, expected) {
+		t.Error("MapValues function failed")
+	}
+}
+
+func TestMerge(t *testing.T) {
+	t1 := []int{1, 2, 3}
+	t2 := []int{3, 4, 5}
+	merged := arrayutils.Merge(t1, t2, func(t1 *int) int {
+		return *t1
+	})
+	expected := []int{1, 2, 3, 4, 5}
+	if !reflect.DeepEqual(merged, expected) {
+		t.Error("Merge function failed")
 	}
 }
