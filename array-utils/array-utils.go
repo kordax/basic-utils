@@ -380,16 +380,20 @@ func MapValues[K comparable, V any](m map[K]V) []V {
 }
 
 // Merge merges two slices with t1 elements prioritized against elements of t2.
-func Merge[K comparable, T any](t1 []T, t2 []T, key func(t1 *T) K) []T {
-	var hashes map[K]struct{}
+func Merge[K comparable, T any](t1 []T, t2 []T, key func(t *T) K) []T {
+	hashes := make(map[K]struct{})
 	var result []T
 	for _, t := range t1 {
-		if _, ok := hashes[key(&t)]; !ok {
+		k := key(&t)
+		if _, ok := hashes[k]; !ok {
+			hashes[k] = struct{}{}
 			result = append(result, t)
 		}
 	}
 	for _, t := range t2 {
-		if _, ok := hashes[key(&t)]; !ok {
+		k := key(&t)
+		if _, ok := hashes[k]; !ok {
+			hashes[k] = struct{}{}
 			result = append(result, t)
 		}
 	}
