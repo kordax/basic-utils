@@ -58,7 +58,7 @@ func TestValOrMin(t *testing.T) {
 
 func TestAvgInt(t *testing.T) {
 	array := []int{1, 2, 3, 4, 5}
-	if mathutils.AvgInt(array) != 3 {
+	if mathutils.Avg(array) != 3 {
 		t.Error("Expected average value of 3")
 	}
 }
