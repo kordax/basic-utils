@@ -203,6 +203,8 @@ func (o Opt[T]) Value() (driver.Value, error) {
 			return driver.Value(int64(*p)), nil
 		case *float32:
 			return driver.Value(float64(*p)), nil
+		case *float64:
+			return driver.Value(*p), nil
 		case driver.Valuer:
 			return p.Value()
 		}
