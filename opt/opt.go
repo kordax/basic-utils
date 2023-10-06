@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"time"
 
-	mathutils "github.com/kordax/basic-utils/math-utils"
+	basic_utils "github.com/kordax/basic-utils"
 	refutils "github.com/kordax/basic-utils/ref-utils"
 )
 
@@ -94,7 +94,7 @@ func OfBool(v bool) Opt[bool] {
 }
 
 // OfNumeric creates an Opt containing a numeric value, or a null Opt if the value is 0.
-func OfNumeric[T mathutils.Numeric](v T) Opt[T] {
+func OfNumeric[T basic_utils.Numeric](v T) Opt[T] {
 	if v == 0 {
 		return Null[T]()
 	}
@@ -116,7 +116,7 @@ func OfCond[T any](v T, cond func(v *T) bool) Opt[T] {
 }
 
 // OfUnix creates an Opt containing a time.Time value based on a Unix timestamp.
-func OfUnix[T mathutils.SignedNumeric](v T) Opt[time.Time] {
+func OfUnix[T basic_utils.SignedNumeric](v T) Opt[time.Time] {
 	return Opt[time.Time]{
 		v: refutils.Ref(time.Unix(int64(v), 0)),
 	}
