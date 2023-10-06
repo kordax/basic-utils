@@ -7,8 +7,10 @@
 package opt_test
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"testing"
 	"time"
@@ -576,6 +578,13 @@ func TestOpt_MarshalJSON(t *testing.T) {
 	}
 }
 
+// Test for driver.Valuer type
+type customType struct{}
+
+func (c customType) Value() (driver.Value, error) {
+	return "customValue", nil
+}
+
 func TestOpt_Value(t *testing.T) {
 	// Test for integer type
 	optInt := opt.Of(123)
@@ -596,6 +605,89 @@ func TestOpt_Value(t *testing.T) {
 	val, err = optTime.Value()
 	if err != nil || val.(time.Time).Unix() != optTime.Get().Unix() {
 		t.Errorf("Value method failed for time type: %v", err)
+	}
+
+	// Test for int8 type
+	optInt8 := opt.Of(int8(123))
+	val, err = optInt8.Value()
+	if err != nil || val != int64(123) {
+		t.Errorf("Value method failed for int8 type: %v", err)
+	}
+
+	// Test for int16 type
+	optInt16 := opt.Of(int16(12345))
+	val, err = optInt16.Value()
+	if err != nil || val != int64(12345) {
+		t.Errorf("Value method failed for int16 type: %v", err)
+	}
+
+	// Test for int32 type
+	optInt32 := opt.Of(int32(123456789))
+	val, err = optInt32.Value()
+	if err != nil || val != int64(123456789) {
+		t.Errorf("Value method failed for int32 type: %v", err)
+	}
+
+	// Test for uint type
+	optUint := opt.Of(uint(123))
+	val, err = optUint.Value()
+	if err != nil || val != int64(123) {
+		t.Errorf("Value method failed for uint type: %v", err)
+	}
+
+	// Test for uint8 type
+	optUint8 := opt.Of(uint8(123))
+	val, err = optUint8.Value()
+	if err != nil || val != int64(123) {
+		t.Errorf("Value method failed for uint8 type: %v", err)
+	}
+
+	// Test for uint16 type
+	optUint16 := opt.Of(uint16(12345))
+	val, err = optUint16.Value()
+	if err != nil || val != int64(12345) {
+		t.Errorf("Value method failed for uint16 type: %v", err)
+	}
+
+	// Test for uint32 type
+	optUint32 := opt.Of(uint32(123456789))
+	val, err = optUint32.Value()
+	if err != nil || val != int64(123456789) {
+		t.Errorf("Value method failed for uint32 type: %v", err)
+	}
+
+	// Test for uint64 type
+	optUint64 := opt.Of(uint64(1234567890123456789))
+	val, err = optUint64.Value()
+	if err != nil || val != int64(1234567890123456789) {
+		t.Errorf("Value method failed for uint64 type: %v", err)
+	}
+
+	// Test for float32 type
+	optFloat32 := opt.Of(float32(123.45))
+	val, err = optFloat32.Value()
+	if err != nil || math.Abs(val.(float64)-123.4) <= 1e-16 {
+		t.Errorf("Value method failed for float32 type: %v", err)
+	}
+
+	// Test for float64 type
+	optFloat64 := opt.Of(123.45)
+	val, err = optFloat64.Value()
+	if err != nil || val != 123.45 {
+		t.Errorf("Value method failed for float64 type: %v", err)
+	}
+
+	optValuer := opt.Of(customType{})
+	val, err = optValuer.Value()
+	if err != nil || val != "customValue" {
+		t.Errorf("Value method failed for driver.Valuer type: %v", err)
+	}
+
+	// Test for generic type not explicitly handled
+	optString := opt.Of("testString")
+	val, err = optString.Value()
+	if err != nil || val != "testString" {
+		t.Errorf("Value method failed for generic type: %v", err)
 	}
 }
 
@@ -810,6 +902,13 @@ func TestOpt_Scan(t *testing.T) {
 		t.Errorf("Scan method failed for float32 type with float32 input: %v", err)
 	}
 
+	// Test for float32 type
+	optFloat64Float := opt.Opt[float64]{}
+	err = optFloat64Float.Scan(3.1415926535)
+	if err != nil || !optFloat64Float.Present() || *optFloat64Float.Get() != 3.1415926535 {
+		t.Errorf("Scan method failed for float64 type with float32 input: %v", err)
+	}
+
 	// Test for string type
 	optStrFloat64 := opt.Opt[string]{}
 	err = optStrFloat64.Scan(float32(3.1415926535))
@@ -818,9 +917,9 @@ func TestOpt_Scan(t *testing.T) {
 	}
 
 	// Test for float64 type
-	optFloat64Float := opt.Opt[float64]{}
-	err = optFloat64Float.Scan(3.1415926535)
-	if err != nil || !optFloat64Float.Present() || *optFloat64Float.Get() != 3.1415926535 {
+	optFloat64Float32 := opt.Opt[float64]{}
+	err = optFloat64Float32.Scan(float32(3.1415926535))
+	if err != nil || !optFloat64Float32.Present() || math.Abs(*optFloat64Float32.Get()-3.1415926535) <= 1e-16 {
 		t.Errorf("Scan method failed for float64 type with float64 input: %v", err)
 	}
 
