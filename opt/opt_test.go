@@ -282,7 +282,7 @@ func TestMarshalJSON(t *testing.T) {
 	o = opt.Null[int]()
 	data, err = o.MarshalJSON()
 	assert.NoError(t, err)
-	expectedData = []byte(`0`)
+	expectedData = []byte("null")
 	if string(data) != string(expectedData) {
 		assert.Fail(t, fmt.Sprintf("Expected MarshalJSON to return %s, but got %s", expectedData, data))
 	}
@@ -566,7 +566,7 @@ func TestOpt_MarshalJSON(t *testing.T) {
 	// Test for null value
 	optInt = opt.Null[int]()
 	data, err = json.Marshal(optInt)
-	if err != nil || string(data) != "0" {
+	if err != nil || string(data) != "null" {
 		t.Errorf("MarshalJSON failed for 0 value: %v", err)
 	}
 
