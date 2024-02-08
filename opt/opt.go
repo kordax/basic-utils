@@ -173,7 +173,7 @@ func (o *Opt[T]) UnmarshalJSON(bytes []byte) error {
 // MarshalJSON implements the json.Marshaler interface for the Opt type.
 func (o Opt[T]) MarshalJSON() ([]byte, error) {
 	if !o.Present() {
-		return json.Marshal(new(T))
+		return []byte("null"), nil
 	}
 
 	return json.Marshal(o.Get())
