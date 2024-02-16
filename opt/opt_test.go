@@ -204,6 +204,21 @@ func TestOrElse(t *testing.T) {
 	}
 }
 
+// TestOrDef tests the OrDef method.
+func TestOrDef(t *testing.T) {
+	o := opt.Null[int]()
+	result := o.OrDef()
+	if result != 0 {
+		assert.Fail(t, fmt.Sprintf("Expected OrElse to return 0, but got %v", result))
+	}
+
+	o = opt.Of(24)
+	result = o.OrDef()
+	if result != 24 {
+		assert.Fail(t, fmt.Sprintf("Expected OrElse to return 24, but got %v", result))
+	}
+}
+
 // TestGet tests the Get method.
 func TestGet(t *testing.T) {
 	o := opt.Of[int](42)
