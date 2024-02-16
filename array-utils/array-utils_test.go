@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	arrayutils "github.com/kordax/basic-utils/array-utils"
+	"github.com/stretchr/testify/require"
 )
 
 type MyStruct struct {
@@ -322,10 +323,10 @@ func TestGroupBy(t *testing.T) {
 	}, func(v1, v2 *int) int {
 		return *v1 + *v2
 	})
-	expected := []int{9, 6}
-	if !reflect.DeepEqual(grouped, expected) {
-		t.Error("GroupBy function failed")
-	}
+	sort.Slice(grouped, func(i, j int) bool {
+		return grouped[i] < grouped[j]
+	})
+	require.Equal(t, []int{6, 9}, grouped)
 }
 
 func TestGroupToMapBy(t *testing.T) {
