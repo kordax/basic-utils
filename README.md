@@ -42,10 +42,18 @@ go get -u github.com/kordax/basic-utils
 
 ## Usage
 
-Each module can be imported individually based on your needs. For example, to use the queue library:
+You can import each module individually or import the main module and it depends on your needs. For example, to use the queue library:
 
 ```go
+go get -u github.com/kordax/basic-utils/queue
+...
 import "github.com/kordax/basic-utils/queue"
+```
+Or you can do:
+```go
+go get -u github.com/kordax/basic-utils
+...
+import "github.com/kordax/basic-utils"
 ```
 
 Then, refer to the individual documentation or code comments of each module for specific usage patterns.
