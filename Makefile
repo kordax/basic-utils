@@ -1,4 +1,4 @@
-.PHONY: test tag
+.PHONY: test tag tidy
 SUBMODULES := array-utils async-utils map-utils math-utils number opt queue ref-utils str-utils
 
 test:
@@ -17,4 +17,12 @@ endif
 		echo "Tagging $$submodule with $(VERSION)"; \
 		git tag $$submodule/$(VERSION); \
 		git push origin $$submodule/$(VERSION); \
+	done
+
+tidy:
+	@echo "Go mod tidy in all submodules..."
+	@find . -type f -name 'go.mod' -not -path "./vendor/*" | while read modfile; do \
+		dir=$$(dirname $$modfile); \
+		echo "go mod tidy in $$dir"; \
+		(cd $$dir && go mod tidy); \
 	done
