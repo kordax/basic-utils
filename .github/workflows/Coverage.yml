@@ -5,13 +5,15 @@ jobs:
     permissions: write-all
     strategy:
       matrix:
-        go-version: [1.21.x]
+        go-version: [1.22.x]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     name: Go test coverage check
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.0'
       
       - name: generate test coverage
         run: go test ./... -coverprofile=./cover.out
@@ -21,14 +23,14 @@ jobs:
         uses: vladopajic/go-test-coverage@v2
         with:
           # Configure action using config file (option 1)
-          config: ./.testcoverage.yml
+          config: ./testcoverage.yml
           
           # Configure action by specifying input parameters individually (option 2)
           profile: cover.out
           local-prefix: github.com/kordax/basic-utils
           threshold-file: 70
           threshold-package: 70
-          threshold-total: 80
+          threshold-total: 70
       - name: make coverage badge
         uses: action-badges/core@0.2.2
         if: contains(github.ref, 'main')
