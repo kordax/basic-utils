@@ -144,9 +144,9 @@ func (o Opt[T]) Get() *T {
 	return o.v
 }
 
-// OrDef behaves as Get, but the returns default value if value is not present,
-// OrDef is an alias to OrElse(*new(T))
-func (o Opt[T]) OrDef() T {
+// Def behaves as Get, but the returns default value if value is not present,
+// Def is an alias to OrElse(*new(T))
+func (o Opt[T]) Def() T {
 	return o.OrElse(*new(T))
 }
 
