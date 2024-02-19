@@ -55,13 +55,13 @@ func TestPriorityQueue10k(t *testing.T) {
 	const n = 10000
 
 	// Concurrently enqueuing
-	for i := 0; i < n; i++ {
+	for i := range n {
 		pq.Queue(i, i)
 	}
 
 	// Concurrently dequeuing
 	fetched := make([]bool, n)
-	for i := 0; i < n; i++ {
+	for _ = range n {
 		item := pq.Poll(10 * time.Second)
 		if !item.Present() {
 			t.Fatal("Unexpected nil during Poll")
@@ -70,7 +70,7 @@ func TestPriorityQueue10k(t *testing.T) {
 	}
 
 	// Ensure every item from 0 to n-1 was fetched
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if !fetched[i] {
 			t.Fatalf("Did not fetch %d from the queue", i)
 		}
@@ -82,12 +82,12 @@ func TestPriorityQueueImpl_Len(t *testing.T) {
 	const n = 1000
 	const n2 = 2347
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		q.Queue(i, i)
 	}
 	assert.EqualValues(t, n, q.Len())
 
-	for i := 0; i < n2; i++ {
+	for i := range n2 {
 		q.Queue(i, i)
 	}
 	assert.EqualValues(t, n+n2, q.Len())

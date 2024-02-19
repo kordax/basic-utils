@@ -52,12 +52,12 @@ func TestFIFOQueueImpl_Len(t *testing.T) {
 	const n = 1000
 	const n2 = 2347
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		q.Queue(i)
 	}
 	assert.EqualValues(t, n, q.Len())
 
-	for i := 0; i < n2; i++ {
+	for i := range n2 {
 		q.Queue(i)
 	}
 	assert.EqualValues(t, n+n2, q.Len())

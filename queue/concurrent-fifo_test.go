@@ -19,7 +19,7 @@ func TestConcurrentFIFOQueueRaceConditions(t *testing.T) {
 	const n = 1000
 
 	var wg sync.WaitGroup
-	for i := 0; i < n; i++ {
+	for i := range n {
 		q.Queue(i)
 	}
 
@@ -28,7 +28,7 @@ func TestConcurrentFIFOQueueRaceConditions(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for i := 0; i < n; i++ {
+		for i := range n {
 			if v := q.Fetch(); v.Present() {
 				results <- v.OrElse(-i)
 			}
@@ -57,14 +57,14 @@ func TestConcurrentFIFOQueueConcurrentPolls(t *testing.T) {
 	const n = 1000
 
 	var wg sync.WaitGroup
-	for i := 0; i < n; i++ {
+	for i := range n {
 		q.Queue(i)
 		time.Sleep(time.Microsecond) // Simulate some workload.
 	}
 
 	// Concurrently poll numbers.
 	results := make(chan int, n)
-	for i := 0; i < n; i++ {
+	for _ = range n {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -96,12 +96,12 @@ func TestConcurrentFIFOQueueImpl_Len(t *testing.T) {
 	const n = 1000
 	const n2 = 2347
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		q.Queue(i)
 	}
 	assert.EqualValues(t, n, q.Len())
 
-	for i := 0; i < n2; i++ {
+	for i := range n2 {
 		q.Queue(i)
 	}
 	assert.EqualValues(t, n+n2, q.Len())
