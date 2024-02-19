@@ -7,6 +7,7 @@
 package refutils_test
 
 import (
+	"fmt"
 	"testing"
 
 	refutils "github.com/kordax/basic-utils/ref-utils"
@@ -92,5 +93,19 @@ func TestDo(t *testing.T) {
 
 	if res != nil {
 		t.Errorf("Expected nil, but got a value")
+	}
+}
+
+func TestDef(t *testing.T) {
+	var nilStr *string
+	result := refutils.Def[string](nilStr)
+	if result != "" {
+		t.Errorf("Expected nil, but got a value")
+	}
+
+	str := "test1524"
+	result = refutils.Def[string](str)
+	if result != str {
+		t.Errorf(fmt.Sprintf("Expected %s, but got another value: %s", str, result))
 	}
 }
