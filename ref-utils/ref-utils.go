@@ -51,3 +51,8 @@ func Do[T any](ptr *T, do func(v T) *T) *T {
 		return do(*ptr)
 	}
 }
+
+// Def behaves as Or(val, *new(R)), so it returns default value if value is not present,
+func Def[R any](val any) R {
+	return Or(val, *new(R))
+}
