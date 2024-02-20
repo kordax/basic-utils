@@ -5,7 +5,7 @@ go 1.22.0
 replace github.com/kordax/basic-utils => ../
 
 require (
-	github.com/kordax/basic-utils v0.0.0-00010101000000-000000000000
+	github.com/kordax/basic-utils v1.0.0
 	github.com/kordax/basic-utils/ref-utils v0.0.0-20240219144024-00e919e1239a
 	github.com/stretchr/testify v1.8.4
 )
