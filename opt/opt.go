@@ -307,13 +307,13 @@ func (o *Opt[T]) Scan(src interface{}) error {
 				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", src)
 			}
 		case **float32:
-			val, err := strconv.ParseFloat(src.(string), 10)
+			val, err := strconv.ParseFloat(src.(string), 32)
 			*ptr = refutils.Ref(float32(val))
 			if err != nil {
 				return fmt.Errorf("failed to parse varchar sql value to float opt: %s", src)
 			}
 		case **float64:
-			val, err := strconv.ParseFloat(src.(string), 10)
+			val, err := strconv.ParseFloat(src.(string), 64)
 			*ptr = refutils.Ref(val)
 			if err != nil {
 				return fmt.Errorf("failed to parse varchar sql value to float opt: %s", src)
