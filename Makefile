@@ -30,6 +30,16 @@ tidy:
 		(cd $$dir && go mod tidy); \
 	done
 
+vet:
+	@echo "Go vet + staticcheck in all submodules..."
+	@find . -type f -name 'go.mod' -not -path "./vendor/*" | while read modfile; do \
+		dir=$$(dirname $$modfile); \
+		echo "go vet in $$dir"; \
+		(cd $$dir && go vet ./...); \
+		echo "staticcheck in $$dir"; \
+		(cd $$dir && staticcheck .); \
+	done
+
 .PHONY: install-go-test-coverage
 install-go-test-coverage:
 	go install github.com/vladopajic/go-test-coverage/v2@latest
