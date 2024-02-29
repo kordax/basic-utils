@@ -4,7 +4,7 @@
  * Copyright (c) 2023.
  */
 
-package async_utils
+package asyncutils
 
 import (
 	"context"
@@ -23,7 +23,6 @@ type AsyncTask[R any] struct {
 	fn         func() (*R, error) // The function that represents the async task.
 	cancelFunc context.CancelFunc // Function to cancel the task.
 	retries    int                // Number of times to retry the task on failure.
-	id         uint64             // Unique identifier for the task.
 
 	f    Future[R]                   // A future object to represent the result or error of the task.
 	done *arrayutils.Pair[*R, error] // A pair containing the result and error of the task.

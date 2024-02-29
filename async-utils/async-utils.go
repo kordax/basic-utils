@@ -4,7 +4,7 @@
  * Copyright (c) 2023.
  */
 
-package async_utils
+package asyncutils
 
 import (
 	"context"

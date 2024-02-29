@@ -4,13 +4,15 @@
  * Copyright (c) 2023.
  */
 
-package async_utils
+package asyncutils_test
 
 import (
 	"errors"
 	"math/rand"
 	"testing"
 	"time"
+
+	asyncutils "github.com/kordax/basic-utils/async-utils"
 )
 
 func TestAsyncTaskPotentialRace(t *testing.T) {
@@ -21,7 +23,7 @@ func TestAsyncTaskPotentialRace(t *testing.T) {
 		return &res, nil
 	}
 
-	task := NewAsyncTask[int](taskFunc, nil, 3)
+	task := asyncutils.NewAsyncTask[int](taskFunc, nil, 3)
 	task.ExecuteAsync()
 
 	// This sleep mimics a possible race window.
@@ -45,7 +47,7 @@ func TestAsyncTaskPotentialRace(t *testing.T) {
 }
 
 func TestAsyncTask_Success(t *testing.T) {
-	task := NewAsyncTask(func() (*int, error) {
+	task := asyncutils.NewAsyncTask(func() (*int, error) {
 		time.Sleep(50 * time.Millisecond)
 		val := 5
 		return &val, nil
@@ -65,7 +67,7 @@ func TestAsyncTask_Success(t *testing.T) {
 
 func TestAsyncTask_RetryOnFailure(t *testing.T) {
 	attempts := 0
-	task := NewAsyncTask(func() (*int, error) {
+	task := asyncutils.NewAsyncTask(func() (*int, error) {
 		attempts++
 		if attempts < 3 {
 			return nil, errors.New("failure")
@@ -87,7 +89,7 @@ func TestAsyncTask_RetryOnFailure(t *testing.T) {
 }
 
 func TestAsyncTask_FailAfterRetries(t *testing.T) {
-	task := NewAsyncTask(func() (*int, error) {
+	task := asyncutils.NewAsyncTask(func() (*int, error) {
 		return nil, errors.New("failure")
 	}, nil, 3)
 
@@ -104,7 +106,7 @@ func TestAsyncTask_FailAfterRetries(t *testing.T) {
 }
 
 func TestAsyncTask_TimeoutBeforeCompletion(t *testing.T) {
-	task := NewAsyncTask(func() (*int, error) {
+	task := asyncutils.NewAsyncTask(func() (*int, error) {
 		time.Sleep(15 * time.Second)
 		val := 5
 		return &val, nil
@@ -113,13 +115,13 @@ func TestAsyncTask_TimeoutBeforeCompletion(t *testing.T) {
 	task.ExecuteAsync()
 
 	_, err := task.Wait(100 * time.Millisecond)
-	if !IsTimeoutError(err) {
+	if !asyncutils.IsTimeoutError(err) {
 		t.Fatalf("Expected a timeout error, but got: %v", err)
 	}
 }
 
 func TestAsyncTask_TimeoutAfterCompletion(t *testing.T) {
-	task := NewAsyncTask(func() (*int, error) {
+	task := asyncutils.NewAsyncTask(func() (*int, error) {
 		time.Sleep(50 * time.Millisecond)
 		val := 5
 		return &val, nil
@@ -138,7 +140,7 @@ func TestAsyncTask_TimeoutAfterCompletion(t *testing.T) {
 }
 
 func TestAsyncTask_ConcurrentWaits(t *testing.T) {
-	task := NewAsyncTask(func() (*int, error) {
+	task := asyncutils.NewAsyncTask(func() (*int, error) {
 		time.Sleep(50 * time.Millisecond)
 		val := 5
 		return &val, nil

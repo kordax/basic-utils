@@ -4,13 +4,15 @@
  * Copyright (c) 2023.
  */
 
-package async_utils
+package asyncutils_test
 
 import (
 	"context"
 	"errors"
 	"testing"
 	"time"
+
+	asyncutils "github.com/kordax/basic-utils/async-utils"
 )
 
 func TestExecute(t *testing.T) {
@@ -21,7 +23,7 @@ func TestExecute(t *testing.T) {
 		}
 		cancelFunc := context.CancelFunc(func() {})
 
-		result, err := Execute(fn, cancelFunc, 1*time.Second)
+		result, err := asyncutils.Execute(fn, cancelFunc, 1*time.Second)
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
@@ -38,11 +40,11 @@ func TestExecute(t *testing.T) {
 		}
 		cancelFunc := context.CancelFunc(func() {})
 
-		_, err := Execute(fn, cancelFunc, 1*time.Second)
+		_, err := asyncutils.Execute(fn, cancelFunc, 1*time.Second)
 		if err == nil {
 			t.Fatal("Expected timeout error, got none")
 		}
-		if !IsTimeoutError(err) {
+		if !asyncutils.IsTimeoutError(err) {
 			t.Fatalf("Expected TimeoutError, got: %v", err)
 		}
 	})
@@ -53,7 +55,7 @@ func TestExecute(t *testing.T) {
 		}
 		cancelFunc := context.CancelFunc(func() {})
 
-		_, err := Execute(fn, cancelFunc, 1*time.Second)
+		_, err := asyncutils.Execute(fn, cancelFunc, 1*time.Second)
 		if err == nil {
 			t.Fatal("Expected an error, got none")
 		}
