@@ -8,6 +8,7 @@ This repository contains a collection of utility libraries implemented in Go, de
 programming tasks. Each module addresses a particular set of functions or data structures.
 
 ## Minimum Go Version Requirement
+
 To use or contribute to this project, you need to have at least Go 1.20 installed.
 This is due to the usage of features and packages introduced in this version.
 
@@ -16,6 +17,8 @@ This is due to the usage of features and packages introduced in this version.
 - **array-utils**: Utilities related to array manipulations and operations.
 
 - **async-utils**: Utilities that help to organize async operations.
+
+- **file-utils**: Utilities for efficient file handling.
 
 - **map-utils**: Helper functions for working with maps in Go.
 
@@ -30,6 +33,8 @@ This is due to the usage of features and packages introduced in this version.
 
 - **ref-utils**: Utilities related to references.
 
+- **str-utils**: Utilities related to string operations.
+
 - **vendor**: Contains project dependencies.
 
 ## Installation
@@ -42,14 +47,17 @@ go get -u github.com/kordax/basic-utils
 
 ## Usage
 
-You can import each module individually or import the main module and it depends on your needs. For example, to use the queue library:
+You can import each module individually or import the main module and it depends on your needs. For example, to use the
+queue library:
 
 ```go
 go get -u github.com/kordax/basic-utils/queue
 ...
 import "github.com/kordax/basic-utils/queue"
 ```
+
 Or you can do:
+
 ```go
 go get -u github.com/kordax/basic-utils
 ...
