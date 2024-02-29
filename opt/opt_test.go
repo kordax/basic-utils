@@ -356,7 +356,7 @@ func TestScan(t *testing.T) {
 
 	// Test with a nil source
 	o = opt.Of(42)
-	err = o.Scan(nil)
+	_ = o.Scan(nil)
 	if o.Present() {
 		t.Error("Expected Scan to set Opt value to nil")
 	}
