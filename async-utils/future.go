@@ -4,7 +4,7 @@
  * Copyright (c) 2023.
  */
 
-package async_utils
+package asyncutils
 
 import (
 	"sync"
@@ -26,7 +26,6 @@ type Future[T any] interface {
 // It uses condition variables to allow waiting for the value or error to be set.
 type FutureImpl[T any] struct {
 	cond *sync.Cond
-	once sync.Once
 
 	v   atomic.Value
 	err atomic.Value
