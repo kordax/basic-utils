@@ -61,7 +61,7 @@ func TestPriorityQueue10k(t *testing.T) {
 
 	// Concurrently dequeuing
 	fetched := make([]bool, n)
-	for _ = range n {
+	for range n {
 		item := pq.Poll(10 * time.Second)
 		if !item.Present() {
 			t.Fatal("Unexpected nil during Poll")

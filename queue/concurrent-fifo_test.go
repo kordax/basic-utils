@@ -64,7 +64,7 @@ func TestConcurrentFIFOQueueConcurrentPolls(t *testing.T) {
 
 	// Concurrently poll numbers.
 	results := make(chan int, n)
-	for _ = range n {
+	for range n {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
