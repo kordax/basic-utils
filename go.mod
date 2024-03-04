@@ -18,7 +18,7 @@ replace github.com/kordax/basic-utils/queue => ./queue
 
 replace github.com/kordax/basic-utils/ref-utils => ./ref-utils
 
-require github.com/stretchr/testify v1.8.4
+require github.com/stretchr/testify v1.9.0
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
