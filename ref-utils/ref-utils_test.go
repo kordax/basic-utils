@@ -7,10 +7,10 @@
 package refutils_test
 
 import (
-	"fmt"
 	"testing"
 
 	refutils "github.com/kordax/basic-utils/ref-utils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRef(t *testing.T) {
@@ -97,15 +97,14 @@ func TestDo(t *testing.T) {
 }
 
 func TestDef(t *testing.T) {
-	var nilStr *string
-	result := refutils.Def[string](nilStr)
-	if result != "" {
-		t.Errorf("Expected nil, but got a value")
-	}
-
-	str := "test1524"
-	result = refutils.Def[string](str)
-	if result != str {
-		t.Errorf(fmt.Sprintf("Expected %s, but got another value: %s", str, result))
-	}
+	var f *float64
+	assert.Equal(t, refutils.Ref(0.0), refutils.Def(f))
+	assert.Equal(t, 5, refutils.Def(5))
+	assert.Equal(t, 0, refutils.Def(0))
+	assert.Equal(t, refutils.Ref("hello"), refutils.Def(refutils.Ref("hello")))
+	assert.Equal(t, "", refutils.Def(""))
+	assert.Equal(t, true, refutils.Def(true))
+	assert.Equal(t, false, refutils.Def(false))
+	assert.Equal(t, []int{1, 2}, refutils.Def([]int{1, 2}))
+	assert.Equal(t, []int{}, refutils.Def([]int{}))
 }

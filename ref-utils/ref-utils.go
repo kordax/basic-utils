@@ -52,7 +52,25 @@ func Do[T any](ptr *T, do func(v T) *T) *T {
 	}
 }
 
-// Def behaves as Or(val, *new(R)), so it returns default value if value is not present,
-func Def[R any](val any) R {
-	return Or(val, *new(R))
+// Def behaves as Or(val, *new(R)), so it returns default value if value is not present or types are different
+func Def[R any](val R) R {
+	v := reflect.ValueOf(val)
+	if !v.IsValid() || v.IsZero() {
+		newR := reflect.New(v.Type()).Elem()
+
+		if v.Kind() == reflect.Ptr {
+			newPtr := reflect.New(v.Type().Elem())
+			return newPtr.Interface().(R)
+		}
+
+		return newR.Interface().(R)
+	}
+
+	other := *new(R)
+	if v.Type() != reflect.TypeOf(other) &&
+		v.Type() != reflect.TypeOf(&other) {
+		return other
+	}
+
+	return val
 }
