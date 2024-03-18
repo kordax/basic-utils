@@ -1,11 +1,8 @@
-module github.com/kordax/basic-utils/map-utils
+module github.com/kordax/basic-utils/file-utils
 
 go 1.22.0
 
-require (
-	github.com/kordax/basic-utils v1.1.0
-	github.com/stretchr/testify v1.8.4
-)
+require github.com/stretchr/testify v1.9.0
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
