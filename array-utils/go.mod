@@ -3,7 +3,7 @@ module github.com/kordax/basic-utils/array-utils
 go 1.22.0
 
 require (
-	github.com/kordax/basic-utils/map-utils v1.1.1
+	github.com/kordax/basic-utils/map-utils v1.4.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
 )
