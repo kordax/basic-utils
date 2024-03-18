@@ -7,7 +7,6 @@
 package fileutils_test
 
 import (
-	"io/ioutil"
 	"os"
 	"regexp"
 	"testing"
@@ -18,7 +17,7 @@ import (
 )
 
 func TestExists(t *testing.T) {
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := os.CreateTemp("./", "example")
 	require.NoError(t, err)
 	defer os.Remove(tmpfile.Name()) // clean up
 
@@ -31,7 +30,7 @@ func TestExists(t *testing.T) {
 
 func TestMustRead(t *testing.T) {
 	content := "Hello, World!"
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := os.CreateTemp("", "example")
 	require.NoError(t, err)
 	defer os.Remove(tmpfile.Name()) // clean up
 
@@ -44,7 +43,7 @@ func TestMustRead(t *testing.T) {
 }
 
 func TestCreateFile(t *testing.T) {
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := os.CreateTemp("", "example")
 	require.NoError(t, err)
 	tmpfilePath := tmpfile.Name()
 	require.NoError(t, tmpfile.Close())
@@ -56,20 +55,20 @@ func TestCreateFile(t *testing.T) {
 	require.NoError(t, err, "File should be created without error")
 
 	// Verify content
-	readContent, err := ioutil.ReadFile(tmpfilePath)
+	readContent, err := os.ReadFile(tmpfilePath)
 	require.NoError(t, err, "Should read file without error")
 	assert.Equal(t, testContent, string(readContent), "File content should match")
 }
 
 func TestListFiles(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "exampledir")
+	tmpdir, err := os.MkdirTemp("", "exampledir")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpdir) // clean up
 
 	expectedFiles := []string{"file1.txt", "file2.log", "file3.txt"}
 	for _, fname := range expectedFiles {
 		tmpfilePath := tmpdir + "/" + fname
-		err := ioutil.WriteFile(tmpfilePath, []byte("content"), 0644)
+		err := os.WriteFile(tmpfilePath, []byte("content"), 0644)
 		require.NoError(t, err, "Should create file without error")
 	}
 
