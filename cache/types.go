@@ -117,6 +117,11 @@ func (k ComparableKey[T]) String() string {
 	return convertToString(k.v)
 }
 
+func (k ComparableKey[T]) Equals(other Comparable) bool {
+	otherKey, ok := other.(ComparableKey[T])
+	return ok && k == otherKey
+}
+
 type ComparableSlice[T Comparable] struct {
 	Data []T
 }
@@ -277,9 +282,9 @@ func NewGenericCompositeKey(keys ...any) GenericCompositeKey {
 }
 
 func (k GenericCompositeKey) Equals(other Comparable) bool {
-	switch other.(type) {
-	case StrCompositeKey:
-		return arrayutils.EqualsWithOrder(k.keys, other.(GenericCompositeKey).keys)
+	switch o := other.(type) {
+	case GenericCompositeKey:
+		return arrayutils.EqualsWithOrder(k.keys, o.keys)
 	default:
 		return false
 	}
@@ -388,6 +393,8 @@ type GenKey interface {
 
 func convertToString[T comparable](input T) string {
 	switch value := any(input).(type) {
+	case string:
+		return value
 	case int:
 		return strconv.Itoa(value)
 	case int8:

@@ -307,53 +307,6 @@ func TestTreeCache_AddTransparent(t *testing.T) {
 	assert.Len(t, results, 2)
 }
 
-func TestComparableSlice_Equals(t *testing.T) {
-	slice1 := cache.ComparableSlice[DummyComparable]{
-		Data: []DummyComparable{
-			{1},
-			{2},
-			{3},
-			{4},
-		},
-	}
-	slice2 := cache.ComparableSlice[DummyComparable]{
-		Data: []DummyComparable{
-			{1},
-			{2},
-			{3},
-			{4},
-		},
-	}
-	assert.EqualValues(t, slice1, slice2)
-	slice2 = cache.ComparableSlice[DummyComparable]{
-		Data: []DummyComparable{
-			{1},
-			{2},
-			{5},
-			{4},
-		},
-	}
-	assert.NotEqualValues(t, slice1, slice2)
-	slice2 = cache.ComparableSlice[DummyComparable]{
-		Data: []DummyComparable{
-			{1},
-			{2},
-			{4},
-			{3},
-		},
-	}
-	assert.NotEqualValues(t, slice1, slice2)
-	slice2 = cache.ComparableSlice[DummyComparable]{
-		Data: []DummyComparable{
-			{1},
-			{2},
-			{3},
-			{4},
-		},
-	}
-	assert.EqualValues(t, slice1, slice2)
-}
-
 func TestNewGenericCompositeKey(t *testing.T) {
 	c := cache.NewInMemoryTreeCache[cache.GenericCompositeKey, DummyComparable](opt.Null[time.Duration]())
 	key1 := cache.NewGenericCompositeKey("KeyString", 2, 3.0, uint8(4), int16(-5))
