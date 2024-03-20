@@ -397,3 +397,36 @@ func TestTreeCacheHighCollisionProbability(t *testing.T) {
 		assert.Contains(t, values, cache.NewInt64Value(int64(i))) // Check if the expected value is present in the retrieved values
 	}
 }
+
+func TestInMemoryTreeCache_Set(t *testing.T) {
+	c := cache.NewInMemoryTreeCache[cache.StrCompositeKey, cache.StringValue](opt.Null[time.Duration]())
+	key := cache.NewStrCompositeKey("key1")
+	value1 := cache.NewStringValue("value1")
+	value2 := cache.NewStringValue("value2")
+
+	c.Set(key, value1)
+	retrieved := c.Get(key)
+	assert.Len(t, retrieved, 1)
+	assert.Equal(t, value1, retrieved[0])
+
+	c.Set(key, value2)
+	retrieved = c.Get(key)
+	assert.Len(t, retrieved, 1)
+	assert.Equal(t, value2, retrieved[0])
+}
+
+func TestInMemoryTreeCache_Outdated_WithStringKeyAndValue(t *testing.T) {
+	ttl := 1 * time.Millisecond
+	c := cache.NewInMemoryTreeCache[cache.StrCompositeKey, cache.StringValue](opt.Of(ttl))
+	cLong := cache.NewInMemoryTreeCache[cache.StrCompositeKey, cache.StringValue](opt.Of(time.Hour))
+
+	key := cache.NewStrCompositeKey("key1")
+	value := cache.NewStringValue("value1")
+
+	assert.True(t, cLong.Outdated(opt.Null[cache.StrCompositeKey]()))
+	c.Put(key, value)
+	assert.False(t, c.Outdated(opt.Of(key)))
+	time.Sleep(ttl + 10*time.Millisecond)
+	assert.True(t, c.Outdated(opt.Of(key)))
+	assert.True(t, c.Outdated(opt.Null[cache.StrCompositeKey]()))
+}
