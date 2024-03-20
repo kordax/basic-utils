@@ -1,3 +1,5 @@
+//go:build integration_test
+
 /*
  * @Author: kordax, 10/5/23, 6:29 PM
  */
