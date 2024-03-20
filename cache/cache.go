@@ -140,9 +140,13 @@ func (c *InMemoryTreeCache[K, T]) DropKey(key K) {
 }
 
 // Outdated checks if a given key or the entire cache is outdated based on the TTL.
-// If no key is provided, it checks the last updated time of the entire cache.
-// If a key is provided, it checks the last updated time of that specific key.
+// If no key is provided or key was not found, it checks the last updated time of the entire cache.
+// If a key is provided and found, it checks the last updated time of that specific key.
 func (c *InMemoryTreeCache[K, T]) Outdated(key opt.Opt[K]) bool {
+	if !key.Present() {
+		return time.Since(c.lastUpdated) > *c.ttl
+	}
+
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 
