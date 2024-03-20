@@ -1,6 +1,6 @@
 module github.com/kordax/basic-utils
 
-go 1.22.0
+go 1.22.1
 
 replace github.com/kordax/basic-utils/array-utils => ./array-utils
 
