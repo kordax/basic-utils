@@ -13,8 +13,8 @@ import (
 )
 
 type container[K CompositeKey, T Comparable] struct {
-	pairs map[int][]arrayutils.Pair[K, T]
-	node  map[int]any
+	pairs map[int64][]arrayutils.Pair[K, T]
+	node  map[int64]any
 }
 
 type Cache[K CompositeKey, T Comparable] interface {
@@ -39,7 +39,7 @@ type Cache[K CompositeKey, T Comparable] interface {
 // - Get operation is particularly efficient, especially for shallow depth keys.
 // - Set operation's performance is consistent regardless of the depth of the key.
 type InMemoryTreeCache[K CompositeKey, T Comparable] struct {
-	values  map[int]any
+	values  map[int64]any
 	changes []K
 
 	lastUpdatedKeys map[string]time.Time
@@ -54,7 +54,7 @@ type InMemoryTreeCache[K CompositeKey, T Comparable] struct {
 // If the TTL is not provided, cache entries will not expire.
 func NewInMemoryTreeCache[K CompositeKey, T Comparable](ttl opt.Opt[time.Duration]) *InMemoryTreeCache[K, T] {
 	c := &InMemoryTreeCache[K, T]{
-		values:          make(map[int]any),
+		values:          make(map[int64]any),
 		changes:         make([]K, 0),
 		lastUpdatedKeys: make(map[string]time.Time),
 	}
@@ -163,7 +163,7 @@ func (c *InMemoryTreeCache[K, T]) Outdated(key opt.Opt[K]) bool {
 }
 
 func (c *InMemoryTreeCache[K, T]) dropAll() {
-	c.values = make(map[int]any)
+	c.values = make(map[int64]any)
 	c.changes = nil
 }
 
@@ -206,7 +206,7 @@ func (c *InMemoryTreeCache[K, T]) addTran(key K, values ...T) {
 	}
 }
 
-func (c *InMemoryTreeCache[K, T]) dropKeyRecursively(keys []int, n int, bucket map[int]any) {
+func (c *InMemoryTreeCache[K, T]) dropKeyRecursively(keys []int64, n int, bucket map[int64]any) {
 	hash := keys[n]
 	interBucket := bucket[hash]
 	if interBucket != nil {
@@ -223,21 +223,21 @@ func (c *InMemoryTreeCache[K, T]) dropKeyRecursively(keys []int, n int, bucket m
 	}
 }
 
-func (c *InMemoryTreeCache[K, T]) tryToGetBucket(keys []int) map[int][]arrayutils.Pair[K, T] {
+func (c *InMemoryTreeCache[K, T]) tryToGetBucket(keys []int64) map[int64][]arrayutils.Pair[K, T] {
 	return c.getBucket(keys, 0, c.values)
 }
 
-func (c *InMemoryTreeCache[K, T]) getBucket(keys []int, n int, interBucket map[int]any) map[int][]arrayutils.Pair[K, T] {
+func (c *InMemoryTreeCache[K, T]) getBucket(keys []int64, n int, interBucket map[int64]any) map[int64][]arrayutils.Pair[K, T] {
 	if keys == nil || n >= len(keys) {
 		return nil
 	}
 
 	if bucket, ok := interBucket[keys[n]]; ok {
 		switch b := bucket.(type) {
-		case map[int][]arrayutils.Pair[K, T]:
+		case map[int64][]arrayutils.Pair[K, T]:
 			if n+1 < len(keys) {
 				interBucket[keys[n]] = container[K, T]{
-					node:  make(map[int]any),
+					node:  make(map[int64]any),
 					pairs: b,
 				}
 				return c.getBucket(keys, n+1, interBucket[keys[n]].(container[K, T]).node)
@@ -246,7 +246,7 @@ func (c *InMemoryTreeCache[K, T]) getBucket(keys []int, n int, interBucket map[i
 			}
 		case container[K, T]:
 			if n+1 == len(keys) {
-				result := make(map[int][]arrayutils.Pair[K, T])
+				result := make(map[int64][]arrayutils.Pair[K, T])
 				for k, e := range b.pairs {
 					result[k] = append(result[k], e...)
 				}
@@ -261,22 +261,22 @@ func (c *InMemoryTreeCache[K, T]) getBucket(keys []int, n int, interBucket map[i
 		}
 	} else {
 		if n+1 == len(keys) {
-			interBucket[keys[n]] = map[int][]arrayutils.Pair[K, T]{
+			interBucket[keys[n]] = map[int64][]arrayutils.Pair[K, T]{
 				keys[n]: nil,
 			}
-			return interBucket[keys[n]].(map[int][]arrayutils.Pair[K, T])
+			return interBucket[keys[n]].(map[int64][]arrayutils.Pair[K, T])
 		} else {
 			if entry, ok := interBucket[keys[n]]; !ok {
 				interBucket[keys[n]] = container[K, T]{
-					node:  make(map[int]any),
-					pairs: make(map[int][]arrayutils.Pair[K, T]),
+					node:  make(map[int64]any),
+					pairs: make(map[int64][]arrayutils.Pair[K, T]),
 				}
 				return c.getBucket(keys, n+1, interBucket[keys[n]].(container[K, T]).node)
 			} else {
 				switch e := entry.(type) {
-				case map[int][]arrayutils.Pair[K, T]:
+				case map[int64][]arrayutils.Pair[K, T]:
 					interBucket[keys[n]] = container[K, T]{
-						node:  make(map[int]any),
+						node:  make(map[int64]any),
 						pairs: e,
 					}
 					return c.getBucket(keys, n+1, interBucket[keys[n]].(container[K, T]).node)
@@ -293,10 +293,10 @@ func (c *InMemoryTreeCache[K, T]) getBucket(keys []int, n int, interBucket map[i
 	return nil
 }
 
-func (c *InMemoryTreeCache[K, T]) getNodePairsFlat(node map[int]any, result map[int][]arrayutils.Pair[K, T]) map[int][]arrayutils.Pair[K, T] {
+func (c *InMemoryTreeCache[K, T]) getNodePairsFlat(node map[int64]any, result map[int64][]arrayutils.Pair[K, T]) map[int64][]arrayutils.Pair[K, T] {
 	for _, entry := range node {
 		switch e := entry.(type) {
-		case map[int][]arrayutils.Pair[K, T]:
+		case map[int64][]arrayutils.Pair[K, T]:
 			for hash, pair := range e {
 				result[hash] = append(result[hash], pair...)
 			}
@@ -331,14 +331,14 @@ type InMemoryHashMapCache[K CompositeKey, T Comparable, H comparable] struct {
 	lastUpdated     time.Time
 	ttl             *time.Duration
 
-	toHash func(keys []int) H
+	toHash func(keys []int64) H
 	vMtx   sync.Mutex
 }
 
 // NewInMemoryHashMapCache creates a new instance of the InMemoryHashMapCache.
 // It takes a hashing function to translate the composite keys to a desired hash type,
 // and an optional time-to-live duration for the cache entries.
-func NewInMemoryHashMapCache[K CompositeKey, T Comparable, H comparable](toHash func(keys []int) H, ttl opt.Opt[time.Duration]) *InMemoryHashMapCache[K, T, H] {
+func NewInMemoryHashMapCache[K CompositeKey, T Comparable, H comparable](toHash func(keys []int64) H, ttl opt.Opt[time.Duration]) *InMemoryHashMapCache[K, T, H] {
 	c := &InMemoryHashMapCache[K, T, H]{
 		values:          make(map[H][]T),
 		changes:         make([]K, 0),
@@ -359,7 +359,7 @@ func NewDefaultHashMapCache[K CompositeKey, T Comparable](ttl opt.Opt[time.Durat
 
 func NewFarmHashMapCache[K CompositeKey, T Comparable](ttl opt.Opt[time.Duration]) *InMemoryHashMapCache[K, T, uint64] {
 	buffer := new(bytes.Buffer)
-	return NewInMemoryHashMapCache[K, T, uint64](func(keys []int) uint64 {
+	return NewInMemoryHashMapCache[K, T, uint64](func(keys []int64) uint64 {
 		arr := make([]byte, 0)
 		for _, hash := range keys {
 			arr = append(arr, intToBytes(buffer, hash)...)
@@ -371,7 +371,7 @@ func NewFarmHashMapCache[K CompositeKey, T Comparable](ttl opt.Opt[time.Duration
 
 func NewSha256HashMapCache[K CompositeKey, T Comparable](ttl opt.Opt[time.Duration]) *InMemoryHashMapCache[K, T, string] {
 	buffer := new(bytes.Buffer)
-	return NewInMemoryHashMapCache[K, T, string](func(keys []int) string {
+	return NewInMemoryHashMapCache[K, T, string](func(keys []int64) string {
 		arr := make([]byte, 0)
 		for _, hash := range keys {
 			arr = append(arr, intToBytes(buffer, hash)...)
@@ -522,13 +522,13 @@ func (c *InMemoryHashMapCache[K, T, H]) addTran(key K, values ...T) {
 	}
 }
 
-func (c *InMemoryHashMapCache[K, T, H]) dropKey(keys []int) {
+func (c *InMemoryHashMapCache[K, T, H]) dropKey(keys []int64) {
 	delete(c.values, c.toHash(keys))
 }
 
-func intToBytes(buffer *bytes.Buffer, num int) []byte {
+func intToBytes(buffer *bytes.Buffer, num int64) []byte {
 	buffer.Reset()
-	_ = binary.Write(buffer, binary.LittleEndian, int64(num))
+	_ = binary.Write(buffer, binary.LittleEndian, num)
 
 	return buffer.Bytes()
 }
