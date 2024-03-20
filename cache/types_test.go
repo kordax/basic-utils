@@ -42,3 +42,36 @@ func TestStringKey_Key(t *testing.T) {
 		})
 	}
 }
+
+func TestIntKey_Key(t *testing.T) {
+	value := cache.IntKey(123)
+	key := value.Key()
+	assert.EqualValues(t, 123, key)
+
+	value2 := cache.IntKey(456)
+	key2 := value2.Key()
+	assert.NotEqual(t, key, key2)
+}
+
+func TestUIntKey_Key(t *testing.T) {
+	value := cache.UIntKey(123)
+	key := value.Key()
+	assert.Equal(t, 123, key)
+
+	value2 := cache.UIntKey(456)
+	key2 := value2.Key()
+	assert.NotEqual(t, key, key2)
+}
+
+func TestIntCompositeKey_Keys(t *testing.T) {
+	value := cache.NewIntCompositeKey(123, 456)
+	keys := value.Keys()
+	assert.Len(t, keys, 2)
+	assert.Contains(t, keys, int64(123))
+	assert.Contains(t, keys, int64(456))
+
+	value2 := cache.NewIntCompositeKey(789)
+	keys2 := value2.Keys()
+	assert.Len(t, keys2, 1)
+	assert.NotEqual(t, keys, keys2)
+}
