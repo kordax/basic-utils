@@ -33,15 +33,15 @@ This is due to the usage of features and packages introduced in this version.
 
 - **ref-utils**: Utilities related to references.
 
-- **str-utils**: Utilities related to string operations.
+- **sql-utils**: Utilities related to sql types and methods.
 
-- **vendor**: Contains project dependencies.
+- **str-utils**: Utilities related to string operations.
 
 ## Installation
 
 Make sure you have Go installed on your machine. Then, use `go get` to install the package:
 
-```go
+```shell
 go get -u github.com/kordax/basic-utils
 ```
 
@@ -50,17 +50,25 @@ go get -u github.com/kordax/basic-utils
 You can import each module individually or import the main module and it depends on your needs. For example, to use the
 queue library:
 
-```go
+```shell
 go get -u github.com/kordax/basic-utils/queue
-...
+```
+
+then...
+
+```go
 import "github.com/kordax/basic-utils/queue"
 ```
 
 Or you can do:
 
-```go
+```shell
 go get -u github.com/kordax/basic-utils
-...
+```
+
+then...
+
+```go
 import "github.com/kordax/basic-utils"
 ```
 
