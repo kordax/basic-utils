@@ -31,14 +31,14 @@ func (d DummyComparable) Equals(other cache.Comparable) bool {
 }
 
 //goland:noinspection GoUnusedExportedType
-type SimpleKey int
+type SimpleKey int64
 
 func (s SimpleKey) Equals(other cache.Comparable) bool {
 	return s == other
 }
 
-func (s SimpleKey) Key() int {
-	return int(s)
+func (s SimpleKey) Key() int64 {
+	return int64(s)
 }
 
 func (s SimpleKey) String() string {
@@ -67,8 +67,8 @@ func (s SimpleCompositeKey[T]) Equals(other cache.Comparable) bool {
 	}
 }
 
-func (s SimpleCompositeKey[T]) Keys() []int {
-	result := make([]int, len(s.keys))
+func (s SimpleCompositeKey[T]) Keys() []int64 {
+	result := make([]int64, len(s.keys))
 	for i, key := range s.keys {
 		result[i] = key.Key()
 	}
@@ -406,11 +406,11 @@ func TestNewGenericCompositeKey(t *testing.T) {
 
 type CollisionTestKey struct {
 	id   int
-	hash []int
+	hash []int64
 }
 
 // Implement the CompositeKey interface for TestKey
-func (k CollisionTestKey) Keys() []int {
+func (k CollisionTestKey) Keys() []int64 {
 	return k.hash
 }
 
@@ -428,9 +428,9 @@ func TestTreeCacheHighCollisionProbability(t *testing.T) {
 
 	// Define a set of keys that all produce the same hash code
 	keys := []CollisionTestKey{
-		{id: 1, hash: []int{1, 2, 3}},
-		{id: 2, hash: []int{1, 2, 3}},
-		{id: 3, hash: []int{1, 2, 3}},
+		{id: 1, hash: []int64{1, 2, 3}},
+		{id: 2, hash: []int64{1, 2, 3}},
+		{id: 3, hash: []int64{1, 2, 3}},
 	}
 
 	// Add values to the c for each key

@@ -26,7 +26,7 @@ Hashed specifies an abstract key with an ability to provide keys for hash method
 */
 type Hashed interface {
 	Comparable
-	Key() int // Key should return a unique item key for hash use.
+	Key() int64 // Key should return a unique item key for hash use.
 	String() string
 }
 
@@ -35,36 +35,28 @@ CompositeKey specifies an abstract key with an ability to provide an ordered lis
 */
 type CompositeKey interface {
 	Comparable
-	Keys() []int // Keys returns an ordered list of keys ordered by priority (ASC), so the first element has the most prio.
+	Keys() []int64 // Keys returns an ordered list of keys ordered by priority (ASC), so the first element has the most prio.
 	String() string
 }
 
 func (s IntKey) Equals(other Comparable) bool {
-	switch other.(type) {
-	case IntKey:
-		return s == other
-	default:
-		return false
-	}
+	otherKey, ok := other.(IntKey)
+	return ok && s == otherKey
 }
 
-func (s IntKey) Key() int {
-	return int(s)
+func (s IntKey) Key() int64 {
+	return int64(s)
 }
 
 func (s StringKey) Equals(other Comparable) bool {
-	switch other.(type) {
-	case StringKey:
-		return s == other
-	default:
-		return false
-	}
+	otherKey, ok := other.(StringKey)
+	return ok && s == otherKey
 }
 
-func (s StringKey) Key() int {
-	hash := 0
+func (s StringKey) Key() int64 {
+	hash := int64(0)
 	for i := 0; i < len(s); i++ {
-		hash = 31*hash + int(s[i])
+		hash = 31*hash + int64(s[i])
 	}
 
 	return hash
@@ -72,6 +64,15 @@ func (s StringKey) Key() int {
 
 func (s StringKey) String() string {
 	return string(s)
+}
+
+func (s UIntKey) Equals(other Comparable) bool {
+	otherKey, ok := other.(UIntKey)
+	return ok && s == otherKey
+}
+
+func (s UIntKey) Key() int {
+	return int(s)
 }
 
 type ComparableKey[T comparable] struct {
@@ -82,22 +83,22 @@ func NewComparableKey[T comparable](v T) ComparableKey[T] {
 	return ComparableKey[T]{v: v}
 }
 
-func (k ComparableKey[T]) Hash() int {
-	hash := 0
+func (k ComparableKey[T]) Hash() int64 {
+	hash := int64(0)
 
 	switch value := any(k.v).(type) {
 	case int, int8, int16, int32, int64:
-		hash = 31*hash + int(reflect.ValueOf(value).Int())
+		hash = 31*hash + reflect.ValueOf(value).Int()
 	case uint, uint8, uint16, uint32, uint64:
-		hash = 31*hash + int(reflect.ValueOf(value).Uint())
+		hash = 31*hash + int64(reflect.ValueOf(value).Uint())
 	case float32, float64:
-		hash = 31*hash + int(reflect.ValueOf(value).Float())
+		hash = 31*hash + int64(reflect.ValueOf(value).Float())
 	case complex64, complex128:
 		c := reflect.ValueOf(value).Complex()
-		hash = 31*(31*hash+int(real(c))) + int(imag(c))
+		hash = 31*(31*hash+int64(real(c))) + int64(imag(c))
 	case string:
 		for i := 0; i < len(value); i++ {
-			hash = 31*hash + int(value[i])
+			hash = 31*hash + int64(value[i])
 		}
 	case bool:
 		if value {
@@ -164,8 +165,8 @@ func (k UIntCompositeKey) Equals(other Comparable) bool {
 	}
 }
 
-func (k UIntCompositeKey) Keys() []int {
-	result := make([]int, len(k.keys))
+func (k UIntCompositeKey) Keys() []int64 {
+	result := make([]int64, len(k.keys))
 	for i, key := range k.keys {
 		conv := IntKey(key)
 		result[i] = conv.Key()
@@ -204,8 +205,8 @@ func (k IntCompositeKey) Equals(other Comparable) bool {
 	}
 }
 
-func (k IntCompositeKey) Keys() []int {
-	result := make([]int, len(k.keys))
+func (k IntCompositeKey) Keys() []int64 {
+	result := make([]int64, len(k.keys))
 	for i, key := range k.keys {
 		result[i] = key.Key()
 	}
@@ -244,8 +245,8 @@ func (k StrCompositeKey) Equals(other Comparable) bool {
 	}
 }
 
-func (k StrCompositeKey) Keys() []int {
-	result := make([]int, len(k.keys))
+func (k StrCompositeKey) Keys() []int64 {
+	result := make([]int64, len(k.keys))
 	for i, key := range k.keys {
 		result[i] = key.Key()
 	}
@@ -284,8 +285,8 @@ func (k GenericCompositeKey) Equals(other Comparable) bool {
 	}
 }
 
-func (k GenericCompositeKey) Keys() []int {
-	result := make([]int, len(k.keys))
+func (k GenericCompositeKey) Keys() []int64 {
+	result := make([]int64, len(k.keys))
 	for i, key := range k.keys {
 		result[i] = key.Hash()
 	}
