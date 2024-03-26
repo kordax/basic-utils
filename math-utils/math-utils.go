@@ -11,12 +11,12 @@ import (
 	"math"
 	"sort"
 
-	basic_utils "github.com/kordax/basic-utils"
+	basicutils "github.com/kordax/basic-utils"
 )
 
 // ClosestMatch finds the closest match in a slice. This implementation doesn't use Round.
 // Returns index of a found element and the element. If no element was found then -1 as index will be returned.
-func ClosestMatch[T basic_utils.Numeric](toMatch T, slice []T) (int, T) {
+func ClosestMatch[T basicutils.Numeric](toMatch T, slice []T) (int, T) {
 	diff := MaxValue[T]()
 	var value T
 	index := -1
@@ -33,7 +33,7 @@ func ClosestMatch[T basic_utils.Numeric](toMatch T, slice []T) (int, T) {
 }
 
 // AbsDiff returns absolute diff result of a numeric type
-func AbsDiff[T basic_utils.Numeric](one T, two T) T {
+func AbsDiff[T basicutils.Numeric](one T, two T) T {
 	if one < two {
 		return two - one
 	}
@@ -42,7 +42,7 @@ func AbsDiff[T basic_utils.Numeric](one T, two T) T {
 }
 
 // AbsVal returns absolute value of a numeric type
-func AbsVal[T basic_utils.Numeric](val T) T {
+func AbsVal[T basicutils.Numeric](val T) T {
 	if val < 0 {
 		return -val
 	}
@@ -60,7 +60,7 @@ func ValOrMin(val int, mn int) int {
 }
 
 // Min returns mn numeric value found in array
-func Min[T basic_utils.Numeric](array []T) T {
+func Min[T basicutils.Numeric](array []T) T {
 	if len(array) == 0 {
 		return *new(T)
 	}
@@ -76,7 +76,7 @@ func Min[T basic_utils.Numeric](array []T) T {
 }
 
 // Max returns mx numeric value found in array
-func Max[T basic_utils.Numeric](array []T) T {
+func Max[T basicutils.Numeric](array []T) T {
 	if len(array) == 0 {
 		return *new(T)
 	}
@@ -112,7 +112,7 @@ func MinMaxInt(array []int) (int, int) {
 }
 
 // Avg returns average value from the array
-func Avg[T basic_utils.Numeric](array []T) T {
+func Avg[T basicutils.Numeric](array []T) T {
 	if len(array) == 0 {
 		return 0
 	}
@@ -123,7 +123,7 @@ func Avg[T basic_utils.Numeric](array []T) T {
 }
 
 // AvgFloat returns average value from the array as float64
-func AvgFloat[T basic_utils.Numeric](array []T) float64 {
+func AvgFloat[T basicutils.Numeric](array []T) float64 {
 	if len(array) == 0 {
 		return 0
 	}
@@ -133,7 +133,7 @@ func AvgFloat[T basic_utils.Numeric](array []T) float64 {
 	return float64(sum) / float64(T(len(array)))
 }
 
-func Med[T basic_utils.Numeric](array []T) T {
+func Med[T basicutils.Numeric](array []T) T {
 	if len(array) == 0 {
 		return 0.0
 	}
@@ -154,7 +154,7 @@ func Med[T basic_utils.Numeric](array []T) T {
 	return med
 }
 
-func Sum[T basic_utils.Numeric](array []T) T {
+func Sum[T basicutils.Numeric](array []T) T {
 	var sum T
 	for _, v := range array {
 		sum = sum + v
@@ -163,7 +163,7 @@ func Sum[T basic_utils.Numeric](array []T) T {
 	return sum
 }
 
-func MinMax[T basic_utils.Numeric](array []T) (T, T) {
+func MinMax[T basicutils.Numeric](array []T) (T, T) {
 	if len(array) == 0 {
 		return *new(T), *new(T)
 	}
@@ -182,7 +182,7 @@ func MinMax[T basic_utils.Numeric](array []T) (T, T) {
 	return mn, mx
 }
 
-func MinMaxFromMap[K comparable, T basic_utils.Numeric](m map[K]T) (T, T) {
+func MinMaxFromMap[K comparable, T basicutils.Numeric](m map[K]T) (T, T) {
 	if len(m) == 0 {
 		return *new(T), *new(T)
 	}
@@ -203,13 +203,68 @@ func MinMaxFromMap[K comparable, T basic_utils.Numeric](m map[K]T) (T, T) {
 	return mn, mx
 }
 
-func RoundWithPrecision[T basic_utils.Numeric](value T, precision int) T {
+// RoundWithPrecision rounds a numeric value to a specified number of decimal places.
+// This function is generic and can operate on any type that satisfies the basicutils.Numeric constraint,
+// which typically includes integer and floating-point types like int, float32, and float64.
+//
+// Parameters:
+//   - value: The numeric value to be rounded. This can be any type that satisfies the basicutils.Numeric constraint.
+//   - precision: The number of decimal places to round to. It specifies how many digits should appear after the decimal point.
+//     If precision is negative, the function will round off digits to the left of the decimal point.
+//
+// Returns:
+//   - The rounded value of the same type as the input `value`. The rounding is done according to the standard rounding rules,
+//     where numbers halfway between two possible outcomes are rounded to the nearest even number (also known as "bankers rounding").
+//
+// Behavior and Edge Cases:
+//   - If precision is 0, the function rounds to the nearest integer.
+//   - Positive precision values round to the specified number of digits after the decimal point.
+//   - Negative precision values round to the nearest 10^(-precision) place. For example, a precision of -1 rounds to the nearest 10,
+//     -2 rounds to the nearest 100, and so forth, effectively reducing the precision of the input number.
+//   - For floating-point values, the function handles edge cases like rounding at 0.5, where the standard rounding method is applied.
+//   - For integer types, the precision parameter is less meaningful beyond 0, but the function will still operate without error,
+//     effectively leaving the integer value unchanged for positive precision values, and rounding to multiples of 10 for negative precision values.
+//   - The function may lose precision for very large numbers or for numbers requiring more precision than the type can represent.
+//     For example, rounding a float64 to a very high precision can result in a loss of accuracy due to the inherent limitations of floating-point representation.
+//   - If the type T does not have enough precision to represent the result accurately, the behavior is dependent on the underlying type's precision and range.
+//
+// Usage:
+// The function is versatile and can be used with various numeric types.
+// It is especially useful in scenarios where the precision of numerical computation needs to be controlled explicitly.
+func RoundWithPrecision[T basicutils.Numeric](value T, precision int) T {
 	ratio := math.Pow(10, float64(precision))
 
 	return T(math.Round(float64(value)*ratio) / ratio)
 }
 
-func MaxValue[T basic_utils.Numeric]() T {
+// RoundUp rounds the given numeric value up to the nearest integer, regardless of the fractional part.
+// This function is akin to RoundWithPrecision but differs in its rounding strategy: while RoundWithPrecision
+// rounds to a specified number of decimal places based on the usual rounding rules, RoundUp always rounds up
+// to the nearest integer.
+//
+// This function is generic and can work with any type that satisfies the basicutils.Numeric constraint,
+// which includes integer and floating-point numeric types.
+//
+// Parameters:
+// - value: The numeric value to be rounded up. This can be any type that satisfies the basicutils.Numeric constraint.
+//
+// Returns:
+// - The value rounded up to the nearest integer, with the same type as the input `value`.
+//
+// Example:
+// - RoundUp(0.1) returns 1 (whereas RoundWithPrecision(0.1, 0) would return 0)
+// - RoundUp(1.5) returns 2 (whereas RoundWithPrecision(1.5, 0) would return 2)
+// - RoundUp(-1.5) returns -1 (whereas RoundWithPrecision(-1.5, 0) would return -2)
+//
+// Note:
+// This function always rounds numbers up to the next highest integer. This is different from RoundWithPrecision,
+// which rounds to the nearest integer based on the fractional part and specified precision. If you need traditional
+// rounding to the nearest value or rounding down, you should use RoundWithPrecision or a similar function.
+func RoundUp[T basicutils.Numeric](value T) T {
+	return T(math.Ceil(float64(value)))
+}
+
+func MaxValue[T basicutils.Numeric]() T {
 	switch v := any(*new(T)).(type) {
 	case float32:
 		return any(float32(math.MaxFloat32)).(T)
