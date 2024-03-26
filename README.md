@@ -27,6 +27,8 @@ This is due to the usage of features and packages introduced in this version.
 - **number**: Versatile numeric representation.
 
 - **opt**: Optional type implementations, which may hold a value or represent the absence of one.
+- 
+- **os-utils**: Operating system related utilities.
 
 - **queue**: Implements both a FIFO (First-In-First-Out) queue and a priority queue with thread safety and various
   utility functions.
