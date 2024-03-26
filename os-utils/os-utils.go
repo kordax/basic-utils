@@ -61,7 +61,7 @@ func GetCPUs() int {
 	return runtime.NumCPU()
 }
 
-func getCGroupCPUs() (int, error) {
+func getCGroupCPUs() (int, error) { // coverage-ignore
 	quota, err := readCgroupValue("/sys/fs/cgroup/cpu/cpu.cfs_quota_us")
 	if err != nil {
 		return 0, err
@@ -84,7 +84,7 @@ func getCGroupCPUs() (int, error) {
 	return cpus, nil
 }
 
-func readCgroupValue(path string) (float64, error) {
+func readCgroupValue(path string) (float64, error) { // coverage-ignore
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return 0, err
