@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	mathutils "github.com/kordax/basic-utils/math-utils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestClosestMatch(t *testing.T) {
@@ -217,13 +218,26 @@ func TestMinMaxFromMap(t *testing.T) {
 }
 
 func TestRoundWithPrecision(t *testing.T) {
-	if mathutils.RoundWithPrecision(10.4567, 2) != 10.46 {
-		t.Error("Expected rounded value of 10.46")
-	}
+	assert.Equal(t, 10.46, mathutils.RoundWithPrecision(10.4567, 2), "Expected rounded value of 10.46")
+	assert.Equal(t, 10.45, mathutils.RoundWithPrecision(10.453, 2), "Expected rounded value of 10.45")
+	assert.Equal(t, 1.0, mathutils.RoundWithPrecision(0.1, 0), "Expected rounded value of 1")
+}
 
-	if mathutils.RoundWithPrecision(10.453, 2) != 10.45 {
-		t.Error("Expected rounded value of 10.45")
-	}
+func TestRoundUp(t *testing.T) {
+	assert.Equal(t, 2.0, mathutils.RoundUp(1.1), "1.1 should round up to 2")
+	assert.Equal(t, -1.0, mathutils.RoundUp(-1.1), "-1.1 should round up to -1")
+	assert.Equal(t, 1, mathutils.RoundUp(1), "Integers should remain unchanged")
+	assert.Equal(t, -1, mathutils.RoundUp(-1), "Negative integers should remain unchanged")
+	assert.Equal(t, 1.0, mathutils.RoundUp(0.9999), "0.9999 should round up to 1")
+	assert.Equal(t, 1.0, mathutils.RoundUp(0.0001), "0.0001 should round up to 1")
+	assert.Equal(t, 0.0, mathutils.RoundUp(math.SmallestNonzeroFloat64*0.1), "Expected SmallestNonzeroFloat64 to round up to 1")
+	assert.Equal(t, 1000001.0, mathutils.RoundUp(1000000.1), "1000000.1 should round up to 1000001")
+	assert.Equal(t, 0.0, mathutils.RoundUp(0.0), "0 should remain as 0")
+	assert.Equal(t, 2.0, mathutils.RoundUp(1.9999), "1.9999 should round up to 2")
+	assert.Equal(t, 1.0, mathutils.RoundUp(math.SmallestNonzeroFloat64), "Smallest positive float should round up to 1")
+	assert.Equal(t, -2.0, mathutils.RoundUp(-2.1), "-2.1 should round up to -2")
+	assert.Equal(t, -2.0, mathutils.RoundUp(-2.9), "-2.9 should round up to -2")
+	assert.Equal(t, 10.0, mathutils.RoundUp(9.1), "9.1 should round up to 10")
 }
 
 func TestAbsVal(t *testing.T) {
