@@ -220,7 +220,7 @@ func TestMinMaxFromMap(t *testing.T) {
 func TestRoundWithPrecision(t *testing.T) {
 	assert.Equal(t, 10.46, mathutils.RoundWithPrecision(10.4567, 2), "Expected rounded value of 10.46")
 	assert.Equal(t, 10.45, mathutils.RoundWithPrecision(10.453, 2), "Expected rounded value of 10.45")
-	assert.Equal(t, 1.0, mathutils.RoundWithPrecision(0.1, 0), "Expected rounded value of 1")
+	assert.Equal(t, 0.0, mathutils.RoundWithPrecision(0.1, 0), "Expected rounded value of 1")
 }
 
 func TestRoundUp(t *testing.T) {
