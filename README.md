@@ -14,30 +14,30 @@ This is due to the usage of features and packages introduced in this version.
 
 ## Modules
 
-- **array-utils**: Utilities related to array manipulations and operations.
+- **uarray**: Utilities related to array manipulations and operations.
 
-- **async-utils**: Utilities that help to organize async operations.
+- **uasync**: Utilities that help to organize async operations.
 
-- **file-utils**: Utilities for efficient file handling.
+- **ufile**: Utilities for efficient file handling.
 
-- **map-utils**: Helper functions for working with maps in Go.
+- **umap**: Helper functions for working with maps in Go.
 
-- **math-utils**: Mathematical utilities and helpers.
+- **umath**: Mathematical utilities and helpers.
 
-- **number**: Versatile numeric representation.
+- **unumber**: Versatile numeric representation.
 
-- **opt**: Optional type implementations, which may hold a value or represent the absence of one.
+- **uopt**: Optional type implementations, which may hold a value or represent the absence of one.
 
-- **os-utils**: Operating system related utilities.
+- **uos**: Operating system related utilities.
 
-- **queue**: Implements both a FIFO (First-In-First-Out) queue and a priority queue with thread safety and various
+- **uqueue**: Implements both a FIFO (First-In-First-Out) queue and a priority queue with thread safety and various
   utility functions.
 
-- **ref-utils**: Utilities related to references.
+- **uref**: Utilities related to references.
 
-- **sql-utils**: Utilities related to sql types and methods.
+- **usql**: Utilities related to sql types and methods.
 
-- **str-utils**: Utilities related to string operations.
+- **ustr**: Utilities related to string operations.
 
 ## Installation
 
@@ -53,25 +53,13 @@ You can import each module individually or import the main module and it depends
 queue library:
 
 ```shell
-go get -u github.com/kordax/basic-utils/queue
+go get -u github.com/kordax/basic-utils/uqueue
 ```
 
 then...
 
 ```go
-import "github.com/kordax/basic-utils/queue"
-```
-
-Or you can do:
-
-```shell
-go get -u github.com/kordax/basic-utils
-```
-
-then...
-
-```go
-import "github.com/kordax/basic-utils"
+import "github.com/kordax/basic-utils/uqueue"
 ```
 
 Then, refer to the individual documentation or code comments of each module for specific usage patterns.
