@@ -938,3 +938,31 @@ func TestOpt_Scan(t *testing.T) {
 		t.Errorf("Scan method failed for float64 type with float64 input: %v", err)
 	}
 }
+
+// mockValuer is a mock type that implements the driver.Valuer interface.
+type mockValuer struct {
+	val interface{}
+}
+
+// Value implements the driver.Valuer interface for mockValuer.
+func (m mockValuer) Value() (driver.Value, error) {
+	return m.val, nil
+}
+
+func TestOpt_ValueDriverValuer(t *testing.T) {
+	// Test with a mock type that implements driver.Valuer
+	expectedValue := "test string"
+	m := mockValuer{val: expectedValue}
+	o := uopt.Of(m)
+
+	val, err := o.Value()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedValue, val)
+
+	now := time.Now()
+	oTime := uopt.Of[time.Time](now)
+
+	val, err = oTime.Value()
+	assert.NoError(t, err)
+	assert.Equal(t, now, val)
+}
