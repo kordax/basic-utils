@@ -937,5 +937,4 @@ func TestOpt_Scan(t *testing.T) {
 	if err != nil || !optFloat64Float32.Present() || math.Abs(*optFloat64Float32.Get()-3.1415926535) <= 1e-16 {
 		t.Errorf("Scan method failed for float64 type with float64 input: %v", err)
 	}
-
 }
