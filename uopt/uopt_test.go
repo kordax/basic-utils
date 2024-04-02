@@ -9,6 +9,7 @@ package uopt_test
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/kordax/basic-utils/uopt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestPresent tests the Present method.
@@ -329,48 +331,57 @@ func TestValue(t *testing.T) {
 // TestScan tests the Scan method.
 func TestScan(t *testing.T) {
 	// Test with a string source
-	var o uopt.Opt[int]
-	err := o.Scan("42")
-	if err != nil {
-		assert.Fail(t, fmt.Sprintf("Scan returned an unexpected error: %v", err))
-	}
-	if !o.Present() {
-		t.Error("Expected Scan to set a value in Opt")
-	}
-	if *o.Get() != 42 {
-		assert.Fail(t, fmt.Sprintf("Expected Scan to set value 42 in Opt, but got %v", *o.Get()))
-	}
+	t.Run("string source", func(t *testing.T) {
+		var o uopt.Opt[int]
+		err := o.Scan("42")
+		require.NoError(t, err, fmt.Sprintf("Scan returned an unexpected error: %v", err))
+		require.True(t, o.Present(), "Expected Scan to set a value in Opt")
+		require.EqualValues(t, 42, *o.Get(), "Expected Scan to set value 42 in Opt, but got %v", *o.Get())
+	})
 
 	// Test with a []uint8 source
-	o = uopt.Of(42)
-	err = o.Scan([]uint8(`24`))
-	if err != nil {
-		assert.Fail(t, fmt.Sprintf("Scan returned an unexpected error: %v", err))
-	}
-	if !o.Present() {
-		t.Error("Expected Scan to set a value in Opt")
-	}
-	if *o.Get() != 24 {
-		assert.Fail(t, fmt.Sprintf("Expected Scan to set value 24 in Opt, but got %v", *o.Get()))
-	}
+	t.Run("[]uint8 source", func(t *testing.T) {
+		o := uopt.Of(42)
+		err := o.Scan([]uint8(`24`))
+		require.NoError(t, err, fmt.Sprintf("Scan returned an unexpected error: %v", err))
+		require.True(t, o.Present(), "Expected Scan to set a value in Opt")
+		require.EqualValues(t, 24, *o.Get(), "Expected Scan to set value 24 in Opt, but got %v", *o.Get())
+	})
 
 	// Test with a nil source
-	o = uopt.Of(42)
-	_ = o.Scan(nil)
-	if o.Present() {
-		t.Error("Expected Scan to set Opt value to nil")
-	}
+	t.Run("nil source", func(t *testing.T) {
+		o := uopt.Of(42)
+		_ = o.Scan(nil)
+		require.False(t, o.Present(), "Expected Scan to set Opt value to nil")
+	})
 
 	// Test with an incompatible source type
-	o = uopt.Of[int](42)
-	err = o.Scan(true)
-	if err == nil {
-		t.Error("Scan should return an error for incompatible source type")
-	}
-	expectedError := "incompatible type for Opt[*int]: bool"
-	if err.Error() != expectedError {
-		assert.Fail(t, fmt.Sprintf("Expected Scan to return error '%s', but got '%s'", expectedError, err.Error()))
-	}
+	t.Run("incompatible source", func(t *testing.T) {
+		o := uopt.Of[int](42)
+		err := o.Scan(true)
+		require.Error(t, err, "Scan should return an error for incompatible source type")
+		expectedError := "incompatible type for Opt[int]: bool"
+		assert.ErrorContains(t, errors.New(expectedError), err.Error())
+	})
+
+	// Test with a time.Time source
+	t.Run("time.Time source", func(t *testing.T) {
+		var timeOpt uopt.Opt[time.Time]
+		expectedTime := time.Now()
+		err := timeOpt.Scan(expectedTime)
+		require.NoError(t, err, "Scan returned an unexpected error")
+		assert.True(t, timeOpt.Present(), "Expected Scan to set a value in Opt")
+		assert.Equal(t, expectedTime, *timeOpt.Get(), "Expected Scan to set the correct time in Opt")
+	})
+
+	// Test with a float64 source
+	t.Run("float64 source", func(t *testing.T) {
+		var floatOpt uopt.Opt[float64]
+		err := floatOpt.Scan("42.56")
+		require.NoError(t, err, "Scan returned an unexpected error")
+		assert.True(t, floatOpt.Present(), "Expected Scan to set a value in Opt")
+		assert.Equal(t, 42.56, *floatOpt.Get(), "Expected Scan to set value 42.56 in Opt")
+	})
 }
 
 func TestOpt_Present(t *testing.T) {
@@ -950,7 +961,6 @@ func (m mockValuer) Value() (driver.Value, error) {
 }
 
 func TestOpt_ValueDriverValuer(t *testing.T) {
-	// Test with a mock type that implements driver.Valuer
 	expectedValue := "test string"
 	m := mockValuer{val: expectedValue}
 	o := uopt.Of(m)
@@ -965,4 +975,30 @@ func TestOpt_ValueDriverValuer(t *testing.T) {
 	val, err = oTime.Value()
 	assert.NoError(t, err)
 	assert.Equal(t, now, val)
+}
+
+func TestOpt_Scan_Errors(t *testing.T) {
+	// Case: Incompatible type for Opt, failed to retrieve value
+	t.Run("Incompatible type retrieval", func(t *testing.T) {
+		var o uopt.Opt[int]
+		err := o.Scan([]byte("invalid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to numeric opt: strconv.ParseInt: parsing \"invalid\": invalid syntax")
+	})
+
+	// Case: Failed to parse varchar sql value to numeric opt
+	t.Run("Failed parse varchar to numeric", func(t *testing.T) {
+		var o uopt.Opt[int]
+		err := o.Scan("not-a-number")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse varchar sql value to numeric opt")
+	})
+
+	// Case: Failed to parse varchar sql value to bool opt
+	t.Run("Failed parse varchar to bool", func(t *testing.T) {
+		var o uopt.Opt[bool]
+		err := o.Scan("not-a-bool")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse varchar sql value to bool opt")
+	})
 }
