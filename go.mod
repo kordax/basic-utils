@@ -2,25 +2,25 @@ module github.com/kordax/basic-utils
 
 go 1.22.1
 
-replace github.com/kordax/basic-utils/array-utils => ./array-utils
+replace github.com/kordax/basic-utils/uarr => ./uarr
 
-replace github.com/kordax/basic-utils/async-utils => ./async-utils
+replace github.com/kordax/basic-utils/uasync => ./uasync
 
-replace github.com/kordax/basic-utils/file-utils => ./file-utils
+replace github.com/kordax/basic-utils/ufile => ./ufile
 
-replace github.com/kordax/basic-utils/map-utils => ./map-utils
+replace github.com/kordax/basic-utils/umap => ./umap
 
-replace github.com/kordax/basic-utils/math-utils => ./math-utils
+replace github.com/kordax/basic-utils/umath => ./umath
 
-replace github.com/kordax/basic-utils/number => ./number
+replace github.com/kordax/basic-utils/unum => ./unum
 
-replace github.com/kordax/basic-utils/opt => ./opt
+replace github.com/kordax/basic-utils/uopt => ./uopt
 
-replace github.com/kordax/basic-utils/queue => ./queue
+replace github.com/kordax/basic-utils/uqueue => ./uqueue
 
-replace github.com/kordax/basic-utils/ref-utils => ./ref-utils
+replace github.com/kordax/basic-utils/uref => ./uref
 
-replace github.com/kordax/basic-utils/str-utils => ./str-utils
+replace github.com/kordax/basic-utils/ustr => ./ustr
 
 require (
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13
