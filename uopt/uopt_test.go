@@ -984,6 +984,72 @@ func TestOpt_Scan_Errors(t *testing.T) {
 		err := o.Scan([]byte("invalid"))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to numeric opt: strconv.ParseInt: parsing \"invalid\": invalid syntax")
+
+		// Parse invalid value for Opt[int8]
+		var o8 uopt.Opt[int8]
+		err = o8.Scan([]byte("invalid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to numeric opt: strconv.ParseInt: parsing \"invalid\": invalid syntax")
+
+		// Parse invalid value for Opt[int16]
+		var o16 uopt.Opt[int16]
+		err = o16.Scan([]byte("invalid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to numeric opt: strconv.ParseInt: parsing \"invalid\": invalid syntax")
+
+		// Parse invalid value for Opt[int32]
+		var o32 uopt.Opt[int32]
+		err = o32.Scan([]byte("invalid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to numeric opt: strconv.ParseInt: parsing \"invalid\": invalid syntax")
+
+		// Parse invalid value for Opt[int64]
+		var o64 uopt.Opt[int64]
+		err = o64.Scan([]byte("invalid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to numeric opt: strconv.ParseInt: parsing \"invalid\": invalid syntax")
+
+		// Parse invalid value for Opt[uint]
+		var ou uopt.Opt[uint]
+		err = ou.Scan([]byte("invalid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to numeric opt: strconv.ParseUint: parsing \"invalid\": invalid syntax")
+
+		// Parse invalid value for Opt[uint8]
+		var ou8 uopt.Opt[uint8]
+		err = ou8.Scan([]byte("invalid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to numeric opt: strconv.ParseUint: parsing \"invalid\": invalid syntax")
+
+		// Parse invalid value for Opt[uint16]
+		var ou16 uopt.Opt[uint16]
+		err = ou16.Scan([]byte("invalid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to numeric opt: strconv.ParseUint: parsing \"invalid\": invalid syntax")
+
+		// Parse invalid value for Opt[uint32]
+		var ou32 uopt.Opt[uint32]
+		err = ou32.Scan([]byte("invalid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to numeric opt: strconv.ParseUint: parsing \"invalid\": invalid syntax")
+
+		// Parse invalid value for Opt[uint64]
+		var ou64 uopt.Opt[uint64]
+		err = ou64.Scan([]byte("invalid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to numeric opt: strconv.ParseUint: parsing \"invalid\": invalid syntax")
+
+		// Parse invalid value for Opt[float32]
+		var of32 uopt.Opt[float32]
+		err = of32.Scan([]byte("invalid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to float opt: strconv.ParseFloat: parsing \"invalid\": invalid syntax")
+
+		// Parse invalid value for Opt[float64]
+		var of64 uopt.Opt[float64]
+		err = of64.Scan([]byte("invalid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse bytes/blob sql value to float opt: strconv.ParseFloat: parsing \"invalid\": invalid syntax")
 	})
 
 	// Case: Failed to parse varchar sql value to numeric opt
