@@ -9,6 +9,8 @@ package ucache
 import (
 	"testing"
 	"time"
+
+	"github.com/kordax/basic-utils/uopt"
 )
 
 const (
