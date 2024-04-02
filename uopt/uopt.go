@@ -190,27 +190,37 @@ func (o Opt[T]) Value() (driver.Value, error) {
 	if o.v != nil {
 		switch p := any(o.v).(type) {
 		case *int:
-			return driver.Value(int64(*p)), nil
+			return int64(*p), nil
 		case *int8:
-			return driver.Value(int64(*p)), nil
+			return int64(*p), nil
 		case *int16:
-			return driver.Value(int64(*p)), nil
+			return int64(*p), nil
 		case *int32:
-			return driver.Value(int64(*p)), nil
+			return int64(*p), nil
 		case *uint:
-			return driver.Value(int64(*p)), nil
+			return int64(*p), nil
 		case *uint8:
-			return driver.Value(int64(*p)), nil
+			return int64(*p), nil
 		case *uint16:
-			return driver.Value(int64(*p)), nil
+			return int64(*p), nil
 		case *uint32:
-			return driver.Value(int64(*p)), nil
+			return int64(*p), nil
 		case *uint64:
-			return driver.Value(int64(*p)), nil
+			return int64(*p), nil
 		case *float32:
-			return driver.Value(float64(*p)), nil
+			return float64(*p), nil
 		case *float64:
-			return driver.Value(*p), nil
+			return *p, nil
+		case *time.Time:
+			return *p, nil
+		case *[]byte:
+			return *p, nil
+		case *string:
+			return *p, nil
+		case *bool:
+			return *p, nil
+		case map[string]any, []any:
+			return json.Marshal(o.v)
 		case driver.Valuer:
 			return p.Value()
 		}
@@ -232,13 +242,103 @@ func (o *Opt[T]) Scan(src interface{}) error {
 		switch ptr := any(&v).(type) {
 		case **string:
 			*ptr = uref.Ref(string(src.([]uint8)))
+		case **uint:
+			val, err := strconv.ParseUint(string(src.([]uint8)), 10, 32)
+			*ptr = uref.Ref(uint(val))
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
+			}
+		case **uint8:
+			val, err := strconv.ParseUint(string(src.([]uint8)), 10, 8)
+			*ptr = uref.Ref(uint8(val))
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
+			}
+		case **uint16:
+			val, err := strconv.ParseUint(string(src.([]uint8)), 10, 16)
+			*ptr = uref.Ref(uint16(val))
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
+			}
+		case **uint32:
+			val, err := strconv.ParseUint(string(src.([]uint8)), 10, 32)
+			*ptr = uref.Ref(uint32(val))
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
+			}
+		case **uint64:
+			val, err := strconv.ParseUint(string(src.([]uint8)), 10, 64)
+			*ptr = uref.Ref(val)
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
+			}
+		case **int:
+			val, err := strconv.ParseInt(string(src.([]uint8)), 10, 32)
+			*ptr = uref.Ref(int(val))
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
+			}
+		case **int8:
+			val, err := strconv.ParseInt(string(src.([]uint8)), 10, 8)
+			*ptr = uref.Ref(int8(val))
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
+			}
+		case **int16:
+			val, err := strconv.ParseInt(string(src.([]uint8)), 10, 16)
+			*ptr = uref.Ref(int16(val))
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
+			}
+		case **int32:
+			val, err := strconv.ParseInt(string(src.([]uint8)), 10, 32)
+			*ptr = uref.Ref(int32(val))
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
+			}
+		case **int64:
+			val, err := strconv.ParseInt(string(src.([]uint8)), 10, 64)
+			*ptr = uref.Ref(val)
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
+			}
+		case **float32:
+			val, err := strconv.ParseFloat(string(src.([]uint8)), 32)
+			*ptr = uref.Ref(float32(val))
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to float opt: %s", err)
+			}
+		case **float64:
+			val, err := strconv.ParseFloat(string(src.([]uint8)), 64)
+			*ptr = uref.Ref(val)
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to float opt: %s", err)
+			}
+		case **bool:
+			val, err := strconv.ParseBool(string(src.([]uint8)))
+			*ptr = uref.Ref(val)
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to bool opt: %s", err)
+			}
+		case **complex64:
+			val, err := strconv.ParseComplex(string(src.([]uint8)), 64)
+			*ptr = uref.Ref(complex64(val))
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to complex opt: %s", err)
+			}
+		case **complex128:
+			val, err := strconv.ParseComplex(string(src.([]uint8)), 128)
+			*ptr = uref.Ref(val)
+			if err != nil {
+				return fmt.Errorf("failed to parse bytes/blob sql value to complex opt: %s", err)
+			}
 		case **T:
 			err := json.Unmarshal(src.([]byte), &ptr)
 			if err != nil {
 				return err
 			}
 		default:
-			return fmt.Errorf("incompatible type for Opt[%s]: %s, failed to retrieve value", reflect.TypeOf(o.v), reflect.TypeOf(src).String())
+			return fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", *new(T), reflect.TypeOf(src))
 		}
 	case string:
 		switch ptr := any(&v).(type) {
@@ -250,94 +350,94 @@ func (o *Opt[T]) Scan(src interface{}) error {
 			val, err := strconv.ParseUint(src.(string), 10, 32)
 			*ptr = uref.Ref(uint(val))
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
 			}
 		case **uint8:
 			val, err := strconv.ParseUint(src.(string), 10, 8)
 			*ptr = uref.Ref(uint8(val))
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
 			}
 		case **uint16:
 			val, err := strconv.ParseUint(src.(string), 10, 16)
 			*ptr = uref.Ref(uint16(val))
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
 			}
 		case **uint32:
 			val, err := strconv.ParseUint(src.(string), 10, 32)
 			*ptr = uref.Ref(uint32(val))
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
 			}
 		case **uint64:
 			val, err := strconv.ParseUint(src.(string), 10, 64)
 			*ptr = uref.Ref(val)
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
 			}
 		case **int:
 			val, err := strconv.ParseInt(src.(string), 10, 32)
 			*ptr = uref.Ref(int(val))
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
 			}
 		case **int8:
 			val, err := strconv.ParseInt(src.(string), 10, 8)
 			*ptr = uref.Ref(int8(val))
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
 			}
 		case **int16:
 			val, err := strconv.ParseInt(src.(string), 10, 16)
 			*ptr = uref.Ref(int16(val))
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
 			}
 		case **int32:
 			val, err := strconv.ParseInt(src.(string), 10, 32)
 			*ptr = uref.Ref(int32(val))
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
 			}
 		case **int64:
 			val, err := strconv.ParseInt(src.(string), 10, 64)
 			*ptr = uref.Ref(val)
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
 			}
 		case **float32:
 			val, err := strconv.ParseFloat(src.(string), 32)
 			*ptr = uref.Ref(float32(val))
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to float opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to float opt: %s", err)
 			}
 		case **float64:
 			val, err := strconv.ParseFloat(src.(string), 64)
 			*ptr = uref.Ref(val)
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to float opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to float opt: %s", err)
 			}
 		case **bool:
 			val, err := strconv.ParseBool(src.(string))
 			*ptr = uref.Ref(val)
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to bool opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to bool opt: %s", err)
 			}
 		case **complex64:
 			val, err := strconv.ParseComplex(src.(string), 64)
 			*ptr = uref.Ref(complex64(val))
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to complex opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to complex opt: %s", err)
 			}
 		case **complex128:
 			val, err := strconv.ParseComplex(src.(string), 128)
 			*ptr = uref.Ref(val)
 			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to complex opt: %s", src)
+				return fmt.Errorf("failed to parse varchar sql value to complex opt: %s", err)
 			}
 		default:
-			return fmt.Errorf("incompatible type for Opt[%s]: %s, failed to retrieve value", reflect.TypeOf(o.v), reflect.TypeOf(src).String())
+			return fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", *new(T), reflect.TypeOf(src))
 		}
 	case int64:
 		switch ptr := any(&v).(type) {
@@ -370,7 +470,7 @@ func (o *Opt[T]) Scan(src interface{}) error {
 				*ptr = uref.Ref(false)
 			}
 		default:
-			return fmt.Errorf("incompatible type for Opt[%s]: %s, failed to retrieve value", reflect.TypeOf(o.v), reflect.TypeOf(src).String())
+			return fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", *new(T), reflect.TypeOf(src))
 		}
 	case float32:
 		switch ptr := any(&v).(type) {
@@ -381,7 +481,7 @@ func (o *Opt[T]) Scan(src interface{}) error {
 		case **float64:
 			*ptr = uref.Ref(float64(src.(float32)))
 		default:
-			return fmt.Errorf("incompatible type for Opt[%s]: %s, failed to retrieve value", reflect.TypeOf(o.v), reflect.TypeOf(src).String())
+			return fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", *new(T), reflect.TypeOf(src))
 		}
 	case float64:
 		switch ptr := any(&v).(type) {
@@ -392,18 +492,24 @@ func (o *Opt[T]) Scan(src interface{}) error {
 		case **float64:
 			*ptr = uref.Ref(src.(float64))
 		default:
-			return fmt.Errorf("incompatible type for Opt[%s]: %s, failed to retrieve value", reflect.TypeOf(o.v), reflect.TypeOf(src).String())
+			return fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", *new(T), reflect.TypeOf(src))
 		}
 	case nil:
 		return nil
 	case driver.Valuer:
 		valSql, err := src.(driver.Valuer).Value()
 		if err != nil {
-			return fmt.Errorf("incompatible type for Opt[%s]: %s, failed to retrieve value", reflect.TypeOf(o.v), reflect.TypeOf(src).String())
+			return fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", *new(T), reflect.TypeOf(src))
 		}
 		v = valSql.(*T)
 	default:
-		return fmt.Errorf("incompatible type for Opt[%s]: %s", reflect.TypeOf(o.v), reflect.TypeOf(src).String())
+		// Try to directly assign if types are compatible
+		if val, ok := src.(T); ok {
+			*o = Of(val)
+			return nil
+		} else {
+			return fmt.Errorf("incompatible type for Opt[%T]: %T", *new(T), src)
+		}
 	}
 
 	*o = OfNullable(v)
