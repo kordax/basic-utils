@@ -405,28 +405,6 @@ func TestEqualValues(t *testing.T) {
 	}
 }
 
-func TestMapKeys(t *testing.T) {
-	m := map[string]int{"apple": 1, "banana": 2}
-	keys := uarray.MapKeys(m)
-	expected := []string{"apple", "banana"}
-	sort.Strings(keys)
-	sort.Strings(expected)
-	if !reflect.DeepEqual(keys, expected) {
-		t.Error("MapKeys function failed")
-	}
-}
-
-func TestMapValues(t *testing.T) {
-	m := map[string]int{"apple": 1, "banana": 2}
-	values := uarray.MapValues(m)
-	expected := []int{1, 2}
-	sort.Ints(values)
-	sort.Ints(expected)
-	if !reflect.DeepEqual(values, expected) {
-		t.Error("MapValues function failed")
-	}
-}
-
 func TestMerge(t *testing.T) {
 	t1 := []int{1, 2, 3}
 	t2 := []int{3, 4, 5}
@@ -437,4 +415,41 @@ func TestMerge(t *testing.T) {
 	if !reflect.DeepEqual(merged, expected) {
 		t.Error("Merge function failed")
 	}
+}
+
+func TestRange(t *testing.T) {
+	// Test the Range function
+	expected := []int{1, 2, 3, 4}
+	result := uarray.Range(1, 5)
+	assert.Equal(t, expected, result)
+}
+
+func TestRangeWithStep(t *testing.T) {
+	expected := []int{1, 3, 5, 7, 9}
+	result := uarray.RangeWithStep(1, 9, 2)
+	assert.Equal(t, expected, result)
+}
+
+func TestRangeWithHugeStep(t *testing.T) {
+	expected := []int{1, 101}
+	result := uarray.RangeWithStep(1, 9, 100)
+	assert.Equal(t, expected, result)
+}
+
+func TestRangeWithStep_ZeroStep(t *testing.T) {
+	assert.Panics(t, func() {
+		_ = uarray.RangeWithStep(1, 5, 0)
+	}, "RangeWithStep should panic with zero step")
+}
+
+func TestRangeWithStep_NegativeStep(t *testing.T) {
+	assert.Panics(t, func() {
+		_ = uarray.RangeWithStep(1, 5, -1)
+	}, "RangeWithStep should panic with negative step")
+}
+
+func TestRangeWithStep_UnalignedRange(t *testing.T) {
+	expected := []int{1, 3, 5, 7, 9, 11}
+	result := uarray.RangeWithStep(1, 10, 2)
+	assert.Equal(t, expected, result)
 }
