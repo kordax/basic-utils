@@ -270,7 +270,13 @@ func Flat[V any](values [][]V) []V {
 	return result
 }
 
-// ToMap collects a stream using collector func to a map.
+// ToMap collects elements of a slice into a map using a collector function.
+// Note:
+//
+//	If the mapping function produces the same key for multiple elements, the resulting
+//	map will contain only the last value associated with that key, as the map does not
+//	behave like a multimap. Each key in the returned map corresponds to a single value,
+//	and any previous value for the same key will be overwritten.
 func ToMap[V any, K comparable, R any](values []V, m func(v *V) (K, R)) map[K]R {
 	result := make(map[K]R)
 	for _, v := range values {
