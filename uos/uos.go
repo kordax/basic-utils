@@ -131,6 +131,45 @@ func GetEnvNumeric[T basicutils.Numeric](key string) T {
 	return result.(T)
 }
 
+// GetEnvAs retrieves an environment variable specified by `key` and uses a provided
+// MappingFunc `f` to convert the environment variable's string value into the desired type `T`.
+// The MappingFunc `f` should take a string as input and return a pointer to the type `T` and an error.
+// If the environment variable is not set, GetEnvAs panics with an error indicating that
+// the expected environment variable was not found.
+// If the MappingFunc `f` returns an error, GetEnvAs panics with an error indicating
+// that the environment variable could not be parsed as the desired type.
+//
+// Parameters:
+//
+//	key: the name of the environment variable to retrieve.
+//	f: a MappingFunc that converts a string value to the desired type `T`, returning a pointer to `T` and an error.
+//
+// Returns:
+//
+//	The value of the environment variable converted to type `T`.
+//
+// Example usage:
+//
+//	// Assuming MapStringToDuration and MapStringToInt are defined MappingFuncs for time.Duration and int respectively
+//	duration := GetEnvAs("TIMEOUT", MapStringToDuration(time.RFC3339))
+//	url := GetEnvAs("MY_URL", MapStringToURL)
+//
+// Note: Since this function uses panic for error handling, it should be used in contexts
+// where such behavior is acceptable, or it should be recovered using defer and recover mechanisms.
+func GetEnvAs[T any](key string, f MappingFunc[T]) T {
+	value := os.Getenv(key)
+	if value == "" {
+		panic(fmt.Errorf("expected environment variable '%s' was not found", key))
+	}
+
+	result, err := f(value)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse environment variable '%s' as duration'", key))
+	}
+
+	return *result
+}
+
 func getCGroupCPUs() (int, error) { // coverage-ignore
 	quota, err := readCgroupValue("/sys/fs/cgroup/cpu/cpu.cfs_quota_us")
 	if err != nil {

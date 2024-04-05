@@ -1,5 +1,3 @@
-//go:build integration_test
-
 /*
  * @kordax (Dmitry Morozov)
  * dmorozov@valoru-software.com

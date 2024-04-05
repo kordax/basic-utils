@@ -9,6 +9,7 @@ package uarray
 import (
 	"sort"
 
+	basicutils "github.com/kordax/basic-utils"
 	"github.com/kordax/basic-utils/umap"
 	"golang.org/x/exp/constraints"
 )
@@ -115,6 +116,7 @@ func FilterAll[V any](values []V, filter func(v *V) bool) ([]V, []V) {
 	if len(values) == 0 {
 		return []V{}, []V{}
 	}
+
 	result := make([]V, 0)
 	nonMatching := make([]V, 0)
 	for _, v := range values {
@@ -149,16 +151,80 @@ func FilterBySet[V comparable](values []V, filter []V) []V {
 	return result
 }
 
-// Find finds first match in provided slice.
-// TODO: Improve performance/sort slice
-func Find[V any](values []V, filter func(v *V) bool) *V {
+// FilterOut is a macros to Filter, so it acts like Filter, but filters out values.
+// That means that only values not matching the filter will be returned.
+func FilterOut[V any](values []V, filter func(v *V) bool) []V {
+	return Filter(values, func(v *V) bool {
+		return !filter(v)
+	})
+}
+
+// SortFind sorts the given slice using the provided less function and then finds the first match
+// using a binary search with the filter function. This approach is efficient for large slices
+// and repeated searches, as it leverages the speed of binary search.
+//
+// Parameters:
+//   - values: the slice of elements to search through.
+//   - less: a function that defines the order of elements for sorting.
+//   - filter: a function that tests each element to find a match.
+//
+// Returns:
+//   - A pointer to the found element, or nil if no match is found.
+//
+// Examples:
+//
+//   - Finding an integer in a slice of integers:
+//     intSlice := []int{9, 7, 5, 3, 1}
+//     foundInt := SortFind(intSlice, func(a, b int) bool { return a < b }, func(v int) bool { return v == 5 })
+//     if foundInt != nil {
+//     fmt.Println("Found:", *foundInt)
+//     }
+//
+//   - Finding a string in a slice of strings:
+//     stringSlice := []string{"apple", "banana", "cherry"}
+//     foundString := SortFind(stringSlice, func(a, b string) bool { return a < b }, func(v string) bool { return v == "banana" })
+//     if foundString != nil {
+//     fmt.Println("Found:", *foundString)
+//     }
+func SortFind[V any](values []V, less func(a, b V) bool, filter func(V) bool) *V {
 	if len(values) == 0 {
 		return nil
 	}
-	for _, v := range values {
-		if filter(&v) {
-			return &v
-		}
+
+	// Create a copy of the slice to avoid mutating the original slice
+	sortedValues := make([]V, len(values))
+	copy(sortedValues, values)
+
+	// Sort the copy using the provided less function
+	sort.Slice(sortedValues, func(i, j int) bool {
+		return less(sortedValues[i], sortedValues[j])
+	})
+
+	index := sort.Search(len(sortedValues), func(i int) bool {
+		return filter(sortedValues[i])
+	})
+
+	if index < len(sortedValues) && filter(sortedValues[index]) {
+		return &sortedValues[index]
+	}
+
+	return nil
+}
+
+// Find finds the first match in a sorted slice using binary search.
+// The slice must be sorted for binary search to work correctly.
+// The filter function should implement a comparison suitable for binary search.
+func Find[V comparable](values []V, filter func(v *V) bool) *V {
+	if len(values) == 0 {
+		return nil
+	}
+
+	index := sort.Search(len(values), func(i int) bool {
+		return filter(&values[i])
+	})
+
+	if index < len(values) && filter(&values[index]) {
+		return &values[index]
 	}
 
 	return nil
@@ -205,12 +271,18 @@ func Flat[V any](values [][]V) []V {
 	return result
 }
 
-// ToMap collects a stream using collector func to a map.
+// ToMap collects elements of a slice into a map using a collector function.
+// Note:
+//
+//	If the mapping function produces the same key for multiple elements, the resulting
+//	map will contain only the last value associated with that key, as the map does not
+//	behave like a multimap. Each key in the returned map corresponds to a single value,
+//	and any previous value for the same key will be overwritten.
 func ToMap[V any, K comparable, R any](values []V, m func(v *V) (K, R)) map[K]R {
 	result := make(map[K]R)
 	for _, v := range values {
-		k, v := m(&v)
-		result[k] = v
+		k, nv := m(&v)
+		result[k] = nv
 	}
 
 	return result
@@ -265,7 +337,7 @@ func GroupToMapBy[V any, G comparable](values []V, group func(v *V) G) map[G][]V
 	return result
 }
 
-// CopyWithoutIndex copies a slice ignored the element at specific index
+// CopyWithoutIndex copies a slice while ignoring an element at specific index
 func CopyWithoutIndex[T any](src []T, index int) []T {
 	cpy := make([]T, 0)
 	cpy = append(cpy, src[:index]...)
@@ -357,28 +429,6 @@ func EqualValuesCompare[T any](left []T, right []T, compare func(t1, t2 T) bool,
 	return true
 }
 
-func MapKeys[K comparable, V any](m map[K]V) []K {
-	k := make([]K, len(m))
-	i := 0
-	for key := range m {
-		k[i] = key
-		i++
-	}
-
-	return k
-}
-
-func MapValues[K comparable, V any](m map[K]V) []V {
-	v := make([]V, len(m))
-	i := 0
-	for _, value := range m {
-		v[i] = value
-		i++
-	}
-
-	return v
-}
-
 // Merge merges two slices with t1 elements prioritized against elements of t2.
 func Merge[K comparable, T any](t1 []T, t2 []T, key func(t *T) K) []T {
 	hashes := make(map[K]struct{})
@@ -396,6 +446,49 @@ func Merge[K comparable, T any](t1 []T, t2 []T, key func(t *T) K) []T {
 			hashes[k] = struct{}{}
 			result = append(result, t)
 		}
+	}
+
+	return result
+}
+
+// Range generates a slice of integers from 'from' to 'to' (exclusive).
+// The type T must be an integer type (e.g., int, int64, uint, etc.).
+// The returned slice includes 'from', but is exclusive to 'to'.
+// Example usage: FromRange(1, 5) returns []int{1, 2, 3, 4}.
+func Range[T basicutils.Integer](from, to T) []T {
+	result := make([]T, to-from)
+	for i := from; i < to; i++ {
+		result[i-from] = i
+	}
+
+	return result
+}
+
+// RangeWithStep generates a slice of integers starting from 'from' up to and including 'to' with a specified step.
+// The 'from' argument specifies the starting value (inclusive).
+// The 'to' argument specifies the ending value (inclusive).
+// The 'step' argument specifies the interval between generated elements.
+// The function returns a slice of integers with elements generated using the specified step.
+// Example usage: result := uarray.RangeWithStep(1, 9, 2) generates []int{1, 3, 5, 7, 9}.
+// Example usage: result := uarray.RangeWithStep(1, 9, 100) generates []int{1, 101} when step > range.
+//
+// Note: The 'to' argument is inclusive to ensure that the last element specified by 'to' is included in the result.
+// When the 'step' value is larger than the range (i.e., 'to - from'), the function generates a slice with only two elements:
+// the starting value 'from' and the incremented value 'from + step'.
+// This behavior is intentional to handle cases where the step is larger than the range and still provide a predictable result.
+func RangeWithStep(from, to, step int) []int {
+	if step <= 0 {
+		panic("RangeWithStep step must be a positive value")
+	}
+
+	size := (to-from)/step + 1
+	if (to-from)%step != 0 {
+		size++ // Adjust size if 'to' is not divisible by 'step'
+	}
+
+	result := make([]int, size)
+	for i := 0; i < size; i++ {
+		result[i] = from + step*i
 	}
 
 	return result

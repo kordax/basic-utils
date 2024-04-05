@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kordax/basic-utils/ucache"
+	"github.com/kordax/basic-utils/uopt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -297,4 +298,23 @@ func TestStringValue_Equals(t *testing.T) {
 	assert.True(t, stringValue1.Equals(stringValue2), "should be equal for the same string value")
 	assert.False(t, stringValue1.Equals(stringValue3), "should not be equal for different string values")
 	assert.False(t, stringValue1.Equals(ucache.NewInt64Value(123)), "should be false when compared with a different type")
+}
+
+func TestKeysWithCache(t *testing.T) {
+	cache := ucache.NewInMemoryTreeCache[ucache.CompositeKey, ucache.StringValue](uopt.NullDuration())
+
+	intKey := ucache.IntKey(42)
+	cache.Put(intKey, ucache.NewStringValue("value for int"))
+	retrievedInt := cache.Get(intKey)
+	assert.Equal(t, []ucache.StringValue{ucache.NewStringValue("value for int")}, retrievedInt, "IntKey retrieval failed")
+
+	uintKey := ucache.UIntKey(42)
+	cache.Set(uintKey, ucache.NewStringValue("value for uint"))
+	retrievedUInt := cache.Get(uintKey)
+	assert.Equal(t, []ucache.StringValue{ucache.NewStringValue("value for uint")}, retrievedUInt, "UIntKey retrieval failed")
+
+	stringKey := ucache.StringKey("key")
+	cache.Put(stringKey, ucache.NewStringValue("value for string"))
+	retrievedString := cache.Get(stringKey)
+	assert.Equal(t, []ucache.StringValue{ucache.NewStringValue("value for string")}, retrievedString, "StringKey retrieval failed")
 }
