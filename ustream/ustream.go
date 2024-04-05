@@ -6,7 +6,17 @@
 
 package ustream
 
-import "github.com/kordax/basic-utils/uarray"
+import (
+	"fmt"
+	"sync"
+
+	"github.com/kordax/basic-utils/uarray"
+)
+
+type parallelTask[T any] struct {
+	v     *T
+	index int
+}
 
 // Collector defines the interface for collecting elements from a stream.
 type Collector[T any] interface {
@@ -48,6 +58,10 @@ func (s *Stream[T]) CollectToMap(mapper func(*T) (any, any)) map[any]any {
 	return uarray.ToMap(s.values, mapper)
 }
 
+func (s *Stream[T]) ToTerminal() *TerminalStream[T] {
+	return NewTerminalStream(s.values)
+}
+
 // TerminalStream represents a stream that can only be collected.
 type TerminalStream[T any] struct {
 	values []T
@@ -55,6 +69,44 @@ type TerminalStream[T any] struct {
 
 func NewTerminalStream[T any](values []T) *TerminalStream[T] {
 	return &TerminalStream[T]{values: values}
+}
+
+// ParallelExecute executes the given function concurrently on each element of the stream's values
+// using the specified level of parallelism.
+func (s *TerminalStream[T]) ParallelExecute(fn func(int, *T), parallelism int) {
+	if parallelism == 0 {
+		panic(fmt.Errorf("parallelism cannot be zero"))
+	}
+
+	var wg sync.WaitGroup
+	in := make(chan parallelTask[T])
+
+	for i := 0; i < parallelism; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			for v := range in {
+				fn(v.index, v.v)
+			}
+		}(i)
+	}
+
+	subsetSize := (len(s.values) + parallelism - 1) / parallelism
+	startIndex := 0
+	for i := 0; i < parallelism; i++ {
+		endIndex := startIndex + subsetSize
+		if endIndex > len(s.values) {
+			endIndex = len(s.values)
+		}
+		subset := s.values[startIndex:endIndex]
+		for j, value := range subset {
+			in <- parallelTask[T]{v: &value, index: startIndex + j}
+		}
+		startIndex = endIndex
+	}
+
+	close(in)
+	wg.Wait()
 }
 
 func (s *TerminalStream[T]) Collect() []T {

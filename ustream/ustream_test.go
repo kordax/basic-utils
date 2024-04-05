@@ -94,3 +94,10 @@ func TestStream_CollectToMap(t *testing.T) {
 		}
 	}
 }
+
+func TestParallelExecute(t *testing.T) {
+	fn := func(index int, value *int) {}
+
+	stream := ustream.NewStream([]int{1, 2, 3, 4, 5})
+	stream.ToTerminal().ParallelExecute(fn, 4)
+}
