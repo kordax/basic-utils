@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/kordax/basic-utils/uarray"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -213,6 +214,18 @@ func TestFilter(t *testing.T) {
 	}
 }
 
+func TestFilterOut(t *testing.T) {
+	values := []int{1, 2, 3, 4, 5}
+	filteredOut := uarray.FilterOut(values, func(v *int) bool {
+		return *v%2 == 0 // filter out even numbers
+	})
+	expected := []int{1, 3, 5} // odd numbers should remain
+
+	if !reflect.DeepEqual(filteredOut, expected) {
+		t.Errorf("FilterOut function failed, expected %v, got %v", expected, filteredOut)
+	}
+}
+
 func TestFilterAll(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
 	matching, nonMatching := uarray.FilterAll(values, func(v *int) bool {
@@ -240,6 +253,21 @@ func TestFind(t *testing.T) {
 	if *found != 3 {
 		t.Error("Find function failed")
 	}
+}
+
+func TestSortFind(t *testing.T) {
+	values := []int{5, 3, 1, 4, 2}
+	expected := 3
+
+	// The slice will be sorted inside SortFind, so we expect to find the value correctly
+	found := uarray.SortFind(values, func(a, b int) bool {
+		return a < b
+	}, func(v int) bool {
+		return v == expected
+	})
+
+	assert.NotNil(t, found, "SortFind should have found a value, but got nil")
+	assert.Equal(t, expected, *found, "SortFind returned the wrong value")
 }
 
 func TestMapAggr(t *testing.T) {
