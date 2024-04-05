@@ -41,6 +41,8 @@ This is due to the usage of features and packages introduced in this version.
 
 - **ustr**: Utilities related to string operations.
 
+- **ustream**: Experimental stream implementation for rare operations.
+
 ## Installation
 
 Make sure you have Go installed on your machine. Then, use `go get` to install the package:
