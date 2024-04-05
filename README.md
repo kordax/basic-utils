@@ -18,6 +18,8 @@ This is due to the usage of features and packages introduced in this version.
 
 - **uasync**: Utilities that help to organize async operations.
 
+- **uerror**: Provides utilities for error handling.
+
 - **ufile**: Utilities for efficient file handling.
 
 - **umap**: Helper functions for working with maps in Go.
