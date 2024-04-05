@@ -9,6 +9,7 @@ package uarray
 import (
 	"sort"
 
+	basicutils "github.com/kordax/basic-utils"
 	"github.com/kordax/basic-utils/umap"
 	"golang.org/x/exp/constraints"
 )
@@ -428,28 +429,6 @@ func EqualValuesCompare[T any](left []T, right []T, compare func(t1, t2 T) bool,
 	return true
 }
 
-func MapKeys[K comparable, V any](m map[K]V) []K {
-	k := make([]K, len(m))
-	i := 0
-	for key := range m {
-		k[i] = key
-		i++
-	}
-
-	return k
-}
-
-func MapValues[K comparable, V any](m map[K]V) []V {
-	v := make([]V, len(m))
-	i := 0
-	for _, value := range m {
-		v[i] = value
-		i++
-	}
-
-	return v
-}
-
 // Merge merges two slices with t1 elements prioritized against elements of t2.
 func Merge[K comparable, T any](t1 []T, t2 []T, key func(t *T) K) []T {
 	hashes := make(map[K]struct{})
@@ -467,6 +446,49 @@ func Merge[K comparable, T any](t1 []T, t2 []T, key func(t *T) K) []T {
 			hashes[k] = struct{}{}
 			result = append(result, t)
 		}
+	}
+
+	return result
+}
+
+// Range generates a slice of integers from 'from' to 'to' (exclusive).
+// The type T must be an integer type (e.g., int, int64, uint, etc.).
+// The returned slice includes 'from', but is exclusive to 'to'.
+// Example usage: FromRange(1, 5) returns []int{1, 2, 3, 4}.
+func Range[T basicutils.Integer](from, to T) []T {
+	result := make([]T, to-from)
+	for i := from; i < to; i++ {
+		result[i-from] = i
+	}
+
+	return result
+}
+
+// RangeWithStep generates a slice of integers starting from 'from' up to and including 'to' with a specified step.
+// The 'from' argument specifies the starting value (inclusive).
+// The 'to' argument specifies the ending value (inclusive).
+// The 'step' argument specifies the interval between generated elements.
+// The function returns a slice of integers with elements generated using the specified step.
+// Example usage: result := uarray.RangeWithStep(1, 9, 2) generates []int{1, 3, 5, 7, 9}.
+// Example usage: result := uarray.RangeWithStep(1, 9, 100) generates []int{1, 101} when step > range.
+//
+// Note: The 'to' argument is inclusive to ensure that the last element specified by 'to' is included in the result.
+// When the 'step' value is larger than the range (i.e., 'to - from'), the function generates a slice with only two elements:
+// the starting value 'from' and the incremented value 'from + step'.
+// This behavior is intentional to handle cases where the step is larger than the range and still provide a predictable result.
+func RangeWithStep(from, to, step int) []int {
+	if step <= 0 {
+		panic("RangeWithStep step must be a positive value")
+	}
+
+	size := (to-from)/step + 1
+	if (to-from)%step != 0 {
+		size++ // Adjust size if 'to' is not divisible by 'step'
+	}
+
+	result := make([]int, size)
+	for i := 0; i < size; i++ {
+		result[i] = from + step*i
 	}
 
 	return result
