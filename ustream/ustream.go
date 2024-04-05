@@ -43,7 +43,7 @@ func (s *Stream[T]) Collect() []T {
 	return s.values
 }
 
-// CollectToMap uses the uarray.ToMap function to collect elements of the Stream into a map.
+// CollectToMap uses the uarray.ToMultiMap function to collect elements of the Stream into a map.
 func (s *Stream[T]) CollectToMap(mapper func(*T) (any, any)) map[any]any {
 	return uarray.ToMap(s.values, mapper)
 }
@@ -61,6 +61,7 @@ func (s *TerminalStream[T]) Collect() []T {
 	return s.values
 }
 
-func (s *TerminalStream[T]) CollectToMap(mapper func(*T) (any, T)) map[any]T {
-	return uarray.ToMap(s.values, mapper)
+// CollectToMap uses the uarray.ToMultiMap function to collect elements of the Stream into a map.
+func (s *TerminalStream[T]) CollectToMap(mapper func(*T) (any, T)) map[any][]T {
+	return uarray.ToMultiMap(s.values, mapper)
 }

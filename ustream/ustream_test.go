@@ -82,13 +82,15 @@ func TestStream_CollectToMap(t *testing.T) {
 	})
 
 	collectedMap := resultStream.CollectToMap(func(v *any) (any, any) {
-		return len("group: " + (*v).(string)), *v
+		return len((*v).(string)), *v
 	})
 
 	assert.NotEmpty(t, collectedMap, "CollectToMap should produce a non-empty map")
-	for key, value := range collectedMap {
-		assert.IsType(t, 0, key, "Keys in the map should be of int type")
-		assert.NotEmpty(t, value, "Value in the map should be non-empty")
-		assert.IsType(t, "", value, "Values in the map should be of string type")
+	for key, valueSlice := range collectedMap {
+		assert.IsType(t, int(0), key, "Keys in the map should be of int type")
+		assert.NotEmpty(t, valueSlice, "Value slices in the map should be non-empty")
+		for _, value := range valueSlice {
+			assert.IsType(t, "", value, "Values in the map should be of string type")
+		}
 	}
 }
