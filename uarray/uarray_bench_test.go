@@ -42,13 +42,3 @@ func BenchmarkEqualValues(b *testing.B) {
 		EqualValues(slice1, slice2)
 	}
 }
-
-// Benchmark for MapKeys function
-func BenchmarkMapKeys(b *testing.B) {
-	sampleMap := map[int]string{1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		MapKeys(sampleMap)
-	}
-}

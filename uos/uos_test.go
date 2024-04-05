@@ -7,13 +7,18 @@
 package uos_test
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"math"
+	"net/url"
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/kordax/basic-utils/uos"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetCPUs_Stub(t *testing.T) {
@@ -141,4 +146,42 @@ func TestGetEnvNumeric_Panic(t *testing.T) {
 			}, "Expected panic for invalid input in GetEnvNumeric()")
 		})
 	}
+}
+
+func TestGetEnvAs(t *testing.T) {
+	require.NoError(t, os.Setenv("TEST_TIME", "2023-01-01T15:04:05Z"))
+	require.NoError(t, os.Setenv("TEST_BASE64", base64.StdEncoding.EncodeToString([]byte("hello"))))
+	require.NoError(t, os.Setenv("TEST_HEX", hex.EncodeToString([]byte("hello"))))
+	require.NoError(t, os.Setenv("TEST_URL", "https://www.example.com"))
+
+	defer t.Cleanup(func() {
+		os.Unsetenv("TEST_TIME")
+		os.Unsetenv("TEST_BASE64")
+		os.Unsetenv("TEST_HEX")
+		os.Unsetenv("TEST_URL")
+	})
+
+	t.Run("Time", func(t *testing.T) {
+		expectedTime, _ := time.Parse(time.RFC3339, os.Getenv("TEST_TIME"))
+		result := uos.GetEnvAs("TEST_TIME", uos.MapStringToTime(time.RFC3339))
+		assert.Equal(t, expectedTime, result)
+	})
+
+	t.Run("Base64", func(t *testing.T) {
+		expectedText := "hello"
+		result := uos.GetEnvAs("TEST_BASE64", uos.MapStringToBase64)
+		assert.Equal(t, expectedText, result)
+	})
+
+	t.Run("Hex", func(t *testing.T) {
+		expectedText := []byte("hello")
+		result := uos.GetEnvAs("TEST_HEX", uos.MapStringToHex)
+		assert.Equal(t, expectedText, result)
+	})
+
+	t.Run("URL", func(t *testing.T) {
+		expectedURL, _ := url.Parse(os.Getenv("TEST_URL"))
+		result := uos.GetEnvAs("TEST_URL", uos.MapStringToURL)
+		assert.Equal(t, *expectedURL, result)
+	})
 }
