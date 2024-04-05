@@ -174,7 +174,7 @@ func TestGetEnvAs(t *testing.T) {
 	})
 
 	t.Run("Hex", func(t *testing.T) {
-		expectedText := "hello"
+		expectedText := []byte("hello")
 		result := uos.GetEnvAs("TEST_HEX", uos.MapStringToHex)
 		assert.Equal(t, expectedText, result)
 	})

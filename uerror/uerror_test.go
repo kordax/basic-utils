@@ -38,6 +38,18 @@ func TestMust(t *testing.T) {
 			uerror.Must(failingOperation())
 		})
 	})
+
+	t.Run("NoReturn", func(t *testing.T) {
+		assert.NotPanics(t, func() {
+			uerror.Must(func() {})
+		})
+	})
+
+	t.Run("NoFunc", func(t *testing.T) {
+		assert.NotPanics(t, func() {
+			uerror.Must()
+		})
+	})
 }
 
 // successfulOperation simulates a function that returns a result and no error

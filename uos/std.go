@@ -39,12 +39,12 @@ func MapStringToBase64(value string) (*string, error) {
 }
 
 // MapStringToHex decodes a Hex encoded string into its original representation.
-func MapStringToHex(value string) (*string, error) {
+func MapStringToHex(value string) (*[]byte, error) {
 	bytes, err := hex.DecodeString(value)
 	if err != nil {
 		return nil, err
 	}
-	result := string(bytes)
+	result := bytes
 	return &result, nil
 }
 
