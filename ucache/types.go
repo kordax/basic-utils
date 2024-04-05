@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dgryski/go-farm"
 	"github.com/kordax/basic-utils/uarray"
 )
 
@@ -39,40 +40,60 @@ type CompositeKey interface {
 	String() string
 }
 
-func (s IntKey) Equals(other Comparable) bool {
+func (k IntKey) Equals(other Comparable) bool {
 	otherKey, ok := other.(IntKey)
-	return ok && s == otherKey
+	return ok && k == otherKey
 }
 
-func (s IntKey) Key() int64 {
-	return int64(s)
+func (k IntKey) Key() int64 {
+	return int64(k)
 }
 
-func (s StringKey) Equals(other Comparable) bool {
+func (k IntKey) Keys() []int64 {
+	return []int64{int64(k)}
+}
+
+func (k IntKey) String() string {
+	return fmt.Sprintf("%d", k)
+}
+
+func (k StringKey) Equals(other Comparable) bool {
 	otherKey, ok := other.(StringKey)
-	return ok && s == otherKey
+	return ok && k == otherKey
 }
 
-func (s StringKey) Key() int64 {
+func (k StringKey) Key() int64 {
 	hash := int64(0)
-	for i := 0; i < len(s); i++ {
-		hash = 31*hash + int64(s[i])
+	for i := 0; i < len(k); i++ {
+		hash = 31*hash + int64(k[i])
 	}
 
 	return hash
 }
 
-func (s StringKey) String() string {
-	return string(s)
+func (k StringKey) Keys() []int64 {
+	return []int64{int64(farm.Hash64([]byte(k)))}
 }
 
-func (s UIntKey) Equals(other Comparable) bool {
+func (k StringKey) String() string {
+	return string(k)
+}
+
+func (k UIntKey) Equals(other Comparable) bool {
 	otherKey, ok := other.(UIntKey)
-	return ok && s == otherKey
+	return ok && k == otherKey
 }
 
-func (s UIntKey) Key() int {
-	return int(s)
+func (k UIntKey) Key() int {
+	return int(k)
+}
+
+func (k UIntKey) Keys() []int64 {
+	return []int64{int64(k)}
+}
+
+func (k UIntKey) String() string {
+	return fmt.Sprintf("%d", k)
 }
 
 type ComparableKey[T comparable] struct {
