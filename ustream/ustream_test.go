@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -17,6 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type dummy = struct{}
 
 func TestStream_NewStream(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
@@ -87,7 +90,7 @@ func TestStream_CollectToMap(t *testing.T) {
 
 	assert.NotEmpty(t, collectedMap, "CollectToMap should produce a non-empty map")
 	for key, valueSlice := range collectedMap {
-		assert.IsType(t, int(0), key, "Keys in the map should be of int type")
+		assert.IsType(t, 0, key, "Keys in the map should be of int type")
 		assert.NotEmpty(t, valueSlice, "Value slices in the map should be non-empty")
 		for _, value := range valueSlice {
 			assert.IsType(t, "", value, "Values in the map should be of string type")
@@ -95,9 +98,46 @@ func TestStream_CollectToMap(t *testing.T) {
 	}
 }
 
-func TestParallelExecute(t *testing.T) {
+func TestTerminalStream_ParallelExecute(t *testing.T) {
 	fn := func(index int, value *int) {}
 
 	stream := ustream.NewStream([]int{1, 2, 3, 4, 5})
 	stream.ToTerminal().ParallelExecute(fn, 4)
+}
+
+func TestTerminalStream_ParallelExecuteWithTimeout(t *testing.T) {
+	data := make([]dummy, 100)
+	stream := ustream.NewTerminalStream(data)
+
+	var counter atomic.Int32
+
+	mockFn := func(index int, item *dummy) {
+		time.Sleep(1 * time.Millisecond) // Simulate some processing time
+		counter.Add(1)
+	}
+	cancel := func(i int, d *dummy) {
+		assert.Fail(t, fmt.Sprintf("cancel for timeout called on item index %d", i))
+	}
+
+	stream.ParallelExecuteWithTimeout(mockFn, cancel, 3*time.Second, 10)
+
+	require.EqualValues(t, len(data), counter.Load(), "Not all items were processed as expected")
+}
+
+func TestTerminalStream_ParallelExecuteWithTimeout_Timeout(t *testing.T) {
+	data := make([]dummy, 100)
+	stream := ustream.NewTerminalStream(data)
+
+	var counter atomic.Int32
+
+	mockFn := func(index int, item *dummy) {
+		time.Sleep(10 * time.Millisecond) // Simulate some processing time
+	}
+	cancel := func(i int, d *dummy) {
+		counter.Add(1)
+	}
+
+	stream.ParallelExecuteWithTimeout(mockFn, cancel, 0, 10)
+
+	require.EqualValues(t, len(data), counter.Load(), "Not all items were processed as expected")
 }
