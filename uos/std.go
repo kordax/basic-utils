@@ -10,11 +10,18 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"net/url"
+	"strconv"
 	"time"
 )
 
 // MappingFunc is a type for functions that convert a string to a pointer of type T, returning an error if the conversion fails.
 type MappingFunc[T any] func(value string) (*T, error)
+
+// MapStringToDuration maps value to time.Duration.
+func MapStringToDuration(value string) (*time.Duration, error) {
+	d, err := time.ParseDuration(value)
+	return &d, err
+}
 
 // MapStringToTime creates a function to convert a string to a time.Time using the specified layout.
 // This allows for flexibility in parsing different time formats.
@@ -55,4 +62,14 @@ func MapStringToURL(value string) (*url.URL, error) {
 		return nil, err
 	}
 	return u, nil
+}
+
+// MapStringToBool parses a string into a *bool.
+func MapStringToBool(value string) (*bool, error) {
+	b, err := strconv.ParseBool(value)
+	if err != nil {
+		return nil, err
+	}
+
+	return &b, nil
 }

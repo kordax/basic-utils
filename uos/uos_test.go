@@ -22,23 +22,46 @@ import (
 )
 
 func TestGetCPUs_Stub(t *testing.T) {
-	assert.NotZero(t, uos.GetCPUs())
+	cpus := uos.GetCPUs()
+	assert.NotZero(t, cpus)
+	assert.Less(t, cpus, 100)
+
+	for i := 0; i < 100; i++ {
+		next := uos.GetCPUs()
+		assert.NotZero(t, next)
+		assert.Less(t, next, 100)
+		assert.Equal(t, cpus, next)
+	}
 }
 
 func TestGetEnvNumeric(t *testing.T) {
-	// Setting environment variables with boundary values
-	os.Setenv("TEST_INT", strconv.Itoa(math.MaxInt))
-	os.Setenv("TEST_INT8", strconv.Itoa(math.MinInt8))
-	os.Setenv("TEST_INT16", strconv.Itoa(math.MinInt16))
-	os.Setenv("TEST_INT32", strconv.Itoa(math.MaxInt32))
-	os.Setenv("TEST_INT64", strconv.FormatInt(math.MinInt64, 10))
-	os.Setenv("TEST_UINT", strconv.FormatUint(math.MaxUint, 10))
-	os.Setenv("TEST_UINT8", strconv.Itoa(math.MaxUint8))
-	os.Setenv("TEST_UINT16", strconv.Itoa(math.MaxUint16))
-	os.Setenv("TEST_UINT32", strconv.FormatUint(math.MaxUint32, 10))
-	os.Setenv("TEST_UINT64", strconv.FormatUint(math.MaxUint64, 10))
-	os.Setenv("TEST_FLOAT32", strconv.FormatFloat(math.MaxFloat32, 'f', -1, 64))
-	os.Setenv("TEST_FLOAT64", strconv.FormatFloat(-math.MaxFloat64, 'f', -1, 64))
+	require.NoError(t, os.Setenv("TEST_INT", strconv.Itoa(math.MaxInt)))
+	require.NoError(t, os.Setenv("TEST_INT8", strconv.Itoa(math.MinInt8)))
+	require.NoError(t, os.Setenv("TEST_INT16", strconv.Itoa(math.MinInt16)))
+	require.NoError(t, os.Setenv("TEST_INT32", strconv.Itoa(math.MaxInt32)))
+	require.NoError(t, os.Setenv("TEST_INT64", strconv.FormatInt(math.MinInt64, 10)))
+	require.NoError(t, os.Setenv("TEST_UINT", strconv.FormatUint(math.MaxUint, 10)))
+	require.NoError(t, os.Setenv("TEST_UINT8", strconv.Itoa(math.MaxUint8)))
+	require.NoError(t, os.Setenv("TEST_UINT16", strconv.Itoa(math.MaxUint16)))
+	require.NoError(t, os.Setenv("TEST_UINT32", strconv.FormatUint(math.MaxUint32, 10)))
+	require.NoError(t, os.Setenv("TEST_UINT64", strconv.FormatUint(math.MaxUint64, 10)))
+	require.NoError(t, os.Setenv("TEST_FLOAT32", strconv.FormatFloat(math.MaxFloat32, 'f', -1, 64)))
+	require.NoError(t, os.Setenv("TEST_FLOAT64", strconv.FormatFloat(-math.MaxFloat64, 'f', -1, 64)))
+
+	defer func() {
+		_ = os.Unsetenv("TEST_INT")
+		_ = os.Unsetenv("TEST_INT8")
+		_ = os.Unsetenv("TEST_INT16")
+		_ = os.Unsetenv("TEST_INT32")
+		_ = os.Unsetenv("TEST_INT64")
+		_ = os.Unsetenv("TEST_UINT")
+		_ = os.Unsetenv("TEST_UINT8")
+		_ = os.Unsetenv("TEST_UINT16")
+		_ = os.Unsetenv("TEST_UINT32")
+		_ = os.Unsetenv("TEST_UINT64")
+		_ = os.Unsetenv("TEST_FLOAT32")
+		_ = os.Unsetenv("TEST_FLOAT64")
+	}()
 
 	tests := []struct {
 		name    string
@@ -108,9 +131,9 @@ func TestGetEnvNumeric(t *testing.T) {
 }
 
 func TestGetEnvNumeric_Panic(t *testing.T) {
-	os.Setenv("TEST_INVALID_INT", "invalid_int")     // Invalid int value
-	os.Setenv("TEST_OVERFLOW_INT", "2147483648")     // Overflow int32 value
-	os.Setenv("TEST_INVALID_FLOAT", "invalid_float") // Invalid float value
+	require.NoError(t, os.Setenv("TEST_INVALID_INT", "invalid_int"))     // Invalid int value
+	require.NoError(t, os.Setenv("TEST_OVERFLOW_INT", "2147483648"))     // Overflow int32 value
+	require.NoError(t, os.Setenv("TEST_INVALID_FLOAT", "invalid_float")) // Invalid float value
 
 	tests := []struct {
 		name    string
@@ -155,10 +178,10 @@ func TestGetEnvAs(t *testing.T) {
 	require.NoError(t, os.Setenv("TEST_URL", "https://www.example.com"))
 
 	defer t.Cleanup(func() {
-		os.Unsetenv("TEST_TIME")
-		os.Unsetenv("TEST_BASE64")
-		os.Unsetenv("TEST_HEX")
-		os.Unsetenv("TEST_URL")
+		_ = os.Unsetenv("TEST_TIME")
+		_ = os.Unsetenv("TEST_BASE64")
+		_ = os.Unsetenv("TEST_HEX")
+		_ = os.Unsetenv("TEST_URL")
 	})
 
 	t.Run("Time", func(t *testing.T) {
@@ -183,5 +206,43 @@ func TestGetEnvAs(t *testing.T) {
 		expectedURL, _ := url.Parse(os.Getenv("TEST_URL"))
 		result := uos.GetEnvAs("TEST_URL", uos.MapStringToURL)
 		assert.Equal(t, *expectedURL, result)
+	})
+}
+
+func TestGetEnvHelpers(t *testing.T) {
+	require.NoError(t, os.Setenv("TEST_DURATION", "2h45m"))
+	require.NoError(t, os.Setenv("TEST_TIME", "2023-01-02T15:04:05Z"))
+	require.NoError(t, os.Setenv("TEST_URL", "https://www.example.com"))
+	require.NoError(t, os.Setenv("TEST_BOOL", "true"))
+
+	defer t.Cleanup(func() {
+		_ = os.Unsetenv("TEST_DURATION")
+		_ = os.Unsetenv("TEST_TIME")
+		_ = os.Unsetenv("TEST_URL")
+		_ = os.Unsetenv("TEST_BOOL")
+	})
+
+	t.Run("Duration", func(t *testing.T) {
+		expectedDuration, _ := time.ParseDuration(os.Getenv("TEST_DURATION"))
+		result := uos.GetEnvDuration("TEST_DURATION")
+		assert.Equal(t, expectedDuration, result)
+	})
+
+	t.Run("Time", func(t *testing.T) {
+		expectedTime, _ := time.Parse(time.RFC3339, os.Getenv("TEST_TIME"))
+		result := uos.GetEnvTime("TEST_TIME", time.RFC3339)
+		assert.Equal(t, expectedTime, result)
+	})
+
+	t.Run("URL", func(t *testing.T) {
+		expectedURL, _ := url.Parse(os.Getenv("TEST_URL"))
+		result := uos.GetEnvURL("TEST_URL")
+		assert.Equal(t, *expectedURL, result)
+	})
+
+	t.Run("Bool", func(t *testing.T) {
+		expectedBool, _ := strconv.ParseBool(os.Getenv("TEST_BOOL"))
+		result := uos.GetEnvBool("TEST_BOOL")
+		assert.Equal(t, expectedBool, result)
 	})
 }
