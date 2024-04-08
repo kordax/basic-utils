@@ -7,8 +7,10 @@
 package ustream
 
 import (
+	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/kordax/basic-utils/uarray"
 )
@@ -105,6 +107,80 @@ func (s *TerminalStream[T]) ParallelExecute(fn func(int, *T), parallelism int) {
 		startIndex = endIndex
 	}
 
+	close(in)
+	wg.Wait()
+}
+
+// ParallelExecuteWithTimeout executes a batch of tasks in parallel with a specified level of parallelism and timeout.
+// This method divides the work into batches according to the parallelism parameter and executes each task asynchronously.
+// Each task will be cancelled if it does not complete within the specified timeout duration.
+//
+// Parameters:
+// - fn: The function to execute for each item in the TerminalStream. This function receives an index and a pointer to the item.
+// - cancel: The cancel function to call for each item if it exceeds the timeout. This function receives an index and a pointer to the item.
+// - timeout: The maximum duration to wait for each task to complete before cancelling it. If a task exceeds this duration, it is considered failed.
+// - parallelism: The maximum number of tasks to execute concurrently. This controls the level of parallelism and helps manage resource utilization.
+//
+// Panics:
+// This method panics if the parallelism parameter is less than or equal to zero, as it indicates an invalid configuration.
+//
+// Usage Example:
+// Assuming a TerminalStream of some data type, you can process each item in parallel, with a specific timeout and level of parallelism:
+//
+//	s := NewTerminalStream[MyType](...your data...)
+//	s.ParallelExecuteWithTimeout(func(i int, item *MyType) {
+//	    // Process item
+//	}, func(i int, item *MyType) {
+//	    // Cancel item processing
+//	}, 5*time.Second, 10) // Timeout of 5 seconds, with a parallelism of 10
+//
+// Note: The actual processing function (fn) does not return a value. If you need to collect results or errors from each task,
+// you might need to use a different approach or modify the method accordingly.
+func (s *TerminalStream[T]) ParallelExecuteWithTimeout(fn func(int, *T), cancel func(int, *T), timeout time.Duration, parallelism int) {
+	if parallelism == 0 {
+		panic(fmt.Errorf("parallelism cannot be zero"))
+	}
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
+	defer cancelFunc()
+
+	var wg sync.WaitGroup
+	in := make(chan parallelTask[T], parallelism)
+
+	for i := 0; i < parallelism; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+		cycle:
+			v, ok := <-in
+			if !ok {
+				return
+			}
+
+			select {
+			case <-ctx.Done():
+				cancel(v.index, v.v)
+				goto cycle
+			default:
+				fn(v.index, v.v)
+				goto cycle
+			}
+		}(i)
+	}
+
+	subsetSize := (len(s.values) + parallelism - 1) / parallelism
+	startIndex := 0
+	for i := 0; i < parallelism; i++ {
+		endIndex := startIndex + subsetSize
+		if endIndex > len(s.values) {
+			endIndex = len(s.values)
+		}
+		subset := s.values[startIndex:endIndex]
+		for j, value := range subset {
+			in <- parallelTask[T]{v: &value, index: startIndex + j}
+		}
+		startIndex = endIndex
+	}
 	close(in)
 	wg.Wait()
 }
