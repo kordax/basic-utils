@@ -193,10 +193,7 @@ func GetEnvAs[T any](key string, f MappingFunc[T]) T {
 // is expected to be set and correctly formatted. For more flexible error handling, consider
 // using the underlying GetEnvAs function directly with appropriate error checks.
 func GetEnvDuration(key string) time.Duration {
-	return GetEnvAs[time.Duration](key, func(v string) (*time.Duration, error) {
-		duration, err := time.ParseDuration(v)
-		return &duration, err
-	})
+	return GetEnvAs[time.Duration](key, MapStringToDuration)
 }
 
 // GetEnvTime is the same helper as GetEnvDuration, but for time.Time.
