@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -55,4 +56,14 @@ func MapStringToURL(value string) (*url.URL, error) {
 		return nil, err
 	}
 	return u, nil
+}
+
+// MapStringToBool parses a string into a *bool.
+func MapStringToBool(value string) (*bool, error) {
+	b, err := strconv.ParseBool(value)
+	if err != nil {
+		return nil, err
+	}
+
+	return &b, nil
 }

@@ -199,27 +199,19 @@ func GetEnvDuration(key string) time.Duration {
 	})
 }
 
-// GetEnvTime is the same helper as GetEnvDuration, but for time.Time
+// GetEnvTime is the same helper as GetEnvDuration, but for time.Time.
 func GetEnvTime(key string, layout string) time.Time {
-	return GetEnvAs[time.Time](key, func(v string) (*time.Time, error) {
-		val, err := time.Parse(layout, v)
-		return &val, err
-	})
+	return GetEnvAs[time.Time](key, MapStringToTime(layout))
 }
 
-// GetEnvURL helper for URL
+// GetEnvURL helper for URL.
 func GetEnvURL(key string) url.URL {
-	return GetEnvAs[url.URL](key, func(v string) (*url.URL, error) {
-		return url.Parse(v)
-	})
+	return GetEnvAs[url.URL](key, MapStringToURL)
 }
 
-// GetEnvBool helper for bool values
+// GetEnvBool helper for bool values.
 func GetEnvBool(key string) bool {
-	return GetEnvAs[bool](key, func(v string) (*bool, error) {
-		val, err := strconv.ParseBool(v)
-		return &val, err
-	})
+	return GetEnvAs[bool](key, MapStringToBool)
 }
 
 func getCGroupCPUs() (int, error) { // coverage-ignore
