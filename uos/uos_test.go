@@ -185,3 +185,41 @@ func TestGetEnvAs(t *testing.T) {
 		assert.Equal(t, *expectedURL, result)
 	})
 }
+
+func TestGetEnvHelpers(t *testing.T) {
+	require.NoError(t, os.Setenv("TEST_DURATION", "2h45m"))
+	require.NoError(t, os.Setenv("TEST_TIME", "2023-01-02T15:04:05Z"))
+	require.NoError(t, os.Setenv("TEST_URL", "https://www.example.com"))
+	require.NoError(t, os.Setenv("TEST_BOOL", "true"))
+
+	defer t.Cleanup(func() {
+		os.Unsetenv("TEST_DURATION")
+		os.Unsetenv("TEST_TIME")
+		os.Unsetenv("TEST_URL")
+		os.Unsetenv("TEST_BOOL")
+	})
+
+	t.Run("Duration", func(t *testing.T) {
+		expectedDuration, _ := time.ParseDuration(os.Getenv("TEST_DURATION"))
+		result := uos.GetEnvDuration("TEST_DURATION")
+		assert.Equal(t, expectedDuration, result)
+	})
+
+	t.Run("Time", func(t *testing.T) {
+		expectedTime, _ := time.Parse(time.RFC3339, os.Getenv("TEST_TIME"))
+		result := uos.GetEnvTime("TEST_TIME", time.RFC3339)
+		assert.Equal(t, expectedTime, result)
+	})
+
+	t.Run("URL", func(t *testing.T) {
+		expectedURL, _ := url.Parse(os.Getenv("TEST_URL"))
+		result := uos.GetEnvURL("TEST_URL")
+		assert.Equal(t, *expectedURL, result)
+	})
+
+	t.Run("Bool", func(t *testing.T) {
+		expectedBool, _ := strconv.ParseBool(os.Getenv("TEST_BOOL"))
+		result := uos.GetEnvBool("TEST_BOOL")
+		assert.Equal(t, expectedBool, result)
+	})
+}
