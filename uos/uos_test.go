@@ -22,7 +22,16 @@ import (
 )
 
 func TestGetCPUs_Stub(t *testing.T) {
-	assert.NotZero(t, uos.GetCPUs())
+	cpus := uos.GetCPUs()
+	assert.NotZero(t, cpus)
+	assert.Less(t, cpus, 100)
+
+	for i := 0; i < 100; i++ {
+		next := uos.GetCPUs()
+		assert.NotZero(t, next)
+		assert.Less(t, next, 100)
+		assert.Equal(t, cpus, next)
+	}
 }
 
 func TestGetEnvNumeric(t *testing.T) {
