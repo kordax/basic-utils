@@ -8,11 +8,13 @@ package uos
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	basicutils "github.com/kordax/basic-utils"
 	"github.com/kordax/basic-utils/umath"
@@ -168,6 +170,56 @@ func GetEnvAs[T any](key string, f MappingFunc[T]) T {
 	}
 
 	return *result
+}
+
+// GetEnvDuration retrieves the environment variable specified by key as a time.Duration.
+// This function uses GetEnvAs under the hood to convert the environment variable string
+// to a time.Duration type. If the environment variable is not found, or if the conversion
+// fails (e.g., due to an invalid duration format), GetEnvDuration will panic.
+//
+// The expected format for the duration is a string accepted by time.ParseDuration,
+// which includes any input valid for time.Duration such as "300ms", "1.5h" or "2h45m".
+// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+//
+// Example:
+// If you have an environment variable named TIMEOUT with the value "2m30s",
+// GetEnvDuration("TIMEOUT") will return a time.Duration of 2 minutes and 30 seconds.
+//
+//	os.Setenv("TIMEOUT", "2m30s")
+//	timeout := GetEnvDuration("TIMEOUT")
+//	fmt.Println(timeout) // Prints: 2m30s
+//
+// Note: Because it can panic, this function should be used in cases where the environment variable
+// is expected to be set and correctly formatted. For more flexible error handling, consider
+// using the underlying GetEnvAs function directly with appropriate error checks.
+func GetEnvDuration(key string) time.Duration {
+	return GetEnvAs[time.Duration](key, func(v string) (*time.Duration, error) {
+		duration, err := time.ParseDuration(v)
+		return &duration, err
+	})
+}
+
+// GetEnvTime is the same helper as GetEnvDuration, but for time.Time
+func GetEnvTime(key string, layout string) time.Time {
+	return GetEnvAs[time.Time](key, func(v string) (*time.Time, error) {
+		val, err := time.Parse(layout, v)
+		return &val, err
+	})
+}
+
+// GetEnvURL helper for URL
+func GetEnvURL(key string) url.URL {
+	return GetEnvAs[url.URL](key, func(v string) (*url.URL, error) {
+		return url.Parse(v)
+	})
+}
+
+// GetEnvBool helper for bool values
+func GetEnvBool(key string) bool {
+	return GetEnvAs[bool](key, func(v string) (*bool, error) {
+		val, err := strconv.ParseBool(v)
+		return &val, err
+	})
 }
 
 func getCGroupCPUs() (int, error) { // coverage-ignore
