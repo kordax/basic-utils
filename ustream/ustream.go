@@ -30,19 +30,19 @@ type Stream[T any] struct {
 	values []T
 }
 
-// NewStream creates a new Stream from the given slice.
-func NewStream[T any](values []T) *Stream[T] {
+// Of creates a new Stream from the given slice.
+func Of[T any](values []T) *Stream[T] {
 	return &Stream[T]{values: values}
 }
 
 // Filter wraps the uarray.Filter function in the stream API.
 func (s *Stream[T]) Filter(predicate func(*T) bool) *Stream[T] {
-	return NewStream(uarray.Filter(s.values, predicate))
+	return Of(uarray.Filter(s.values, predicate))
 }
 
 // FilterOut wraps the uarray.FilterOut function in the stream API.
 func (s *Stream[T]) FilterOut(predicate func(*T) bool) *Stream[T] {
-	return NewStream(uarray.FilterOut(s.values, predicate))
+	return Of(uarray.FilterOut(s.values, predicate))
 }
 
 // Map wraps the uarray.Map function in the stream API.
