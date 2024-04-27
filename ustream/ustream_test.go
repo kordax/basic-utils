@@ -23,15 +23,15 @@ type dummy = struct{}
 
 func TestStream_NewStream(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
-	stream := ustream.NewStream(values)
+	stream := ustream.Of(values)
 
-	require.NotNil(t, stream, "NewStream returned nil")
-	assert.Equal(t, values, stream.Collect(), "NewStream did not properly initialize with the values")
+	require.NotNil(t, stream, "Of returned nil")
+	assert.Equal(t, values, stream.Collect(), "Of did not properly initialize with the values")
 }
 
 func TestStream_Filter(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
-	stream := ustream.NewStream(values)
+	stream := ustream.Of(values)
 	filtered := stream.Filter(func(v *int) bool {
 		return *v%2 == 0
 	}).Collect()
@@ -42,7 +42,7 @@ func TestStream_Filter(t *testing.T) {
 
 func TestStream_FilterOut(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
-	stream := ustream.NewStream(values)
+	stream := ustream.Of(values)
 	filteredOut := stream.FilterOut(func(v *int) bool {
 		return *v%2 == 0
 	}).Collect()
@@ -53,7 +53,7 @@ func TestStream_FilterOut(t *testing.T) {
 
 func TestStream_Map(t *testing.T) {
 	values := []int{1, 2, 3}
-	stream := ustream.NewStream(values)
+	stream := ustream.Of(values)
 	mapped := stream.Map(func(v *int) any {
 		return fmt.Sprintf("Num: %d", *v)
 	}).Collect()
@@ -70,7 +70,7 @@ func TestStream_CollectToMap(t *testing.T) {
 		values = append(values, rand.Intn(1000))
 	}
 
-	stream := ustream.NewStream(values)
+	stream := ustream.Of(values)
 
 	// Perform operations on the stream
 	// Since Map returns a TerminalStream, we perform all transformations before mapping
@@ -101,7 +101,7 @@ func TestStream_CollectToMap(t *testing.T) {
 func TestTerminalStream_ParallelExecute(t *testing.T) {
 	fn := func(index int, value *int) {}
 
-	stream := ustream.NewStream([]int{1, 2, 3, 4, 5})
+	stream := ustream.Of([]int{1, 2, 3, 4, 5})
 	stream.ToTerminal().ParallelExecute(fn, 4)
 }
 

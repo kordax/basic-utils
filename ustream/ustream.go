@@ -8,7 +8,6 @@ package ustream
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -30,19 +29,19 @@ type Stream[T any] struct {
 	values []T
 }
 
-// NewStream creates a new Stream from the given slice.
-func NewStream[T any](values []T) *Stream[T] {
+// Of creates a new Stream from the given slice.
+func Of[T any](values []T) *Stream[T] {
 	return &Stream[T]{values: values}
 }
 
 // Filter wraps the uarray.Filter function in the stream API.
 func (s *Stream[T]) Filter(predicate func(*T) bool) *Stream[T] {
-	return NewStream(uarray.Filter(s.values, predicate))
+	return Of(uarray.Filter(s.values, predicate))
 }
 
 // FilterOut wraps the uarray.FilterOut function in the stream API.
 func (s *Stream[T]) FilterOut(predicate func(*T) bool) *Stream[T] {
-	return NewStream(uarray.FilterOut(s.values, predicate))
+	return Of(uarray.FilterOut(s.values, predicate))
 }
 
 // Map wraps the uarray.Map function in the stream API.
@@ -76,10 +75,6 @@ func NewTerminalStream[T any](values []T) *TerminalStream[T] {
 // ParallelExecute executes the given function concurrently on each element of the stream's values
 // using the specified level of parallelism.
 func (s *TerminalStream[T]) ParallelExecute(fn func(int, *T), parallelism int) {
-	if parallelism == 0 {
-		panic(fmt.Errorf("parallelism cannot be zero"))
-	}
-
 	var wg sync.WaitGroup
 	in := make(chan parallelTask[T])
 
@@ -137,10 +132,6 @@ func (s *TerminalStream[T]) ParallelExecute(fn func(int, *T), parallelism int) {
 // Note: The actual processing function (fn) does not return a value. If you need to collect results or errors from each task,
 // you might need to use a different approach or modify the method accordingly.
 func (s *TerminalStream[T]) ParallelExecuteWithTimeout(fn func(int, *T), cancel func(int, *T), timeout time.Duration, parallelism int) {
-	if parallelism == 0 {
-		panic(fmt.Errorf("parallelism cannot be zero"))
-	}
-
 	ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
 	defer cancelFunc()
 
