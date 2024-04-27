@@ -34,7 +34,22 @@ func TestGetCPUs_Stub(t *testing.T) {
 	}
 }
 
-func TestGetEnvNumeric(t *testing.T) {
+func TestRequireEnv(t *testing.T) {
+	key := "TESTENVVALUE"
+	value := "someRandomValue12431!@#$!@#%^^"
+	require.NoError(t, os.Setenv(key, value))
+	defer func() {
+		_ = os.Unsetenv("TESTENVVALUE")
+	}()
+
+	assert.EqualValues(t, value, uos.RequireEnv(key))
+	_ = os.Unsetenv("TESTENVVALUE")
+	assert.Panics(t, func() {
+		uos.RequireEnv(key)
+	})
+}
+
+func TestRequireEnvNumeric(t *testing.T) {
 	require.NoError(t, os.Setenv("TEST_INT", strconv.Itoa(math.MaxInt)))
 	require.NoError(t, os.Setenv("TEST_INT8", strconv.Itoa(math.MinInt8)))
 	require.NoError(t, os.Setenv("TEST_INT16", strconv.Itoa(math.MinInt16)))
@@ -88,7 +103,7 @@ func TestGetEnvNumeric(t *testing.T) {
 			defer func() {
 				if r := recover(); r != nil {
 					if !tt.wantErr {
-						t.Errorf("GetEnvNumeric() for %s panicked unexpectedly: %v", tt.key, r)
+						t.Errorf("RequireEnvNumeric() for %s panicked unexpectedly: %v", tt.key, r)
 					}
 				}
 			}()
@@ -96,41 +111,41 @@ func TestGetEnvNumeric(t *testing.T) {
 			var result any
 			switch tt.name {
 			case "Int":
-				result = uos.GetEnvNumeric[int](tt.key)
+				result = uos.RequireEnvNumeric[int](tt.key)
 			case "Int8":
-				result = uos.GetEnvNumeric[int8](tt.key)
+				result = uos.RequireEnvNumeric[int8](tt.key)
 			case "Int16":
-				result = uos.GetEnvNumeric[int16](tt.key)
+				result = uos.RequireEnvNumeric[int16](tt.key)
 			case "Int32":
-				result = uos.GetEnvNumeric[int32](tt.key)
+				result = uos.RequireEnvNumeric[int32](tt.key)
 			case "Int64":
-				result = uos.GetEnvNumeric[int64](tt.key)
+				result = uos.RequireEnvNumeric[int64](tt.key)
 			case "Uint":
-				result = uos.GetEnvNumeric[uint](tt.key)
+				result = uos.RequireEnvNumeric[uint](tt.key)
 			case "Uint8":
-				result = uos.GetEnvNumeric[uint8](tt.key)
+				result = uos.RequireEnvNumeric[uint8](tt.key)
 			case "Uint16":
-				result = uos.GetEnvNumeric[uint16](tt.key)
+				result = uos.RequireEnvNumeric[uint16](tt.key)
 			case "Uint32":
-				result = uos.GetEnvNumeric[uint32](tt.key)
+				result = uos.RequireEnvNumeric[uint32](tt.key)
 			case "Uint64":
-				result = uos.GetEnvNumeric[uint64](tt.key)
+				result = uos.RequireEnvNumeric[uint64](tt.key)
 			case "Float32":
-				result = uos.GetEnvNumeric[float32](tt.key)
+				result = uos.RequireEnvNumeric[float32](tt.key)
 			case "Float64":
-				result = uos.GetEnvNumeric[float64](tt.key)
+				result = uos.RequireEnvNumeric[float64](tt.key)
 			default:
 				t.Fatalf("Unhandled type in test cases")
 			}
 
 			if !tt.wantErr {
-				assert.Equal(t, tt.want, result, "GetEnvNumeric() returned incorrect value for %s", tt.key)
+				assert.Equal(t, tt.want, result, "RequireEnvNumeric() returned incorrect value for %s", tt.key)
 			}
 		})
 	}
 }
 
-func TestGetEnvNumeric_Panic(t *testing.T) {
+func TestRequireEnvNumeric_Panic(t *testing.T) {
 	require.NoError(t, os.Setenv("TEST_INVALID_INT", "invalid_int"))     // Invalid int value
 	require.NoError(t, os.Setenv("TEST_OVERFLOW_INT", "2147483648"))     // Overflow int32 value
 	require.NoError(t, os.Setenv("TEST_INVALID_FLOAT", "invalid_float")) // Invalid float value
@@ -155,23 +170,23 @@ func TestGetEnvNumeric_Panic(t *testing.T) {
 				var result any
 				switch tt.name {
 				case "InvalidInt":
-					result = uos.GetEnvNumeric[int](tt.key)
+					result = uos.RequireEnvNumeric[int](tt.key)
 				case "OverflowInt":
-					result = uos.GetEnvNumeric[int32](tt.key)
+					result = uos.RequireEnvNumeric[int32](tt.key)
 				case "InvalidFloat":
-					result = uos.GetEnvNumeric[float64](tt.key)
+					result = uos.RequireEnvNumeric[float64](tt.key)
 				default:
-					result = uos.GetEnvNumeric[int](tt.key) // Default case
+					result = uos.RequireEnvNumeric[int](tt.key) // Default case
 				}
 				if !tt.wantErr {
-					assert.Equal(t, tt.want, result, "GetEnvNumeric() returned incorrect value for %s", tt.key)
+					assert.Equal(t, tt.want, result, "RequireEnvNumeric() returned incorrect value for %s", tt.key)
 				}
-			}, "Expected panic for invalid input in GetEnvNumeric()")
+			}, "Expected panic for invalid input in RequireEnvNumeric()")
 		})
 	}
 }
 
-func TestGetEnvAs(t *testing.T) {
+func TestRequireEnvAs(t *testing.T) {
 	require.NoError(t, os.Setenv("TEST_TIME", "2023-01-01T15:04:05Z"))
 	require.NoError(t, os.Setenv("TEST_BASE64", base64.StdEncoding.EncodeToString([]byte("hello"))))
 	require.NoError(t, os.Setenv("TEST_HEX", hex.EncodeToString([]byte("hello"))))
@@ -186,30 +201,30 @@ func TestGetEnvAs(t *testing.T) {
 
 	t.Run("Time", func(t *testing.T) {
 		expectedTime, _ := time.Parse(time.RFC3339, os.Getenv("TEST_TIME"))
-		result := uos.GetEnvAs("TEST_TIME", uos.MapStringToTime(time.RFC3339))
+		result := uos.RequireEnvAs("TEST_TIME", uos.MapStringToTime(time.RFC3339))
 		assert.Equal(t, expectedTime, result)
 	})
 
 	t.Run("Base64", func(t *testing.T) {
 		expectedText := "hello"
-		result := uos.GetEnvAs("TEST_BASE64", uos.MapStringToBase64)
+		result := uos.RequireEnvAs("TEST_BASE64", uos.MapStringToBase64)
 		assert.Equal(t, expectedText, result)
 	})
 
 	t.Run("Hex", func(t *testing.T) {
 		expectedText := []byte("hello")
-		result := uos.GetEnvAs("TEST_HEX", uos.MapStringToHex)
+		result := uos.RequireEnvAs("TEST_HEX", uos.MapStringToHex)
 		assert.Equal(t, expectedText, result)
 	})
 
 	t.Run("URL", func(t *testing.T) {
 		expectedURL, _ := url.Parse(os.Getenv("TEST_URL"))
-		result := uos.GetEnvAs("TEST_URL", uos.MapStringToURL)
+		result := uos.RequireEnvAs("TEST_URL", uos.MapStringToURL)
 		assert.Equal(t, *expectedURL, result)
 	})
 }
 
-func TestGetEnvHelpers(t *testing.T) {
+func TestRequireEnvHelpers(t *testing.T) {
 	require.NoError(t, os.Setenv("TEST_DURATION", "2h45m"))
 	require.NoError(t, os.Setenv("TEST_TIME", "2023-01-02T15:04:05Z"))
 	require.NoError(t, os.Setenv("TEST_URL", "https://www.example.com"))
@@ -224,25 +239,25 @@ func TestGetEnvHelpers(t *testing.T) {
 
 	t.Run("Duration", func(t *testing.T) {
 		expectedDuration, _ := time.ParseDuration(os.Getenv("TEST_DURATION"))
-		result := uos.GetEnvDuration("TEST_DURATION")
+		result := uos.RequireEnvDuration("TEST_DURATION")
 		assert.Equal(t, expectedDuration, result)
 	})
 
 	t.Run("Time", func(t *testing.T) {
 		expectedTime, _ := time.Parse(time.RFC3339, os.Getenv("TEST_TIME"))
-		result := uos.GetEnvTime("TEST_TIME", time.RFC3339)
+		result := uos.RequireEnvTime("TEST_TIME", time.RFC3339)
 		assert.Equal(t, expectedTime, result)
 	})
 
 	t.Run("URL", func(t *testing.T) {
 		expectedURL, _ := url.Parse(os.Getenv("TEST_URL"))
-		result := uos.GetEnvURL("TEST_URL")
+		result := uos.RequireEnvURL("TEST_URL")
 		assert.Equal(t, *expectedURL, result)
 	})
 
 	t.Run("Bool", func(t *testing.T) {
 		expectedBool, _ := strconv.ParseBool(os.Getenv("TEST_BOOL"))
-		result := uos.GetEnvBool("TEST_BOOL")
+		result := uos.RequireEnvBool("TEST_BOOL")
 		assert.Equal(t, expectedBool, result)
 	})
 }
