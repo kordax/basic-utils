@@ -192,12 +192,12 @@ func TestRequireEnvAs(t *testing.T) {
 	require.NoError(t, os.Setenv("TEST_HEX", hex.EncodeToString([]byte("hello"))))
 	require.NoError(t, os.Setenv("TEST_URL", "https://www.example.com"))
 
-	defer t.Cleanup(func() {
+	defer func() {
 		_ = os.Unsetenv("TEST_TIME")
 		_ = os.Unsetenv("TEST_BASE64")
 		_ = os.Unsetenv("TEST_HEX")
 		_ = os.Unsetenv("TEST_URL")
-	})
+	}()
 
 	t.Run("Time", func(t *testing.T) {
 		expectedTime, _ := time.Parse(time.RFC3339, os.Getenv("TEST_TIME"))
@@ -229,11 +229,37 @@ func TestRequireEnvHelpers(t *testing.T) {
 	require.NoError(t, os.Setenv("TEST_TIME", "2023-01-02T15:04:05Z"))
 	require.NoError(t, os.Setenv("TEST_URL", "https://www.example.com"))
 	require.NoError(t, os.Setenv("TEST_BOOL", "true"))
+	require.NoError(t, os.Setenv("TEST_INT", "12345"))
+	require.NoError(t, os.Setenv("TEST_INT64", "123456789012345"))
+	require.NoError(t, os.Setenv("TEST_INT32", "1234567890"))
+	require.NoError(t, os.Setenv("TEST_INT16", "12345"))
+	require.NoError(t, os.Setenv("TEST_INT8", "123"))
+	require.NoError(t, os.Setenv("TEST_UINT", "12345"))
+	require.NoError(t, os.Setenv("TEST_UINT64", "123456789012345"))
+	require.NoError(t, os.Setenv("TEST_UINT32", "1234567890"))
+	require.NoError(t, os.Setenv("TEST_UINT16", "12345"))
+	require.NoError(t, os.Setenv("TEST_UINT8", "123"))
+	require.NoError(t, os.Setenv("TEST_FLOAT64", "123456.789"))
+	require.NoError(t, os.Setenv("TEST_FLOAT32", "12345.6789"))
+	require.NoError(t, os.Setenv("TEST_BOOL", "true"))
 
 	defer t.Cleanup(func() {
 		_ = os.Unsetenv("TEST_DURATION")
 		_ = os.Unsetenv("TEST_TIME")
 		_ = os.Unsetenv("TEST_URL")
+		_ = os.Unsetenv("TEST_BOOL")
+		_ = os.Unsetenv("TEST_INT")
+		_ = os.Unsetenv("TEST_INT64")
+		_ = os.Unsetenv("TEST_INT32")
+		_ = os.Unsetenv("TEST_INT16")
+		_ = os.Unsetenv("TEST_INT8")
+		_ = os.Unsetenv("TEST_UINT")
+		_ = os.Unsetenv("TEST_UINT64")
+		_ = os.Unsetenv("TEST_UINT32")
+		_ = os.Unsetenv("TEST_UINT16")
+		_ = os.Unsetenv("TEST_UINT8")
+		_ = os.Unsetenv("TEST_FLOAT64")
+		_ = os.Unsetenv("TEST_FLOAT32")
 		_ = os.Unsetenv("TEST_BOOL")
 	})
 
@@ -259,5 +285,96 @@ func TestRequireEnvHelpers(t *testing.T) {
 		expectedBool, _ := strconv.ParseBool(os.Getenv("TEST_BOOL"))
 		result := uos.RequireEnvBool("TEST_BOOL")
 		assert.Equal(t, expectedBool, result)
+	})
+
+	t.Run("Int", func(t *testing.T) {
+		result, err := uos.MapStringToInt(os.Getenv("TEST_INT"))
+		require.NoError(t, err)
+		expectedInt := 12345
+		assert.Equal(t, &expectedInt, result)
+	})
+
+	t.Run("Int64", func(t *testing.T) {
+		result, err := uos.MapStringToInt64(os.Getenv("TEST_INT64"))
+		require.NoError(t, err)
+		expectedInt64 := int64(123456789012345)
+		assert.Equal(t, &expectedInt64, result)
+	})
+
+	t.Run("Int32", func(t *testing.T) {
+		result, err := uos.MapStringToInt32(os.Getenv("TEST_INT32"))
+		require.NoError(t, err)
+		expectedInt32 := int32(1234567890)
+		assert.Equal(t, &expectedInt32, result)
+	})
+
+	t.Run("Int16", func(t *testing.T) {
+		result, err := uos.MapStringToInt16(os.Getenv("TEST_INT16"))
+		require.NoError(t, err)
+		expectedInt16 := int16(12345)
+		assert.Equal(t, &expectedInt16, result)
+	})
+
+	t.Run("Int8", func(t *testing.T) {
+		result, err := uos.MapStringToInt8(os.Getenv("TEST_INT8"))
+		require.NoError(t, err)
+		expectedInt8 := int8(123)
+		assert.Equal(t, &expectedInt8, result)
+	})
+
+	t.Run("UInt", func(t *testing.T) {
+		result, err := uos.MapStringToUint(os.Getenv("TEST_UINT"))
+		require.NoError(t, err)
+		expectedUint := uint(12345)
+		assert.Equal(t, &expectedUint, result)
+	})
+
+	t.Run("UInt64", func(t *testing.T) {
+		result, err := uos.MapStringToUint64(os.Getenv("TEST_UINT64"))
+		require.NoError(t, err)
+		expectedUint64 := uint64(123456789012345)
+		assert.Equal(t, &expectedUint64, result)
+	})
+
+	t.Run("UInt32", func(t *testing.T) {
+		result, err := uos.MapStringToUint32(os.Getenv("TEST_UINT32"))
+		require.NoError(t, err)
+		expectedUint32 := uint32(1234567890)
+		assert.Equal(t, &expectedUint32, result)
+	})
+
+	t.Run("UInt16", func(t *testing.T) {
+		result, err := uos.MapStringToUint16(os.Getenv("TEST_UINT16"))
+		require.NoError(t, err)
+		expectedUint16 := uint16(12345)
+		assert.Equal(t, &expectedUint16, result)
+	})
+
+	t.Run("UInt8", func(t *testing.T) {
+		result, err := uos.MapStringToUint8(os.Getenv("TEST_UINT8"))
+		require.NoError(t, err)
+		expectedUint8 := uint8(123)
+		assert.Equal(t, &expectedUint8, result)
+	})
+
+	t.Run("Float64", func(t *testing.T) {
+		result, err := uos.MapStringToFloat64(os.Getenv("TEST_FLOAT64"))
+		require.NoError(t, err)
+		expectedFloat64 := 123456.789
+		assert.Equal(t, &expectedFloat64, result)
+	})
+
+	t.Run("Float32", func(t *testing.T) {
+		result, err := uos.MapStringToFloat32(os.Getenv("TEST_FLOAT32"))
+		require.NoError(t, err)
+		expectedFloat32 := float32(12345.6789)
+		assert.Equal(t, &expectedFloat32, result)
+	})
+
+	t.Run("Bool", func(t *testing.T) {
+		result, err := uos.MapStringToBool(os.Getenv("TEST_BOOL"))
+		require.NoError(t, err)
+		expectedBool := true
+		assert.Equal(t, &expectedBool, result)
 	})
 }
