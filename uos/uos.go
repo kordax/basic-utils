@@ -65,12 +65,12 @@ func GetCPUs() int {
 	return runtime.NumCPU()
 }
 
-// GetEnvNumeric retrieves an environment variable specified by `key` and converts it
+// RequireEnvNumeric retrieves an environment variable specified by `key` and converts it
 // to the specified basicutils.Numeric type `T`.
 // The function panics if the environment variable is not set, cannot be converted to type `T`,
 // or if `T` is not an integer type. It uses the appropriate bit size for parsing to ensure
 // values fit into the specified type without overflow.
-func GetEnvNumeric[T basicutils.Numeric](key string) T {
+func RequireEnvNumeric[T basicutils.Numeric](key string) T {
 	value := os.Getenv(key)
 	if value == "" {
 		panic(fmt.Errorf("expected environment variable '%s' was not found", key))
@@ -133,12 +133,17 @@ func GetEnvNumeric[T basicutils.Numeric](key string) T {
 	return result.(T)
 }
 
-// GetEnvAs retrieves an environment variable specified by `key` and uses a provided
+// RequireEnv is an alias to RequireEnvAs[string](key, MapString)
+func RequireEnv(key string) string {
+	return RequireEnvAs[string](key, MapString)
+}
+
+// RequireEnvAs retrieves an environment variable specified by `key` and uses a provided
 // MappingFunc `f` to convert the environment variable's string value into the desired type `T`.
 // The MappingFunc `f` should take a string as input and return a pointer to the type `T` and an error.
-// If the environment variable is not set, GetEnvAs panics with an error indicating that
+// If the environment variable is not set, RequireEnvAs panics with an error indicating that
 // the expected environment variable was not found.
-// If the MappingFunc `f` returns an error, GetEnvAs panics with an error indicating
+// If the MappingFunc `f` returns an error, RequireEnvAs panics with an error indicating
 // that the environment variable could not be parsed as the desired type.
 //
 // Parameters:
@@ -153,12 +158,12 @@ func GetEnvNumeric[T basicutils.Numeric](key string) T {
 // Example usage:
 //
 //	// Assuming MapStringToDuration and MapStringToInt are defined MappingFuncs for time.Duration and int respectively
-//	duration := GetEnvAs("TIMEOUT", MapStringToDuration(time.RFC3339))
-//	url := GetEnvAs("MY_URL", MapStringToURL)
+//	duration := RequireEnvAs("TIMEOUT", MapStringToDuration(time.RFC3339))
+//	url := RequireEnvAs("MY_URL", MapStringToURL)
 //
 // Note: Since this function uses panic for error handling, it should be used in contexts
 // where such behavior is acceptable, or it should be recovered using defer and recover mechanisms.
-func GetEnvAs[T any](key string, f MappingFunc[T]) T {
+func RequireEnvAs[T any](key string, f MappingFunc[T]) T {
 	value := os.Getenv(key)
 	if value == "" {
 		panic(fmt.Errorf("expected environment variable '%s' was not found", key))
@@ -172,10 +177,10 @@ func GetEnvAs[T any](key string, f MappingFunc[T]) T {
 	return *result
 }
 
-// GetEnvDuration retrieves the environment variable specified by key as a time.Duration.
-// This function uses GetEnvAs under the hood to convert the environment variable string
+// RequireEnvDuration retrieves the environment variable specified by key as a time.Duration.
+// This function uses RequireEnvAs under the hood to convert the environment variable string
 // to a time.Duration type. If the environment variable is not found, or if the conversion
-// fails (e.g., due to an invalid duration format), GetEnvDuration will panic.
+// fails (e.g., due to an invalid duration format), RequireEnvDuration will panic.
 //
 // The expected format for the duration is a string accepted by time.ParseDuration,
 // which includes any input valid for time.Duration such as "300ms", "1.5h" or "2h45m".
@@ -183,32 +188,32 @@ func GetEnvAs[T any](key string, f MappingFunc[T]) T {
 //
 // Example:
 // If you have an environment variable named TIMEOUT with the value "2m30s",
-// GetEnvDuration("TIMEOUT") will return a time.Duration of 2 minutes and 30 seconds.
+// RequireEnvDuration("TIMEOUT") will return a time.Duration of 2 minutes and 30 seconds.
 //
 //	os.Setenv("TIMEOUT", "2m30s")
-//	timeout := GetEnvDuration("TIMEOUT")
+//	timeout := RequireEnvDuration("TIMEOUT")
 //	fmt.Println(timeout) // Prints: 2m30s
 //
 // Note: Because it can panic, this function should be used in cases where the environment variable
 // is expected to be set and correctly formatted. For more flexible error handling, consider
-// using the underlying GetEnvAs function directly with appropriate error checks.
-func GetEnvDuration(key string) time.Duration {
-	return GetEnvAs[time.Duration](key, MapStringToDuration)
+// using the underlying RequireEnvAs function directly with appropriate error checks.
+func RequireEnvDuration(key string) time.Duration {
+	return RequireEnvAs[time.Duration](key, MapStringToDuration)
 }
 
-// GetEnvTime is the same helper as GetEnvDuration, but for time.Time.
-func GetEnvTime(key string, layout string) time.Time {
-	return GetEnvAs[time.Time](key, MapStringToTime(layout))
+// RequireEnvTime is the same helper as RequireEnvDuration, but for time.Time.
+func RequireEnvTime(key string, layout string) time.Time {
+	return RequireEnvAs[time.Time](key, MapStringToTime(layout))
 }
 
-// GetEnvURL helper for URL.
-func GetEnvURL(key string) url.URL {
-	return GetEnvAs[url.URL](key, MapStringToURL)
+// RequireEnvURL helper for URL.
+func RequireEnvURL(key string) url.URL {
+	return RequireEnvAs[url.URL](key, MapStringToURL)
 }
 
-// GetEnvBool helper for bool values.
-func GetEnvBool(key string) bool {
-	return GetEnvAs[bool](key, MapStringToBool)
+// RequireEnvBool helper for bool values.
+func RequireEnvBool(key string) bool {
+	return RequireEnvAs[bool](key, MapStringToBool)
 }
 
 func getCGroupCPUs() (int, error) { // coverage-ignore

@@ -17,6 +17,11 @@ import (
 // MappingFunc is a type for functions that convert a string to a pointer of type T, returning an error if the conversion fails.
 type MappingFunc[T any] func(value string) (*T, error)
 
+// MapString returns string value
+func MapString(value string) (*string, error) {
+	return &value, nil
+}
+
 // MapStringToDuration maps value to time.Duration.
 func MapStringToDuration(value string) (*time.Duration, error) {
 	d, err := time.ParseDuration(value)
