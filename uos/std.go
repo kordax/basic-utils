@@ -72,7 +72,7 @@ func MapStringToInt8(value string) (*int8, error) {
 
 // MapStringToUint maps a string value to an *uint.
 func MapStringToUint(value string) (*uint, error) {
-	temp, err := strconv.ParseUint(value, 10, 64)
+	temp, err := strconv.ParseUint(value, 10, 32)
 	if err != nil {
 		return nil, err
 	}
