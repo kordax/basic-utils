@@ -171,7 +171,7 @@ func RequireEnvAs[T any](key string, f MappingFunc[T]) T {
 
 	result, err := f(value)
 	if err != nil {
-		panic(fmt.Errorf("failed to parse environment variable '%s' as duration'", key))
+		panic(fmt.Errorf("failed to map environment variable '%s'", key))
 	}
 
 	return *result
