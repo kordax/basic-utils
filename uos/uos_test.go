@@ -49,6 +49,52 @@ func TestRequireEnv(t *testing.T) {
 	})
 }
 
+func TestRequireEnvSlice(t *testing.T) {
+	key := "TEST_ENV_SLICE"
+	value := "value1, value2,   value3 "
+
+	require.NoError(t, os.Setenv(key, value))
+	defer func() { _ = os.Unsetenv(key) }()
+
+	expected := []string{"value1", "value2", "value3"}
+	assert.EqualValues(t, expected, uos.RequireEnvSlice(key))
+
+	_ = os.Unsetenv(key)
+	assert.Panics(t, func() {
+		uos.RequireEnvSlice(key)
+	}, "The function should panic when the environment variable is not set")
+}
+
+func TestRequireEnvSliceAs(t *testing.T) {
+	key := "TEST_ENV_SLICE_AS"
+	value := "0.5, 2.3, 3.8"
+	wrongValue := "0.5, two, 3.8"
+
+	MapStringToFloat64 := func(s string) (*float64, error) {
+		v, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return nil, err
+		}
+		return &v, nil
+	}
+
+	require.NoError(t, os.Setenv(key, value))
+	defer func() { _ = os.Unsetenv(key) }()
+
+	expected := []float64{0.5, 2.3, 3.8}
+	assert.EqualValues(t, expected, uos.RequireEnvSliceAs[float64](key, MapStringToFloat64))
+
+	require.NoError(t, os.Setenv(key, wrongValue))
+	assert.Panics(t, func() {
+		uos.RequireEnvSliceAs[float64](key, MapStringToFloat64)
+	}, "The function should panic when conversion fails")
+
+	_ = os.Unsetenv(key)
+	assert.Panics(t, func() {
+		uos.RequireEnvSliceAs[float64](key, MapStringToFloat64)
+	}, "The function should panic when the environment variable is not set")
+}
+
 func TestRequireEnvNumeric(t *testing.T) {
 	require.NoError(t, os.Setenv("TEST_INT", strconv.Itoa(math.MaxInt)))
 	require.NoError(t, os.Setenv("TEST_INT8", strconv.Itoa(math.MinInt8)))
