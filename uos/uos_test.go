@@ -271,6 +271,7 @@ func TestRequireEnvAs(t *testing.T) {
 }
 
 func TestRequireEnvHelpers(t *testing.T) {
+	require.NoError(t, os.Setenv("TEST_TRIM", "  myCustomValue1237     "))
 	require.NoError(t, os.Setenv("TEST_DURATION", "2h45m"))
 	require.NoError(t, os.Setenv("TEST_TIME", "2023-01-02T15:04:05Z"))
 	require.NoError(t, os.Setenv("TEST_URL", "https://www.example.com"))
@@ -290,6 +291,7 @@ func TestRequireEnvHelpers(t *testing.T) {
 	require.NoError(t, os.Setenv("TEST_BOOL", "true"))
 
 	defer t.Cleanup(func() {
+		_ = os.Unsetenv("TEST_TRIM")
 		_ = os.Unsetenv("TEST_DURATION")
 		_ = os.Unsetenv("TEST_TIME")
 		_ = os.Unsetenv("TEST_URL")
@@ -307,6 +309,11 @@ func TestRequireEnvHelpers(t *testing.T) {
 		_ = os.Unsetenv("TEST_FLOAT64")
 		_ = os.Unsetenv("TEST_FLOAT32")
 		_ = os.Unsetenv("TEST_BOOL")
+	})
+
+	t.Run("Trimmed", func(t *testing.T) {
+		result := uos.RequireEnvAs("TEST_TRIM", uos.MapStringToTrimmed)
+		assert.Equal(t, "myCustomValue1237", result)
 	})
 
 	t.Run("Duration", func(t *testing.T) {
