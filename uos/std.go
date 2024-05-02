@@ -11,7 +11,10 @@ import (
 	"encoding/hex"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/kordax/basic-utils/uref"
 )
 
 // MappingFunc is a type for functions that convert a string to a pointer of type T, returning an error if the conversion fails.
@@ -20,6 +23,11 @@ type MappingFunc[T any] func(value string) (*T, error)
 // MapString returns string value
 func MapString(value string) (*string, error) {
 	return &value, nil
+}
+
+// MapStringToTrimmed returns string a value trimmed of space characters.
+func MapStringToTrimmed(value string) (*string, error) {
+	return uref.Ref(strings.TrimSpace(value)), nil
 }
 
 // MapStringToInt maps a string value to an *int.

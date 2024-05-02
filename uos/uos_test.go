@@ -49,6 +49,52 @@ func TestRequireEnv(t *testing.T) {
 	})
 }
 
+func TestRequireEnvSlice(t *testing.T) {
+	key := "TEST_ENV_SLICE"
+	value := "value1, value2,   value3 "
+
+	require.NoError(t, os.Setenv(key, value))
+	defer func() { _ = os.Unsetenv(key) }()
+
+	expected := []string{"value1", "value2", "value3"}
+	assert.EqualValues(t, expected, uos.RequireEnvSlice(key))
+
+	_ = os.Unsetenv(key)
+	assert.Panics(t, func() {
+		uos.RequireEnvSlice(key)
+	}, "The function should panic when the environment variable is not set")
+}
+
+func TestRequireEnvSliceAs(t *testing.T) {
+	key := "TEST_ENV_SLICE_AS"
+	value := "0.5, 2.3, 3.8"
+	wrongValue := "0.5, two, 3.8"
+
+	MapStringToFloat64 := func(s string) (*float64, error) {
+		v, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return nil, err
+		}
+		return &v, nil
+	}
+
+	require.NoError(t, os.Setenv(key, value))
+	defer func() { _ = os.Unsetenv(key) }()
+
+	expected := []float64{0.5, 2.3, 3.8}
+	assert.EqualValues(t, expected, uos.RequireEnvSliceAs[float64](key, MapStringToFloat64))
+
+	require.NoError(t, os.Setenv(key, wrongValue))
+	assert.Panics(t, func() {
+		uos.RequireEnvSliceAs[float64](key, MapStringToFloat64)
+	}, "The function should panic when conversion fails")
+
+	_ = os.Unsetenv(key)
+	assert.Panics(t, func() {
+		uos.RequireEnvSliceAs[float64](key, MapStringToFloat64)
+	}, "The function should panic when the environment variable is not set")
+}
+
 func TestRequireEnvNumeric(t *testing.T) {
 	require.NoError(t, os.Setenv("TEST_INT", strconv.Itoa(math.MaxInt)))
 	require.NoError(t, os.Setenv("TEST_INT8", strconv.Itoa(math.MinInt8)))
@@ -225,6 +271,7 @@ func TestRequireEnvAs(t *testing.T) {
 }
 
 func TestRequireEnvHelpers(t *testing.T) {
+	require.NoError(t, os.Setenv("TEST_TRIM", "  myCustomValue1237     "))
 	require.NoError(t, os.Setenv("TEST_DURATION", "2h45m"))
 	require.NoError(t, os.Setenv("TEST_TIME", "2023-01-02T15:04:05Z"))
 	require.NoError(t, os.Setenv("TEST_URL", "https://www.example.com"))
@@ -244,6 +291,7 @@ func TestRequireEnvHelpers(t *testing.T) {
 	require.NoError(t, os.Setenv("TEST_BOOL", "true"))
 
 	defer t.Cleanup(func() {
+		_ = os.Unsetenv("TEST_TRIM")
 		_ = os.Unsetenv("TEST_DURATION")
 		_ = os.Unsetenv("TEST_TIME")
 		_ = os.Unsetenv("TEST_URL")
@@ -261,6 +309,11 @@ func TestRequireEnvHelpers(t *testing.T) {
 		_ = os.Unsetenv("TEST_FLOAT64")
 		_ = os.Unsetenv("TEST_FLOAT32")
 		_ = os.Unsetenv("TEST_BOOL")
+	})
+
+	t.Run("Trimmed", func(t *testing.T) {
+		result := uos.RequireEnvAs("TEST_TRIM", uos.MapStringToTrimmed)
+		assert.Equal(t, "myCustomValue1237", result)
 	})
 
 	t.Run("Duration", func(t *testing.T) {

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	basicutils "github.com/kordax/basic-utils"
+	"github.com/kordax/basic-utils/uarray"
 	"github.com/kordax/basic-utils/umath"
 )
 
@@ -175,6 +176,89 @@ func RequireEnvAs[T any](key string, f MappingFunc[T]) T {
 	}
 
 	return *result
+}
+
+// RequireEnvSlice retrieves an environment variable specified by `key` and returns it as a slice of strings.
+// The environment variable should contain a list of strings separated by commas, possibly surrounded by spaces.
+// This function uses RequireEnvAs to handle the retrieval and conversion of the environment variable,
+// leveraging its error handling to manage scenarios where the environment variable is not set or cannot be properly parsed.
+//
+// Parameters:
+//
+//	key: the name of the environment variable to retrieve, which should contain a list of strings separated by commas.
+//
+// Returns:
+//
+//	A slice of strings parsed from the environment variable, with leading and trailing spaces around each item removed.
+//
+// Panics:
+//   - If the environment variable is not set, this function will panic, indicating that the expected
+//     environment variable was not found.
+//   - If there is an error during the parsing process, a panic will occur, indicating that the
+//     environment variable could not be parsed into a slice of strings.
+//
+// Example usage:
+//
+//	// Assuming an environment variable "COLORS" is set to "red, green, blue"
+//	colors := RequireEnvSlice("COLORS")
+//	fmt.Println(colors) // Output: [red green blue]
+//
+// Note:
+//
+//	 This function trims all values, thus removing space characters.
+//		This function also uses panic for error handling, which can halt the application unless handled properly.
+//		It is recommended to use this function in contexts where such behavior is acceptable, or to employ
+//		defer and recover mechanisms to gracefully manage errors and prevent application termination.
+func RequireEnvSlice(key string) []string {
+	raw := RequireEnvAs[string](key, MapString)
+	return uarray.Map(strings.Split(raw, ","), func(v *string) string {
+		return strings.TrimSpace(*v)
+	})
+}
+
+// RequireEnvSliceAs is the same as RequireEnvSlice, but supports any types.
+// This func retrieves an environment variable specified by `key`, splits it by commas, trims any spaces,
+// and maps each element to a type T using a provided MappingFunc. This function leverages RequireEnvAs for the initial
+// retrieval and error handling, ensuring robust handling of missing or improperly formatted environment variables.
+//
+// Parameters:
+//
+//	key: the name of the environment variable to retrieve, expected to contain a comma-separated list of strings.
+//	f: a MappingFunc that converts a trimmed string value to the desired type `T`, returning `T` and an error.
+//
+// Returns:
+//
+//	A slice of `T` representing the parsed and converted elements of the environment variable.
+//
+// Panics:
+//   - If the environment variable is not set, or if any element cannot be successfully converted to type `T`,
+//     this function will panic, indicating the specific error encountered.
+//
+// Example usage:
+//
+//	// Assuming an environment variable "RATES" is set to "0.5, 2.3, 3.8"
+//	rates := RequireEnvSlice[float64]("RATES", MapStringToFloat64)
+//	fmt.Println(rates) // Output might be [0.5 2.3 3.8]
+//
+// Note:
+//
+//	This function uses panic for error handling, which can halt the application unless handled properly.
+//	It is recommended to use this function in contexts where such behavior is acceptable, or to employ
+//	defer and recover mechanisms to gracefully manage errors and prevent application termination.
+func RequireEnvSliceAs[T any](key string, f MappingFunc[T]) []T {
+	parts := RequireEnvSlice(key)
+	result := make([]T, 0, len(parts))
+	for _, part := range parts {
+		trimmedPart := strings.TrimSpace(part)
+		mappedValue, err := f(trimmedPart)
+		if err != nil {
+			panic(fmt.Errorf("failed to map environment variable '%s'", key))
+		}
+
+		result = append(result, *mappedValue)
+	}
+
+	return result
 }
 
 // RequireEnvDuration retrieves the environment variable specified by key as a time.Duration.
