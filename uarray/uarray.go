@@ -186,7 +186,7 @@ func FilterOut[V any](values []V, filter func(v *V) bool) []V {
 //     if foundString != nil {
 //     fmt.Println("Found:", *foundString)
 //     }
-func SortFind[V any](values []V, less func(a, b V) bool, filter func(V) bool) *V {
+func SortFind[V any](values []V, less func(a, b V) bool, filter func(*V) bool) *V {
 	if len(values) == 0 {
 		return nil
 	}
@@ -200,33 +200,18 @@ func SortFind[V any](values []V, less func(a, b V) bool, filter func(V) bool) *V
 		return less(sortedValues[i], sortedValues[j])
 	})
 
-	index := sort.Search(len(sortedValues), func(i int) bool {
-		return filter(sortedValues[i])
-	})
-
-	if index < len(sortedValues) && filter(sortedValues[index]) {
-		return &sortedValues[index]
-	}
-
-	return nil
+	return Find(sortedValues, filter)
 }
 
 // Find finds the first match in a sorted slice using binary search.
 // The slice must be sorted for binary search to work correctly.
 // The filter function should implement a comparison suitable for binary search.
 func Find[V any](values []V, filter func(v *V) bool) *V {
-	if len(values) == 0 {
-		return nil
+	for i := range values {
+		if filter(&values[i]) {
+			return &values[i] // Return a pointer to the found element
+		}
 	}
-
-	index := sort.Search(len(values), func(i int) bool {
-		return filter(&values[i])
-	})
-
-	if index < len(values) && filter(&values[index]) {
-		return &values[index]
-	}
-
 	return nil
 }
 

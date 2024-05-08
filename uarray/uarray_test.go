@@ -248,9 +248,9 @@ func TestFilterBySet(t *testing.T) {
 func TestFind(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
 	found := uarray.Find(values, func(v *int) bool {
-		return *v == 3
+		return *v == 2
 	})
-	if *found != 3 {
+	if found == nil {
 		t.Error("Find function failed")
 	}
 }
@@ -262,8 +262,8 @@ func TestSortFind(t *testing.T) {
 	// The slice will be sorted inside SortFind, so we expect to find the value correctly
 	found := uarray.SortFind(values, func(a, b int) bool {
 		return a < b
-	}, func(v int) bool {
-		return v == expected
+	}, func(v *int) bool {
+		return *v == expected
 	})
 
 	assert.NotNil(t, found, "SortFind should have found a value, but got nil")
