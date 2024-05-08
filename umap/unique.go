@@ -52,16 +52,16 @@ func (m *UniqueMultiMap[K, V]) Get(key K) ([]V, bool) {
 }
 
 func (m *UniqueMultiMap[K, V]) Set(key K, values ...V) int {
-	hashMap := make(map[any]void)
 	addedCount := 0
+	m.store[key] = make(map[any]void)
+	ref := m.store[key]
 	for _, value := range values {
-		if _, exists := hashMap[value]; !exists {
-			hashMap[value] = void{}
+		if _, exists := ref[value]; !exists {
+			ref[value] = void{}
 			addedCount++
 		}
 	}
 
-	m.store[key] = hashMap
 	return addedCount
 }
 
