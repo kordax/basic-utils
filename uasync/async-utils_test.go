@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	uasync "github.com/kordax/basic-utils/uasync"
+	"github.com/kordax/basic-utils/uasync"
 )
 
 func TestExecute(t *testing.T) {

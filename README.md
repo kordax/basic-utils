@@ -32,6 +32,8 @@ This is due to the usage of features and packages introduced in this version.
 
 - **uos**: Operating system related utilities.
 
+- **upair**: Pair package (experimental).
+
 - **uqueue**: Implements both a FIFO (First-In-First-Out) queue and a priority queue with thread safety and various
   utility functions.
 

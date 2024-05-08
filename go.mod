@@ -2,26 +2,6 @@ module github.com/kordax/basic-utils
 
 go 1.22.1
 
-replace github.com/kordax/basic-utils/uarr => ./uarr
-
-replace github.com/kordax/basic-utils/uasync => ./uasync
-
-replace github.com/kordax/basic-utils/ufile => ./ufile
-
-replace github.com/kordax/basic-utils/umap => ./umap
-
-replace github.com/kordax/basic-utils/umath => ./umath
-
-replace github.com/kordax/basic-utils/unum => ./unum
-
-replace github.com/kordax/basic-utils/uopt => ./uopt
-
-replace github.com/kordax/basic-utils/uqueue => ./uqueue
-
-replace github.com/kordax/basic-utils/uref => ./uref
-
-replace github.com/kordax/basic-utils/ustr => ./ustr
-
 require (
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13
 	github.com/go-sql-driver/mysql v1.8.1
