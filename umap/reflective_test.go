@@ -1,7 +1,6 @@
 package umap_test
 
 import (
-	"crypto/sha256"
 	"testing"
 
 	"github.com/kordax/basic-utils/umap"
@@ -10,7 +9,7 @@ import (
 )
 
 func TestReflectiveMultiMap_Get_Set(t *testing.T) {
-	mm := umap.NewReflectiveMultiMap[string, string](sha256.New())
+	mm := umap.NewReflectiveMultiMap[string, string]()
 
 	mm.Set("key", "value1")
 	values, ok := mm.Get("key")
@@ -26,7 +25,7 @@ func TestReflectiveMultiMap_Get_Set(t *testing.T) {
 }
 
 func TestReflectiveMultiMap_Append(t *testing.T) {
-	mm := umap.NewReflectiveMultiMap[string, string](sha256.New())
+	mm := umap.NewReflectiveMultiMap[string, string]()
 	count := mm.Append("key", "value1")
 	assert.Equal(t, 0, count) // No duplicates initially
 
@@ -39,7 +38,7 @@ func TestReflectiveMultiMap_Append(t *testing.T) {
 }
 
 func TestReflectiveMultiMap_Remove(t *testing.T) {
-	mm := umap.NewReflectiveMultiMap[string, string](sha256.New())
+	mm := umap.NewReflectiveMultiMap[string, string]()
 	mm.Set("key", "value1", "value2", "value1") // Intentional duplicate for testing
 
 	// Remove specific values
@@ -53,7 +52,7 @@ func TestReflectiveMultiMap_Remove(t *testing.T) {
 }
 
 func TestReflectiveMultiMap_Clear(t *testing.T) {
-	mm := umap.NewReflectiveMultiMap[string, string](sha256.New())
+	mm := umap.NewReflectiveMultiMap[string, string]()
 	mm.Set("key", "value1")
 
 	// Clear and verify
@@ -67,7 +66,7 @@ func TestReflectiveMultiMap_Clear(t *testing.T) {
 
 func TestReflectiveMultiMap_Collisions(t *testing.T) {
 	// Simulate hash collision by overriding computeHash function, assuming implementation allows
-	mm := umap.NewReflectiveMultiMap[string, struct{ A, B string }](sha256.New())
+	mm := umap.NewReflectiveMultiMap[string, struct{ A, B string }]()
 	customValue1 := struct{ A, B string }{"one", "two"}
 	customValue2 := struct{ A, B string }{"three", "four"} // Assume same hash for testing
 

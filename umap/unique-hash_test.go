@@ -20,8 +20,8 @@ type TestStruct struct {
 	Name string
 }
 
-func TestHashedReflectiveMultiMap_Get(t *testing.T) {
-	mm := umap.NewHashedReflectiveMultiMap[string, TestStruct](sha256.New())
+func TestUniqueHashMultiMap_Get(t *testing.T) {
+	mm := umap.NewUniqueHashMultiMap[string, TestStruct](sha256.New())
 	_, exists := mm.Get("key")
 	assert.False(t, exists, "Should return false for non-existent keys")
 
@@ -32,8 +32,8 @@ func TestHashedReflectiveMultiMap_Get(t *testing.T) {
 	assert.Equal(t, TestStruct{ID: 1, Name: "Test"}, values[0], "Expected value to match")
 }
 
-func TestHashedReflectiveMultiMap_Set(t *testing.T) {
-	mm := umap.NewHashedReflectiveMultiMap[string, TestStruct](sha256.New())
+func TestUniqueHashMultiMap_Set(t *testing.T) {
+	mm := umap.NewUniqueHashMultiMap[string, TestStruct](sha256.New())
 	addedCount := mm.Set("key", TestStruct{ID: 1, Name: "Hello"}, TestStruct{ID: 2, Name: "World"})
 	assert.Equal(t, 2, addedCount, "Expected two unique values to be added")
 
@@ -44,8 +44,8 @@ func TestHashedReflectiveMultiMap_Set(t *testing.T) {
 	assert.Equal(t, TestStruct{ID: 3, Name: "New"}, values[0], "Expected value to be 'New'")
 }
 
-func TestHashedReflectiveMultiMap_Append(t *testing.T) {
-	mm := umap.NewHashedReflectiveMultiMap[string, TestStruct](sha256.New())
+func TestUniqueHashMultiMap_Append(t *testing.T) {
+	mm := umap.NewUniqueHashMultiMap[string, TestStruct](sha256.New())
 	mm.Append("key", TestStruct{ID: 1, Name: "Hello"})
 	mm.Append("key", TestStruct{ID: 2, Name: "World"})
 
@@ -53,8 +53,8 @@ func TestHashedReflectiveMultiMap_Append(t *testing.T) {
 	assert.Equal(t, 1, addedCount, "Expected one new value, as 'Hello' is a duplicate")
 }
 
-func TestHashedReflectiveMultiMap_Remove(t *testing.T) {
-	mm := umap.NewHashedReflectiveMultiMap[string, TestStruct](sha256.New())
+func TestUniqueHashMultiMap_Remove(t *testing.T) {
+	mm := umap.NewUniqueHashMultiMap[string, TestStruct](sha256.New())
 	mm.Set("key", TestStruct{ID: 1, Name: "Remove"}, TestStruct{ID: 2, Name: "Keep"})
 
 	removalCount := mm.Remove("key", func(v TestStruct) bool { return v.Name == "Remove" })
@@ -64,8 +64,8 @@ func TestHashedReflectiveMultiMap_Remove(t *testing.T) {
 	assert.Equal(t, TestStruct{ID: 2, Name: "Keep"}, values[0], "Expected 'Keep' to remain")
 }
 
-func TestHashedReflectiveMultiMap_Clear(t *testing.T) {
-	mm := umap.NewHashedReflectiveMultiMap[string, TestStruct](sha256.New())
+func TestUniqueHashMultiMap_Clear(t *testing.T) {
+	mm := umap.NewUniqueHashMultiMap[string, TestStruct](sha256.New())
 	mm.Set("key", TestStruct{ID: 1, Name: "Data"})
 
 	cleared := mm.Clear("key")
