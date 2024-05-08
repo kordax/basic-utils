@@ -246,28 +246,117 @@ func TestFilterBySet(t *testing.T) {
 }
 
 func TestFind(t *testing.T) {
-	values := []int{1, 2, 3, 4, 5}
-	found := uarray.Find(values, func(v *int) bool {
-		return *v == 2
-	})
-	if found == nil {
-		t.Error("Find function failed")
+	tests := []struct {
+		name     string
+		values   []int
+		target   int
+		expected *int
+	}{
+		{
+			name:     "finds element",
+			values:   []int{1, 2, 3, 4, 5},
+			target:   2,
+			expected: &[]int{2}[0],
+		},
+		{
+			name:     "element not found",
+			values:   []int{1, 2, 3, 4, 5},
+			target:   6,
+			expected: nil,
+		},
+		{
+			name:     "empty slice",
+			values:   []int{},
+			target:   1,
+			expected: nil,
+		},
+		{
+			name:     "single element found",
+			values:   []int{1},
+			target:   1,
+			expected: &[]int{1}[0],
+		},
+		{
+			name:     "single element not found",
+			values:   []int{2},
+			target:   1,
+			expected: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			found := uarray.Find(test.values, func(v *int) bool {
+				return *v == test.target
+			})
+			assert.Equal(t, test.expected, found, "Find returned an unexpected result")
+		})
 	}
 }
 
 func TestSortFind(t *testing.T) {
-	values := []int{5, 3, 1, 4, 2}
-	expected := 3
+	tests := []struct {
+		name     string
+		values   []int
+		less     func(a, b int) bool
+		target   int
+		expected *int
+	}{
+		{
+			name:   "sorted find element",
+			values: []int{5, 3, 1, 4, 2},
+			less: func(a, b int) bool {
+				return a < b
+			},
+			target:   3,
+			expected: &[]int{3}[0],
+		},
+		{
+			name:   "element not found",
+			values: []int{5, 3, 1, 4, 2},
+			less: func(a, b int) bool {
+				return a < b
+			},
+			target:   6,
+			expected: nil,
+		},
+		{
+			name:   "empty slice",
+			values: []int{},
+			less: func(a, b int) bool {
+				return a < b
+			},
+			target:   1,
+			expected: nil,
+		},
+		{
+			name:   "single element found",
+			values: []int{1},
+			less: func(a, b int) bool {
+				return a < b
+			},
+			target:   1,
+			expected: &[]int{1}[0],
+		},
+		{
+			name:   "single element not found",
+			values: []int{2},
+			less: func(a, b int) bool {
+				return a < b
+			},
+			target:   1,
+			expected: nil,
+		},
+	}
 
-	// The slice will be sorted inside SortFind, so we expect to find the value correctly
-	found := uarray.SortFind(values, func(a, b int) bool {
-		return a < b
-	}, func(v *int) bool {
-		return *v == expected
-	})
-
-	assert.NotNil(t, found, "SortFind should have found a value, but got nil")
-	assert.Equal(t, expected, *found, "SortFind returned the wrong value")
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			found := uarray.SortFind(test.values, test.less, func(v *int) bool {
+				return *v == test.target
+			})
+			assert.Equal(t, test.expected, found, "SortFind returned the wrong value")
+		})
+	}
 }
 
 func TestMapAggr(t *testing.T) {
