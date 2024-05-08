@@ -276,8 +276,8 @@ func TestMaxValue(t *testing.T) {
 	}
 
 	// int
-	if val := umath.MaxValue[int](); val != int(math.MaxInt) {
-		t.Errorf("Expected %v for int, got %v", int(math.MaxInt), val)
+	if val := umath.MaxValue[int](); val != math.MaxInt {
+		t.Errorf("Expected %v for int, got %v", math.MaxInt, val)
 	}
 
 	// int8
