@@ -6,25 +6,31 @@
 
 package umap
 
-import (
-	"hash"
-	"sync"
-)
-
-type ReflectiveMultiMap[K comparable, V any] struct {
-	h hash.Hash
-	sync.Mutex
-	store map[K]map[int64][]V
+// ReflectiveMultiMap is a concurrent-safe data structure that implements a multi-value map.
+// It associates keys of type K with multiple values of type V. The structure employs a
+// hash.Hash instance specified during creation to handle hash calculations for efficient storage
+// and retrieval. This implementation ensures thread-safety using a sync.Mutex for concurrent access.
+//
+// Usage:
+// ReflectiveMultiMap is beneficial in scenarios where keys need to map to multiple values,
+// and concurrent access safety is essential. It provides methods to get, set, append, remove,
+// and clear values associated with keys. The implementation handles potential hash collisions
+// and allows efficient storage and retrieval of values under keys.
+//
+// !IMPORTANT: This map is not safe for concurrent operations. Use ConcurrentMultiMap for concurrent operations.
+// This implementation does not preserve the order of insertion, and values under the same key
+// can have duplicates if they produce the same hash code. It is optimized for concurrent access
+// and efficient storage/retrieval operations, suitable for scenarios requiring a multi-value map
+// with concurrency support.
+type ReflectiveMultiMap[K any, V any] struct {
+	store map[any]map[any][]V
 }
 
-func NewReflectiveMultiMap[K comparable, V any](hashingMethod hash.Hash) *ReflectiveMultiMap[K, V] {
-	return &ReflectiveMultiMap[K, V]{h: hashingMethod, store: make(map[K]map[int64][]V)}
+func NewReflectiveMultiMap[K comparable, V any]() *ReflectiveMultiMap[K, V] {
+	return &ReflectiveMultiMap[K, V]{store: make(map[any]map[any][]V)}
 }
 
 func (m *ReflectiveMultiMap[K, V]) Get(key K) ([]V, bool) {
-	m.Lock()
-	defer m.Unlock()
-
 	hashMap, ok := m.store[key]
 	if !ok {
 		return nil, false
@@ -39,27 +45,22 @@ func (m *ReflectiveMultiMap[K, V]) Get(key K) ([]V, bool) {
 }
 
 func (m *ReflectiveMultiMap[K, V]) Set(key K, values ...V) int {
-	m.Lock()
-	defer m.Unlock()
-
 	oldStore, exists := m.store[key]
 	matchCount := 0
 	if exists {
 		for _, v := range values {
-			hashCalc := computeHash(m.h, v)
-			if existingValues, found := oldStore[hashCalc]; found {
+			if existingValues, found := oldStore[v]; found {
 				matchCount += len(existingValues)
 			}
 		}
 	}
 
-	newStore := make(map[int64][]V)
+	newStore := make(map[any][]V)
 	for _, v := range values {
-		hashCalc := computeHash(m.h, v)
-		if collisions, collisionsFound := newStore[hashCalc]; collisionsFound {
-			newStore[hashCalc] = append(collisions, v)
+		if collisions, collisionsFound := newStore[v]; collisionsFound {
+			newStore[v] = append(collisions, v)
 		} else {
-			newStore[hashCalc] = []V{v}
+			newStore[v] = []V{v}
 		}
 	}
 
@@ -68,31 +69,24 @@ func (m *ReflectiveMultiMap[K, V]) Set(key K, values ...V) int {
 }
 
 func (m *ReflectiveMultiMap[K, V]) Append(key K, values ...V) int {
-	m.Lock()
-	defer m.Unlock()
-
 	hashMap, exists := m.store[key]
 	if !exists {
-		hashMap = make(map[int64][]V)
+		hashMap = make(map[any][]V)
 		m.store[key] = hashMap
 	}
 
 	duplicateCount := 0
 	for _, v := range values {
-		hashCalc := computeHash(m.h, v)
-		if vs, found := hashMap[hashCalc]; found {
+		if vs, found := hashMap[v]; found {
 			duplicateCount += len(vs)
 		}
-		hashMap[hashCalc] = append(hashMap[hashCalc], v)
+		hashMap[v] = append(hashMap[v], v)
 	}
 
 	return duplicateCount
 }
 
 func (m *ReflectiveMultiMap[K, V]) Remove(key K, predicate func(v V) bool) int {
-	m.Lock()
-	defer m.Unlock()
-
 	hashMap, exists := m.store[key]
 	if !exists {
 		return 0
@@ -119,9 +113,6 @@ func (m *ReflectiveMultiMap[K, V]) Remove(key K, predicate func(v V) bool) int {
 }
 
 func (m *ReflectiveMultiMap[K, V]) Clear(key K) bool {
-	m.Lock()
-	defer m.Unlock()
-
 	_, exists := m.store[key]
 	if exists {
 		delete(m.store, key)

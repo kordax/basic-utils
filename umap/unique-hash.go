@@ -22,19 +22,20 @@ func (w wrapper[T]) Hash() int64 {
 	return computeHash(w.h, w.v)
 }
 
-type HashedReflectiveMultiMap[K comparable, V any] struct {
+// UniqueHashMultiMap is the same as UniqueMultiMap, but allows to specify custom hash function.
+type UniqueHashMultiMap[K comparable, V any] struct {
 	h  hash.Hash
-	mm *HashedMultiMap[K, wrapper[V]]
+	mm *UniqueMultiMap[K, wrapper[V]]
 }
 
-func NewHashedReflectiveMultiMap[K comparable, V any](hashMethod hash.Hash) *HashedReflectiveMultiMap[K, V] {
-	return &HashedReflectiveMultiMap[K, V]{
+func NewUniqueHashMultiMap[K comparable, V any](hashMethod hash.Hash) *UniqueHashMultiMap[K, V] {
+	return &UniqueHashMultiMap[K, V]{
 		h:  hashMethod,
-		mm: NewHashedMultiMap[K, wrapper[V]](),
+		mm: NewUniqueMultiMap[K, wrapper[V]](),
 	}
 }
 
-func (h *HashedReflectiveMultiMap[K, V]) Get(key K) (value []V, ok bool) {
+func (h *UniqueHashMultiMap[K, V]) Get(key K) (value []V, ok bool) {
 	wrappedResult, ok := h.mm.Get(key)
 	if !ok {
 		return nil, false
@@ -48,7 +49,7 @@ func (h *HashedReflectiveMultiMap[K, V]) Get(key K) (value []V, ok bool) {
 	return result, true
 }
 
-func (h *HashedReflectiveMultiMap[K, V]) Set(key K, values ...V) int {
+func (h *UniqueHashMultiMap[K, V]) Set(key K, values ...V) int {
 	wrappedValues := make([]wrapper[V], len(values))
 	for i, v := range values {
 		wrappedValues[i] = newWrapper(h.h, v)
@@ -56,7 +57,7 @@ func (h *HashedReflectiveMultiMap[K, V]) Set(key K, values ...V) int {
 	return h.mm.Set(key, wrappedValues...)
 }
 
-func (h *HashedReflectiveMultiMap[K, V]) Append(key K, values ...V) int {
+func (h *UniqueHashMultiMap[K, V]) Append(key K, values ...V) int {
 	wrappedValues := make([]wrapper[V], len(values))
 	for i, v := range values {
 		wrappedValues[i] = newWrapper(h.h, v)
@@ -64,13 +65,13 @@ func (h *HashedReflectiveMultiMap[K, V]) Append(key K, values ...V) int {
 	return h.mm.Append(key, wrappedValues...)
 }
 
-func (h *HashedReflectiveMultiMap[K, V]) Remove(key K, predicate func(v V) bool) int {
+func (h *UniqueHashMultiMap[K, V]) Remove(key K, predicate func(v V) bool) int {
 	wrappedPredicate := func(wv wrapper[V]) bool {
 		return predicate(wv.v)
 	}
 	return h.mm.Remove(key, wrappedPredicate)
 }
 
-func (h *HashedReflectiveMultiMap[K, V]) Clear(key K) bool {
+func (h *UniqueHashMultiMap[K, V]) Clear(key K) bool {
 	return h.mm.Clear(key)
 }

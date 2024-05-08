@@ -28,8 +28,8 @@ func (v MyValue) Hash() int64 {
 	return int64(binary.LittleEndian.Uint64(hashBytes[:8]))
 }
 
-func TestHashedMultiMap_Get(t *testing.T) {
-	mm := umap.NewHashedMultiMap[string, MyValue]()
+func TestUniqueMultiMap_Get(t *testing.T) {
+	mm := umap.NewUniqueMultiMap[string, MyValue]()
 	_, exists := mm.Get("key")
 	assert.False(t, exists, "Expected no values for key")
 
@@ -39,8 +39,8 @@ func TestHashedMultiMap_Get(t *testing.T) {
 	require.Len(t, values, 1, "Expected one value")
 }
 
-func TestHashedMultiMap_Set(t *testing.T) {
-	mm := umap.NewHashedMultiMap[string, MyValue]()
+func TestUniqueMultiMap_Set(t *testing.T) {
+	mm := umap.NewUniqueMultiMap[string, MyValue]()
 	addedCount := mm.Set("key", MyValue{Value: "hello"}, MyValue{Value: "world"})
 	assert.Equal(t, 2, addedCount, "Expected two unique values to be added")
 
@@ -50,8 +50,8 @@ func TestHashedMultiMap_Set(t *testing.T) {
 	require.Len(t, values, 1, "Expected one value after set")
 }
 
-func TestHashedMultiMap_Append(t *testing.T) {
-	mm := umap.NewHashedMultiMap[string, MyValue]()
+func TestUniqueMultiMap_Append(t *testing.T) {
+	mm := umap.NewUniqueMultiMap[string, MyValue]()
 	mm.Append("key", MyValue{Value: "hello"})
 	mm.Append("key", MyValue{Value: "world"})
 
@@ -59,8 +59,8 @@ func TestHashedMultiMap_Append(t *testing.T) {
 	assert.Equal(t, 1, addedCount, "Expected one new value, as 'hello' is a duplicate")
 }
 
-func TestHashedMultiMap_Remove(t *testing.T) {
-	mm := umap.NewHashedMultiMap[string, MyValue]()
+func TestUniqueMultiMap_Remove(t *testing.T) {
+	mm := umap.NewUniqueMultiMap[string, MyValue]()
 	mm.Set("key", MyValue{Value: "remove"}, MyValue{Value: "keep"})
 
 	removalCount := mm.Remove("key", func(v MyValue) bool { return v.Value == "remove" })
@@ -70,8 +70,8 @@ func TestHashedMultiMap_Remove(t *testing.T) {
 	assert.Equal(t, "keep", values[0].Value, "Expected 'keep' to remain")
 }
 
-func TestHashedMultiMap_Clear(t *testing.T) {
-	mm := umap.NewHashedMultiMap[string, MyValue]()
+func TestUniqueMultiMap_Clear(t *testing.T) {
+	mm := umap.NewUniqueMultiMap[string, MyValue]()
 	mm.Set("key", MyValue{Value: "data"})
 
 	cleared := mm.Clear("key")

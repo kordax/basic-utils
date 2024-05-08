@@ -13,6 +13,7 @@ import (
 	"database/sql"
 	"fmt"
 	"hash"
+	"hash/fnv"
 	"math/rand"
 	"testing"
 	"time"
@@ -35,7 +36,7 @@ type profile struct {
 	Company string
 }
 
-func testHashFunction(t *testing.T, createHash func() hash.Hash, hashName string) {
+func testHashFunction(t *testing.T, hash hash.Hash, hashName string) {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	hashSet := make(map[int64]bool)
@@ -55,7 +56,7 @@ func testHashFunction(t *testing.T, createHash func() hash.Hash, hashName string
 			Tags: sql.NullString{String: fmt.Sprintf("tag%d", rand.Intn(100)), Valid: rand.Intn(2) == 1},
 		}
 
-		hashCalc := computeHash(createHash(), testValue)
+		hashCalc := computeHash(hash, testValue)
 		if _, exists := hashSet[hashCalc]; exists {
 			collisionCount++
 		} else {
@@ -67,15 +68,19 @@ func testHashFunction(t *testing.T, createHash func() hash.Hash, hashName string
 }
 
 func TestSHA256(t *testing.T) {
-	testHashFunction(t, sha256.New, "SHA-256")
+	testHashFunction(t, sha256.New(), "SHA-256")
 }
 
 func TestSHA1(t *testing.T) {
-	testHashFunction(t, sha1.New, "SHA-1")
+	testHashFunction(t, sha1.New(), "SHA-1")
 }
 
 func TestSHA512(t *testing.T) {
-	testHashFunction(t, sha512.New, "SHA-512")
+	testHashFunction(t, sha512.New(), "SHA-512")
+}
+
+func TestFNV128(t *testing.T) {
+	testHashFunction(t, fnv.New128(), "FNV-128")
 }
 
 func TestIdenticalStructs(t *testing.T) {
