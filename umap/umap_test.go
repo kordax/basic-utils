@@ -160,8 +160,8 @@ func TestEqualsP(t *testing.T) {
 func TestCopy(t *testing.T) {
 	// Test case 1: Copying a non-empty map
 	m1 := map[int]string{1: "one", 2: "two", 3: "three"}
-	copy := umap.Copy(m1)
-	if !umap.Equals(m1, copy) {
+	copied := umap.Copy(m1)
+	if !umap.Equals(m1, copied) {
 		t.Error("Test case 1 failed: The copied map is not equal to the original map")
 	}
 
