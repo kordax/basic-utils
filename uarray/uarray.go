@@ -214,7 +214,7 @@ func SortFind[V any](values []V, less func(a, b V) bool, filter func(V) bool) *V
 // Find finds the first match in a sorted slice using binary search.
 // The slice must be sorted for binary search to work correctly.
 // The filter function should implement a comparison suitable for binary search.
-func Find[V comparable](values []V, filter func(v *V) bool) *V {
+func Find[V any](values []V, filter func(v *V) bool) *V {
 	if len(values) == 0 {
 		return nil
 	}
