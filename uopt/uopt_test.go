@@ -168,7 +168,7 @@ func TestOfCond(t *testing.T) {
 
 // TestOfUnix tests the OfUnix method.
 func TestOfUnix(t *testing.T) {
-	o := uopt.OfUnix(int64(time.Now().Unix()))
+	o := uopt.OfUnix(time.Now().Unix())
 	if !o.Present() {
 		t.Error("Expected OfUnix to create an Opt with a value")
 	}
