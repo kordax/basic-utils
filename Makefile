@@ -1,4 +1,3 @@
-SUBMODULES := array-utils async-utils map-utils math-utils number opt queue ref-utils str-utils
 GOBIN ?= $$(go env GOPATH)/bin
 
 .PHONY: test
