@@ -61,6 +61,7 @@ func (t *AsyncTask[R]) ExecuteAsync() {
 func (t *AsyncTask[R]) Wait(timeout time.Duration) (*R, error) {
 	t.mtx.RLock()
 	if t.done != nil { // Check if the task is already done.
+		t.mtx.RUnlock()
 		return t.done.Left, t.done.Right
 	}
 	t.mtx.RUnlock()
