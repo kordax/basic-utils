@@ -5,6 +5,7 @@
 package ucache
 
 import (
+	"runtime"
 	"testing"
 	"time"
 
@@ -465,4 +466,36 @@ func BenchmarkTreeCacheGetIntKeySingle10xItems(b *testing.B) {
 	for i := int64(0); i < int64(b.N); i++ {
 		c.Get(keys[i%num])
 	}
+}
+
+func BenchmarkMemoryFarmHashMapCache(b *testing.B) {
+	c := NewFarmHashMapCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	benchmarkMemoryUsage(b, c)
+}
+
+func BenchmarkMemorySha256HashMapCache(b *testing.B) {
+	c := NewSha256HashMapCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	benchmarkMemoryUsage(b, c)
+}
+
+func BenchmarkMemoryTreeCache(b *testing.B) {
+	c := NewInMemoryTreeCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	benchmarkMemoryUsage(b, c)
+}
+
+func benchmarkMemoryUsage(b *testing.B, c Cache[IntCompositeKey, Comparable]) {
+	var m runtime.MemStats
+
+	for i := int64(0); i < numItems; i++ {
+		key := NewIntCompositeKey(i)
+		c.Put(key, NewInt64Value(i))
+	}
+
+	runtime.ReadMemStats(&m)
+	b.Logf("Memory Alloc = %v KB", bToKb(m.Alloc))
+}
+
+// Helper function to convert bytes to KB.
+func bToKb(b uint64) uint64 {
+	return b / 1024
 }
