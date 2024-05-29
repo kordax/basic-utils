@@ -1,487 +1,200 @@
+/*
+ * @kordax (Dmitry Morozov)
+ * dmorozov@valoru-software.com
+ * Copyright (c) 2024.
+ */
+
 package ucache_test
 
 import (
 	"math/rand"
-	"sort"
 	"strconv"
-	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/kordax/basic-utils/ucache"
 	"github.com/kordax/basic-utils/uopt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-type DummyComparable struct {
-	Val int
-}
-
-func (d DummyComparable) Hash() int {
-	return d.Val<<31 + d.Val
-}
-
-func (d DummyComparable) Equals(other ucache.Comparable) bool {
-	switch o := other.(type) {
-	case DummyComparable:
-		return d.Val == o.Val
-	default:
-		return false
-	}
-}
-
-//goland:noinspection GoUnusedExportedType
-type SimpleKey int64
-
-func (s SimpleKey) Equals(other ucache.Comparable) bool {
-	return s == other
-}
-
-func (s SimpleKey) Key() int64 {
-	return int64(s)
-}
-
-func (s SimpleKey) String() string {
-	return strconv.Itoa(int(s))
-}
-
-type SimpleCompositeKey[T ucache.Hashed] struct {
-	keys []T
-}
-
-func (s SimpleCompositeKey[T]) Equals(other ucache.Comparable) bool {
-	switch o := other.(type) {
-	case SimpleCompositeKey[T]:
-		for i, k := range s.keys {
-			if len(s.keys) != len(o.keys) {
-				return false
-			}
-			if k.Key() != o.keys[i].Key() || !k.Equals(o.keys[i]) {
-				return false
-			}
-		}
-
-		return true
-	default:
-		return false
-	}
-}
-
-func (s SimpleCompositeKey[T]) Keys() []int64 {
-	result := make([]int64, len(s.keys))
-	for i, key := range s.keys {
-		result[i] = key.Key()
-	}
-
-	return result
-}
-
-func (s SimpleCompositeKey[T]) String() string {
-	rep := make([]string, len(s.keys))
-	for i, key := range s.keys {
-		rep[i] = key.String()
-	}
-
-	return strings.Join(rep, ", ")
-}
-
-func NewSimpleCompositeKey[T ucache.Hashed](keys ...T) SimpleCompositeKey[T] {
-	return SimpleCompositeKey[T]{keys: keys}
-}
-
 func TestHashMapCache(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], DummyComparable](uopt.Null[time.Duration]())
+	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
 	key := NewSimpleCompositeKey[ucache.StringKey]("atest")
 	key2 := NewSimpleCompositeKey[ucache.StringKey]("bSeCond-keyQ@!%!%#")
 	val := 326
-	c.Put(key, DummyComparable{Val: val})
+	c.Set(key, val)
 
-	changes := c.Changes()
-	assert.NotNil(t, changes)
-	cached := c.Get(key)
-	assert.Contains(t, cached, DummyComparable{Val: val})
+	cached, ok := c.Get(key)
+	require.True(t, ok, "value was expected to be cached")
+	assert.Equal(t, val, *cached)
 
-	assert.Empty(t, c.Changes())
 	for i := 0; i < 10; i++ {
-		c.Put(key, DummyComparable{Val: i})
+		c.Set(key, i)
 	}
-	c.Put(key2, DummyComparable{Val: 65535})
-	changes = c.Changes()
-	assert.EqualValues(t, []SimpleCompositeKey[ucache.StringKey]{key, key2}, changes)
+	c.Set(key2, 65535)
 
-	result := c.Get(key2)
-	assert.Contains(t, result, DummyComparable{Val: 65535})
+	result, ok := c.Get(key2)
+	require.True(t, ok, "value was expected to be cached")
+	assert.Equal(t, *result, 65535)
 
 	complexKeyBase := []ucache.StringKey{"p1", "p2", "p3"}
 	partialComplexKey := NewSimpleCompositeKey[ucache.StringKey](complexKeyBase...)
 
 	for i := 0; i < 10; i++ {
 		complexKey := NewSimpleCompositeKey[ucache.StringKey](append(complexKeyBase, ucache.StringKey("number:"+strconv.Itoa(i)))...)
-		c.Put(complexKey, DummyComparable{Val: i})
-		changes = c.Changes()
-		assert.Contains(t, changes, complexKey)
+		c.Set(complexKey, i)
 	}
 
-	result = c.Get(partialComplexKey)
+	result, ok = c.Get(partialComplexKey)
+	require.True(t, ok, "value was expected to be cached")
 	assert.NotEmpty(t, result)
-	for i := 0; i < 10; i++ {
-		assert.Contains(t, result, DummyComparable{i})
-	}
+	assert.Equal(t, 9, *result)
 }
 
 func TestHashMapCache_CompositeKey(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
+	c := ucache.NewDefaultHashMapCache[ucache.StrCompositeKey, int](uopt.Null[time.Duration]())
 	key := ucache.NewStrCompositeKey("category", "kp_2")
 	key2 := ucache.NewStrCompositeKey("category2", "kp_2")
-	val := DummyComparable{Val: 10}
-	val2 := DummyComparable{Val: 236261}
+	val := 10
+	val2 := 236261
 
-	c.PutQuietly(key, val)
-	c.PutQuietly(key2, val2)
+	c.SetQuietly(key, val)
+	c.SetQuietly(key2, val2)
 
-	results := c.Get(key)
-	results2 := c.Get(key2)
-	assert.Len(t, results, 1)
-	assert.Len(t, results, 1)
-	assert.EqualValues(t, results[0], val)
-	assert.EqualValues(t, results2[0], val2)
+	result, ok := c.Get(key)
+	require.True(t, ok, "value was expected to be cached")
+	result2, ok := c.Get(key2)
+	require.True(t, ok, "value was expected to be cached")
+	assert.EqualValues(t, val, *result)
+	assert.EqualValues(t, val2, *result2)
 }
 
 func TestHashMapCache_DropKey(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
+	c := ucache.NewDefaultHashMapCache[ucache.StrCompositeKey, int](uopt.Null[time.Duration]())
 	categoryKey := ucache.NewStrCompositeKey("category")
-	key := ucache.NewStrCompositeKey("category", "kp_232626")
+	overlappingKey := ucache.NewStrCompositeKey("category", "kp_232626")
 	key2 := ucache.NewStrCompositeKey("category2", "kp_232626")
-	catVal := DummyComparable{Val: rand.Int()}
-	val := DummyComparable{Val: rand.Int()}
-	val2 := DummyComparable{Val: rand.Int()}
+	catVal := rand.Int()
+	val := rand.Int()
+	val2 := rand.Int()
 
-	c.Put(categoryKey, catVal)
-	c.Put(key, val)
-	c.Put(key2, val2)
+	c.Set(categoryKey, catVal)
+	c.Set(overlappingKey, val)
+	c.Set(key2, val2)
 
-	catRes := c.Get(categoryKey)
-	res := c.Get(key)
-	res2 := c.Get(key2)
-	assert.Len(t, catRes, 2)
-	assert.Len(t, res, 1)
-	assert.Len(t, res2, 1)
+	catRes, _ := c.Get(categoryKey)
 
-	c.DropKey(key)
-	catRes = c.Get(categoryKey)
-	res = c.Get(key)
-	res2 = c.Get(key2)
-	assert.Len(t, catRes, 2)
-	assert.Len(t, res, 0)
-	assert.Len(t, res2, 1)
+	res, ok := c.Get(overlappingKey)
+	require.True(t, ok, "value was expected to be cached")
+	res2, ok := c.Get(key2)
+	require.True(t, ok, "value was expected to be cached")
+	assert.Equal(t, val, *catRes)
+	assert.Equal(t, val, *res)
+	assert.Equal(t, val2, *res2)
+
+	c.DropKey(overlappingKey)
+	catRes, ok = c.Get(categoryKey)
+	require.True(t, ok, "value was expected to remain")
+	assert.Equal(t, val, *catRes)
+	_, ok = c.Get(overlappingKey)
+	require.False(t, ok, "value was expected to be cleared out of the cache")
+	res2, ok = c.Get(key2)
+	require.True(t, ok, "value was expected to remain")
+	assert.Equal(t, val2, *res2)
 }
 
 func TestHashMapCache_PutQuietly(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], DummyComparable](uopt.Null[time.Duration]())
+	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
 	key := NewSimpleCompositeKey[ucache.StringKey]("kp_1", "kp_2")
-	val := DummyComparable{Val: 10}
-	val2 := DummyComparable{Val: 15}
+	val := 10
+	val2 := 15
 
-	c.PutQuietly(key, val)
-	c.PutQuietly(key, val)
-	c.PutQuietly(key, val)
+	c.SetQuietly(key, val)
+	c.SetQuietly(key, val)
+	c.SetQuietly(key, val)
 
-	results := c.Get(key)
-	assert.Len(t, results, 1)
+	result, ok := c.Get(key)
+	require.True(t, ok, "value was expected to be cached")
+	assert.Equal(t, *result, val)
 
-	c.PutQuietly(key, val2)
-	results = c.Get(key)
-	assert.Len(t, results, 2)
+	c.SetQuietly(key, val2)
+	result, ok = c.Get(key)
+	require.True(t, ok, "value was expected to be cached")
+	assert.Equal(t, *result, val2)
 
-	c.PutQuietly(key, val)
-	results = c.Get(key)
-	assert.Len(t, results, 2)
+	c.SetQuietly(key, val)
+	result, ok = c.Get(key)
+	require.True(t, ok, "value was expected to be cached")
+	assert.Equal(t, *result, val)
 }
 
-func TestTreeCache(t *testing.T) {
-	c := ucache.NewInMemoryTreeCache[SimpleCompositeKey[ucache.StringKey], DummyComparable](uopt.Null[time.Duration]())
-	key := NewSimpleCompositeKey[ucache.StringKey]("atest")
-	key2 := NewSimpleCompositeKey[ucache.StringKey]("bSeCond-keyQ@!%!%#")
-	val := 326
-	c.Put(key, DummyComparable{Val: val})
+func TestHashMapCache_TTLExpiry(t *testing.T) {
+	ttl := 1 * time.Second
+	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Of(ttl))
+	key := NewSimpleCompositeKey[ucache.StringKey]("ttlKey")
+	val := 42
 
-	changes := c.Changes()
-	assert.NotNil(t, changes)
-	cached := c.Get(key)
-	assert.Contains(t, cached, DummyComparable{Val: val})
-
-	assert.Empty(t, c.Changes())
-	for i := 0; i < 10; i++ {
-		c.Put(key, DummyComparable{Val: i})
-	}
-	c.Put(key2, DummyComparable{Val: 65535})
-	changes = c.Changes()
-	assert.EqualValues(t, []SimpleCompositeKey[ucache.StringKey]{key, key2}, changes)
-
-	result := c.Get(key2)
-	assert.Contains(t, result, DummyComparable{Val: 65535})
-
-	complexKeyBase := []ucache.StringKey{"p1", "p2", "p3"}
-	partialComplexKey := NewSimpleCompositeKey[ucache.StringKey](complexKeyBase...)
-
-	for i := 0; i < 10; i++ {
-		complexKey := NewSimpleCompositeKey[ucache.StringKey](append(complexKeyBase, ucache.StringKey("number:"+strconv.Itoa(i)))...)
-		c.Put(complexKey, DummyComparable{Val: i})
-		changes = c.Changes()
-		assert.Contains(t, changes, complexKey)
-	}
-
-	result = c.Get(partialComplexKey)
-	assert.NotEmpty(t, result)
-	for i := 0; i < 10; i++ {
-		assert.Contains(t, result, DummyComparable{i})
-	}
+	c.Set(key, val)
+	time.Sleep(2 * time.Second)
+	outdated := c.Outdated(uopt.Of(key))
+	assert.True(t, outdated, "key should be marked as outdated")
 }
 
-func TestTreeCache_CompositeKey(t *testing.T) {
-	c := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
-	key := ucache.NewStrCompositeKey("category", "kp_2")
-	key2 := ucache.NewStrCompositeKey("category2", "kp_2")
-	val := DummyComparable{Val: 10}
-	val2 := DummyComparable{Val: 236261}
+func TestHashMapCache_Concurrency(t *testing.T) {
+	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
+	key := NewSimpleCompositeKey[ucache.StringKey]("concurrencyKey")
+	val := 42
 
-	c.PutQuietly(key, val)
-	c.PutQuietly(key2, val2)
-
-	results := c.Get(key)
-	results2 := c.Get(key2)
-	assert.Len(t, results, 1)
-	assert.Len(t, results, 1)
-	assert.EqualValues(t, results[0], val)
-	assert.EqualValues(t, results2[0], val2)
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			c.Set(key, val+i)
+			result, _ := c.Get(key)
+			assert.NotNil(t, result)
+		}(i)
+	}
+	wg.Wait()
 }
 
-func TestTreeCache_DropKey(t *testing.T) {
-	c := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
-	categoryKey := ucache.NewStrCompositeKey("category")
-	key := ucache.NewStrCompositeKey("category", "kp_232626")
-	key2 := ucache.NewStrCompositeKey("category2", "kp_232626")
-	catVal := DummyComparable{Val: rand.Int()}
-	val := DummyComparable{Val: rand.Int()}
-	val2 := DummyComparable{Val: rand.Int()}
+func TestHashMapCache_EmptyCache(t *testing.T) {
+	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
+	key := NewSimpleCompositeKey[ucache.StringKey]("emptyKey")
 
-	c.Put(categoryKey, catVal)
-	c.Put(key, val)
-	c.Put(key2, val2)
-
-	catRes := c.Get(categoryKey)
-	res := c.Get(key)
-	res2 := c.Get(key2)
-	assert.Len(t, catRes, 2)
-	assert.Len(t, res, 1)
-	assert.Len(t, res2, 1)
+	_, ok := c.Get(key)
+	assert.False(t, ok, "key should not be found in an empty cache")
 
 	c.DropKey(key)
-	catRes = c.Get(categoryKey)
-	res = c.Get(key)
-	res2 = c.Get(key2)
-	assert.Len(t, catRes, 1)
-	assert.Len(t, res, 0)
-	assert.Len(t, res2, 1)
+	_, ok = c.Get(key)
+	assert.False(t, ok, "key should not be found in an empty cache")
 }
 
-func TestTreeCache_AddTransparent(t *testing.T) {
-	c := ucache.NewInMemoryTreeCache[SimpleCompositeKey[ucache.StringKey], DummyComparable](uopt.Null[time.Duration]())
-	key := NewSimpleCompositeKey[ucache.StringKey]("kp_1", "kp_2")
-	val := DummyComparable{Val: 10}
-	val2 := DummyComparable{Val: 15}
+func TestHashMapCache_DropAll(t *testing.T) {
+	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
+	key := NewSimpleCompositeKey[ucache.StringKey]("key1")
+	key2 := NewSimpleCompositeKey[ucache.StringKey]("key2")
+	c.Set(key, 1)
+	c.Set(key2, 2)
 
-	c.PutQuietly(key, val)
-	c.PutQuietly(key, val)
-	c.PutQuietly(key, val)
-
-	results := c.Get(key)
-	assert.Len(t, results, 1)
-
-	c.PutQuietly(key, val2)
-	results = c.Get(key)
-	assert.Len(t, results, 2)
-
-	c.PutQuietly(key, val)
-	results = c.Get(key)
-	assert.Len(t, results, 2)
-}
-
-func TestNewGenericCompositeKey(t *testing.T) {
-	c := ucache.NewInMemoryTreeCache[ucache.GenericCompositeKey, DummyComparable](uopt.Null[time.Duration]())
-	key1 := ucache.NewGenericCompositeKey("KeyString", 2, 3.0, uint8(4), int16(-5))
-	key2 := ucache.NewGenericCompositeKey("KeyString", 2, 3.0, int8(100), uint16(5))
-	subKey1 := ucache.NewGenericCompositeKey("KeyString", 2, 3.0, uint8(4))
-	subKey2 := ucache.NewGenericCompositeKey("KeyString", 2, 3.0, int8(100))
-	baseKey := ucache.NewGenericCompositeKey("KeyString", 2, 3.0)
-
-	var firstKeyDummies []DummyComparable
-	for i := 0; i < 2; i++ {
-		firstKeyDummies = append(firstKeyDummies, DummyComparable{Val: i})
-	}
-	var secondKeyDummies []DummyComparable
-	for i := 2; i < 7; i++ {
-		secondKeyDummies = append(secondKeyDummies, DummyComparable{Val: i})
-	}
-
-	sort.Slice(firstKeyDummies, func(i, j int) bool {
-		return firstKeyDummies[i].Val < (firstKeyDummies[j].Val)
-	})
-	sort.Slice(secondKeyDummies, func(i, j int) bool {
-		return secondKeyDummies[i].Val < (secondKeyDummies[j].Val)
-	})
-
-	c.Put(key1, firstKeyDummies...)
-	c.Put(key2, secondKeyDummies...)
-
-	changes := c.Changes()
-	assert.NotNil(t, changes)
-	key1Result := c.Get(key1)
-	assert.EqualValues(t, firstKeyDummies, key1Result)
-	key2Result := c.Get(key2)
-	assert.EqualValues(t, secondKeyDummies, key2Result)
-	subKey1Result := c.Get(subKey1)
-	assert.EqualValues(t, firstKeyDummies, subKey1Result)
-	subKey2Result := c.Get(subKey2)
-	assert.EqualValues(t, secondKeyDummies, subKey2Result)
-	baseKeyResult := c.Get(baseKey)
-
-	combinedDummies := append(firstKeyDummies, secondKeyDummies...)
-	sort.Slice(combinedDummies, func(i, j int) bool {
-		return combinedDummies[i].Val < (combinedDummies[j].Val)
-	})
-	sort.Slice(baseKeyResult, func(i, j int) bool {
-		return baseKeyResult[i].Val < (baseKeyResult[j].Val)
-	})
-
-	assert.EqualValues(t, combinedDummies, baseKeyResult)
-}
-
-type CollisionTestKey struct {
-	id   int
-	hash []int64
-}
-
-// Implement the CompositeKey interface for TestKey
-func (k CollisionTestKey) Keys() []int64 {
-	return k.hash
-}
-
-func (k CollisionTestKey) String() string {
-	return strconv.Itoa(k.id)
-}
-
-func (k CollisionTestKey) Equals(other ucache.Comparable) bool {
-	ok, _ := other.(CollisionTestKey)
-	return k.id == ok.id
-}
-
-func TestTreeCacheHighCollisionProbability(t *testing.T) {
-	c := ucache.NewInMemoryTreeCache[CollisionTestKey, ucache.Int64Value](uopt.Null[time.Duration]())
-
-	// Define a set of keys that all produce the same hash code
-	keys := []CollisionTestKey{
-		{id: 1, hash: []int64{1, 2, 3}},
-		{id: 2, hash: []int64{1, 2, 3}},
-		{id: 3, hash: []int64{1, 2, 3}},
-	}
-
-	// Add values to the c for each key
-	for i, key := range keys {
-		c.Put(key, ucache.NewInt64Value(int64(i)))
-	}
-
-	// Ensure that all values can be retrieved despite the high collision probability
-	for i, key := range keys {
-		values := c.Get(key)
-		assert.Contains(t, values, ucache.NewInt64Value(int64(i))) // Check if the expected value is present in the retrieved values
-	}
-}
-
-func TestInMemoryTreeCache_Set(t *testing.T) {
-	c := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Null[time.Duration]())
-	key := ucache.NewStrCompositeKey("key1")
-	value1 := ucache.NewStringValue("value1")
-	value2 := ucache.NewStringValue("value2")
-
-	c.Set(key, value1)
-	retrieved := c.Get(key)
-	assert.Len(t, retrieved, 1)
-	assert.Equal(t, value1, retrieved[0])
-
-	c.Set(key, value2)
-	retrieved = c.Get(key)
-	assert.Len(t, retrieved, 1)
-	assert.Equal(t, value2, retrieved[0])
-}
-
-func TestInMemoryTreeCache_Outdated_WithStringKeyAndValue(t *testing.T) {
-	ttl := 1 * time.Millisecond
-	longTTL := 1 * time.Hour
-	c := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(ttl))
-	cLong := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(longTTL))
-
-	key1 := ucache.NewStrCompositeKey("key1")
-	key2 := ucache.NewStrCompositeKey("key2")
-	value1 := ucache.NewStringValue("value1")
-
-	// Test with long TTL
-	assert.True(t, cLong.Outdated(uopt.Null[ucache.StrCompositeKey]()))
-	cLong.Put(key1, value1)
-	assert.False(t, cLong.Outdated(uopt.Of(key1)))
-	time.Sleep(10 * time.Millisecond)
-	assert.False(t, cLong.Outdated(uopt.Of(key1)))
-
-	// Test immediate expiration
-	assert.True(t, c.Outdated(uopt.Null[ucache.StrCompositeKey]()))
-	c.Put(key1, value1)
-	assert.False(t, c.Outdated(uopt.Of(key1)))
-	time.Sleep(ttl + 10*time.Millisecond)
-	assert.True(t, c.Outdated(uopt.Of(key1)))
-
-	// Test overwriting key resets TTL
-	c.Put(key1, value1)
-	time.Sleep(ttl / 2)
-	c.Put(key1, value1) // Reset TTL
-	assert.False(t, c.Outdated(uopt.Of(key1)))
-	assert.False(t, c.Outdated(uopt.Of(key1)))
-	time.Sleep(ttl)
-	assert.True(t, c.Outdated(uopt.Of(key1)))
-
-	// Test Drop() method
-	c.Put(key1, value1)
-	c.Put(key2, value1)
 	c.Drop()
-	assert.True(t, c.Outdated(uopt.Of(key1)))
-	assert.True(t, c.Outdated(uopt.Of(key2)))
+	_, ok1 := c.Get(key)
+	_, ok2 := c.Get(key2)
+
+	assert.False(t, ok1, "key1 should be dropped")
+	assert.False(t, ok2, "key2 should be dropped")
 }
 
-func TestInMemoryTreeCache_Outdated_WithDifferentTTLs(t *testing.T) {
-	shortTTL := 10 * time.Millisecond
-	mediumTTL := 20 * time.Millisecond
-	longTTL := 30 * time.Millisecond
+func TestHashMapCache_PartialKeyMatch(t *testing.T) {
+	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
+	fullKey := NewSimpleCompositeKey[ucache.StringKey]("part1", "part2")
+	partialKey := NewSimpleCompositeKey[ucache.StringKey]("part1")
+	val := 123
 
-	cShort := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(shortTTL))
-	cMedium := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(mediumTTL))
-	cLong := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(longTTL))
-
-	key := ucache.NewStrCompositeKey("key")
-
-	value := ucache.NewStringValue("value")
-
-	cShort.Put(key, value)
-	cMedium.Put(key, value)
-	cLong.Put(key, value)
-
-	time.Sleep(shortTTL + 1*time.Millisecond)
-	assert.True(t, cShort.Outdated(uopt.Of(key)))
-	assert.False(t, cMedium.Outdated(uopt.Of(key)))
-	assert.False(t, cLong.Outdated(uopt.Of(key)))
-
-	time.Sleep(mediumTTL - shortTTL)
-	assert.True(t, cMedium.Outdated(uopt.Of(key)))
-	assert.False(t, cLong.Outdated(uopt.Of(key)))
-
-	time.Sleep(longTTL - mediumTTL)
-	assert.True(t, cLong.Outdated(uopt.Of(key)))
+	c.Set(fullKey, val)
+	result, ok := c.Get(partialKey)
+	assert.True(t, ok, "partial key should match")
+	assert.Equal(t, val, *result)
 }
