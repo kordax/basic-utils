@@ -301,7 +301,7 @@ func TestStringValue_Equals(t *testing.T) {
 }
 
 func TestKeysWithCache(t *testing.T) {
-	cache := ucache.NewInMemoryTreeCache[ucache.CompositeKey, ucache.StringValue](uopt.NullDuration())
+	cache := ucache.NewInMemoryTreeMultiCache[ucache.CompositeKey, ucache.StringValue](uopt.NullDuration())
 
 	intKey := ucache.IntKey(42)
 	cache.Put(intKey, ucache.NewStringValue("value for int"))
