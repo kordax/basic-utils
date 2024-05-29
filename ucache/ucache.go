@@ -21,11 +21,12 @@ type Cache[K CompositeKey, T Comparable] interface {
 	Put(key K, values ...T) // Adds a new value to the key
 	Set(key K, values ...T) // Overwrites key values
 	Get(key K) []T
-	AddSilently(key K, values ...T) // Adds the values but update cache state/doesn't add any changes to the cache
 	Changes() []K
 	Drop()
 	DropKey(key K)
 	Outdated(key uopt.Opt[K]) bool
+
+	PutQuietly(key K, values ...T) // Adds the values but update cache state/doesn't add any changes to the cache
 }
 
 // InMemoryTreeCache provides an in-memory caching mechanism with support for compound keys.
@@ -89,7 +90,7 @@ func (c *InMemoryTreeCache[K, T]) Set(key K, val ...T) {
 
 // AddSilently behaves like the Put method but does not update the cache state or add any changes to the cache.
 // This method is useful when you want to add values to the cache without triggering any side effects.
-func (c *InMemoryTreeCache[K, T]) AddSilently(key K, val ...T) {
+func (c *InMemoryTreeCache[K, T]) PutQuietly(key K, val ...T) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.addTran(key, val...)
@@ -412,9 +413,9 @@ func (c *InMemoryHashMapCache[K, T, H]) Set(key K, values ...T) {
 	c.lastUpdated = time.Now()
 }
 
-// AddSilently adds values to the cache for the provided key but does so without
-// altering the change history. This operation can be used when modifications should not trigger cache change logs.
-func (c *InMemoryHashMapCache[K, T, H]) AddSilently(key K, values ...T) {
+// PutQuietly adds values to the cache for the provided key but does so without
+// altering the change history. This operation can be used when modifications should not trigger cache change diff.
+func (c *InMemoryHashMapCache[K, T, H]) PutQuietly(key K, values ...T) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.addTran(key, values...)

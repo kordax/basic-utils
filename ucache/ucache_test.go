@@ -136,8 +136,8 @@ func TestHashMapCache_CompositeKey(t *testing.T) {
 	val := DummyComparable{Val: 10}
 	val2 := DummyComparable{Val: 236261}
 
-	c.AddSilently(key, val)
-	c.AddSilently(key2, val2)
+	c.PutQuietly(key, val)
+	c.PutQuietly(key2, val2)
 
 	results := c.Get(key)
 	results2 := c.Get(key2)
@@ -176,24 +176,24 @@ func TestHashMapCache_DropKey(t *testing.T) {
 	assert.Len(t, res2, 1)
 }
 
-func TestHashMapCache_AddTransparent(t *testing.T) {
+func TestHashMapCache_PutQuietly(t *testing.T) {
 	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], DummyComparable](uopt.Null[time.Duration]())
 	key := NewSimpleCompositeKey[ucache.StringKey]("kp_1", "kp_2")
 	val := DummyComparable{Val: 10}
 	val2 := DummyComparable{Val: 15}
 
-	c.AddSilently(key, val)
-	c.AddSilently(key, val)
-	c.AddSilently(key, val)
+	c.PutQuietly(key, val)
+	c.PutQuietly(key, val)
+	c.PutQuietly(key, val)
 
 	results := c.Get(key)
 	assert.Len(t, results, 1)
 
-	c.AddSilently(key, val2)
+	c.PutQuietly(key, val2)
 	results = c.Get(key)
 	assert.Len(t, results, 2)
 
-	c.AddSilently(key, val)
+	c.PutQuietly(key, val)
 	results = c.Get(key)
 	assert.Len(t, results, 2)
 }
@@ -245,8 +245,8 @@ func TestTreeCache_CompositeKey(t *testing.T) {
 	val := DummyComparable{Val: 10}
 	val2 := DummyComparable{Val: 236261}
 
-	c.AddSilently(key, val)
-	c.AddSilently(key2, val2)
+	c.PutQuietly(key, val)
+	c.PutQuietly(key2, val2)
 
 	results := c.Get(key)
 	results2 := c.Get(key2)
@@ -291,18 +291,18 @@ func TestTreeCache_AddTransparent(t *testing.T) {
 	val := DummyComparable{Val: 10}
 	val2 := DummyComparable{Val: 15}
 
-	c.AddSilently(key, val)
-	c.AddSilently(key, val)
-	c.AddSilently(key, val)
+	c.PutQuietly(key, val)
+	c.PutQuietly(key, val)
+	c.PutQuietly(key, val)
 
 	results := c.Get(key)
 	assert.Len(t, results, 1)
 
-	c.AddSilently(key, val2)
+	c.PutQuietly(key, val2)
 	results = c.Get(key)
 	assert.Len(t, results, 2)
 
-	c.AddSilently(key, val)
+	c.PutQuietly(key, val)
 	results = c.Get(key)
 	assert.Len(t, results, 2)
 }
@@ -417,16 +417,71 @@ func TestInMemoryTreeCache_Set(t *testing.T) {
 
 func TestInMemoryTreeCache_Outdated_WithStringKeyAndValue(t *testing.T) {
 	ttl := 1 * time.Millisecond
+	longTTL := 1 * time.Hour
 	c := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(ttl))
-	cLong := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(time.Hour))
+	cLong := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(longTTL))
 
-	key := ucache.NewStrCompositeKey("key1")
-	value := ucache.NewStringValue("value1")
+	key1 := ucache.NewStrCompositeKey("key1")
+	key2 := ucache.NewStrCompositeKey("key2")
+	value1 := ucache.NewStringValue("value1")
 
+	// Test with long TTL
 	assert.True(t, cLong.Outdated(uopt.Null[ucache.StrCompositeKey]()))
-	c.Put(key, value)
-	assert.False(t, c.Outdated(uopt.Of(key)))
-	time.Sleep(ttl + 10*time.Millisecond)
-	assert.True(t, c.Outdated(uopt.Of(key)))
+	cLong.Put(key1, value1)
+	assert.False(t, cLong.Outdated(uopt.Of(key1)))
+	time.Sleep(10 * time.Millisecond)
+	assert.False(t, cLong.Outdated(uopt.Of(key1)))
+
+	// Test immediate expiration
 	assert.True(t, c.Outdated(uopt.Null[ucache.StrCompositeKey]()))
+	c.Put(key1, value1)
+	assert.False(t, c.Outdated(uopt.Of(key1)))
+	time.Sleep(ttl + 10*time.Millisecond)
+	assert.True(t, c.Outdated(uopt.Of(key1)))
+
+	// Test overwriting key resets TTL
+	c.Put(key1, value1)
+	time.Sleep(ttl / 2)
+	c.Put(key1, value1) // Reset TTL
+	assert.False(t, c.Outdated(uopt.Of(key1)))
+	assert.False(t, c.Outdated(uopt.Of(key1)))
+	time.Sleep(ttl)
+	assert.True(t, c.Outdated(uopt.Of(key1)))
+
+	// Test Drop() method
+	c.Put(key1, value1)
+	c.Put(key2, value1)
+	c.Drop()
+	assert.True(t, c.Outdated(uopt.Of(key1)))
+	assert.True(t, c.Outdated(uopt.Of(key2)))
+}
+
+func TestInMemoryTreeCache_Outdated_WithDifferentTTLs(t *testing.T) {
+	shortTTL := 10 * time.Millisecond
+	mediumTTL := 20 * time.Millisecond
+	longTTL := 30 * time.Millisecond
+
+	cShort := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(shortTTL))
+	cMedium := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(mediumTTL))
+	cLong := ucache.NewInMemoryTreeCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(longTTL))
+
+	key := ucache.NewStrCompositeKey("key")
+
+	value := ucache.NewStringValue("value")
+
+	cShort.Put(key, value)
+	cMedium.Put(key, value)
+	cLong.Put(key, value)
+
+	time.Sleep(shortTTL + 1*time.Millisecond)
+	assert.True(t, cShort.Outdated(uopt.Of(key)))
+	assert.False(t, cMedium.Outdated(uopt.Of(key)))
+	assert.False(t, cLong.Outdated(uopt.Of(key)))
+
+	time.Sleep(mediumTTL - shortTTL)
+	assert.True(t, cMedium.Outdated(uopt.Of(key)))
+	assert.False(t, cLong.Outdated(uopt.Of(key)))
+
+	time.Sleep(longTTL - mediumTTL)
+	assert.True(t, cLong.Outdated(uopt.Of(key)))
 }
