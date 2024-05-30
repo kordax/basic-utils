@@ -58,8 +58,9 @@ type MultiCache[K CompositeKey, T Comparable] interface {
 	DropKey(key K)
 
 	// Outdated checks if a given key or the entire cache is outdated based on the TTL.
-	// If no key is provided or key was not found, it checks the last updated time of the entire cache.
+	// If no key is provided it checks the last updated time of the entire cache.
 	// If a key is provided and found, it checks the last updated time of that specific key.
+	// If key was not found returns false.
 	Outdated(key uopt.Opt[K]) bool
 
 	// PutQuietly behaves like the Put method but does not update the cache state or add any changes to the cache, making it
@@ -78,6 +79,8 @@ type MultiCache[K CompositeKey, T Comparable] interface {
 // - Put operation performance is fast for shallow depth keys but slows down as the depth increases.
 // - Get operation is particularly efficient, especially for shallow depth keys.
 // - Set operation's performance is consistent regardless of the depth of the key.
+// TTL parameter in cache doesn't automatically clean up all the entries.
+// Use ManagedMultiCache wrapper to automatically manage outdated keys.
 type InMemoryTreeMultiCache[K CompositeKey, T Comparable] struct {
 	values  map[int64]any
 	changes []K
@@ -99,7 +102,7 @@ type InMemoryTreeMultiCache[K CompositeKey, T Comparable] struct {
 //   - This design ensures that more specific keys take precedence and can replace the values of their parent keys.
 //   - Additionally, retrieving a value using a broader key (e.g., [1, 2]) will return the values of the most specific key
 //     that shares the prefix (e.g., [1, 2, 3, 4]).
-func NewInMemoryTreeMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) *InMemoryTreeMultiCache[K, T] {
+func NewInMemoryTreeMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
 	c := &InMemoryTreeMultiCache[K, T]{
 		values:          make(map[int64]any),
 		changes:         make([]K, 0),
@@ -209,7 +212,7 @@ func (c *InMemoryTreeMultiCache[K, T]) Outdated(key uopt.Opt[K]) bool {
 				return true
 			}
 		} else {
-			return time.Since(c.lastUpdated) > *c.ttl
+			return false
 		}
 	}
 }
@@ -367,7 +370,7 @@ func (c *InMemoryTreeMultiCache[K, T]) getNodePairsFlat(node map[int64]any, resu
 // InMemoryHashMapMultiCache provides an in-memory caching mechanism using hashmaps.
 // Unlike InMemoryHashMapCache, it stores multiple values per key.
 // This cache structure translates composite keys into a hash value using a user-provided
-// hashing function. The cache supports optional TTL (time-to-live) for entries.
+// hashing function. The cache supports optional TTL (time-to-live) for entries (Please read below regarding clean up.)
 // Concurrency-safe operations are ensured through the use of a mutex.
 // Unlike InMemoryTreeMultiCache, it doesn't support a hierarchy for keys, so each key is unique.
 // - Setting a more specific key (e.g., [1, 2, 3, 4]) WILL NOT replace the value of a broader key (e.g., [1, 2, 3]).
@@ -380,11 +383,13 @@ func (c *InMemoryTreeMultiCache[K, T]) getNodePairsFlat(node map[int64]any, resu
 //
 // The choice between InMemoryTreeMultiCache and InMemoryHashMapMultiCache would depend on the specific use case,
 // especially the depth of the keys and the frequency of retrieval operations.
+// TTL parameter in cache doesn't automatically clean up all the entries.
+// Use ManagedMultiCache wrapper to automatically manage outdated keys.
 type InMemoryHashMapMultiCache[K CompositeKey, T Comparable, H comparable] struct {
 	values  map[H][]T
 	changes []K
 
-	lastUpdatedKeys map[string]time.Time
+	lastUpdatedKeys map[string]keyContainer[K]
 	lastUpdated     time.Time
 	ttl             *time.Duration
 
@@ -395,11 +400,11 @@ type InMemoryHashMapMultiCache[K CompositeKey, T Comparable, H comparable] struc
 // NewInMemoryHashMapMultiCache creates a new instance of the InMemoryHashMapMultiCache.
 // It takes a hashing function to translate the composite keys to a desired hash type,
 // and an optional time-to-live duration for the cache entries.
-func NewInMemoryHashMapMultiCache[K CompositeKey, T Comparable, H comparable](toHash func(keys []Unique) H, ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, H] {
+func NewInMemoryHashMapMultiCache[K CompositeKey, T Comparable, H comparable](toHash func(keys []Unique) H, ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
 	c := &InMemoryHashMapMultiCache[K, T, H]{
 		values:          make(map[H][]T),
 		changes:         make([]K, 0),
-		lastUpdatedKeys: make(map[string]time.Time),
+		lastUpdatedKeys: make(map[string]keyContainer[K]),
 		toHash:          toHash,
 	}
 	ttl.IfPresent(func(t time.Duration) {
@@ -410,11 +415,11 @@ func NewInMemoryHashMapMultiCache[K CompositeKey, T Comparable, H comparable](to
 }
 
 // NewDefaultHashMapMultiCache creates a new instance of the InMemoryHashMapMultiCache using SHA256 as the hashing algorithm.
-func NewDefaultHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, uint64] {
+func NewDefaultHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
 	return NewFarmHashMapMultiCache[K, T](ttl)
 }
 
-func NewFarmHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, uint64] {
+func NewFarmHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
 	return NewInMemoryHashMapMultiCache[K, T, uint64](func(keys []Unique) uint64 {
 		buffer := new(bytes.Buffer)
 		arr := make([]byte, 0)
@@ -426,7 +431,7 @@ func NewFarmHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Du
 	}, ttl)
 }
 
-func NewSha256HashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, string] {
+func NewSha256HashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
 	return NewInMemoryHashMapMultiCache[K, T, string](func(keys []Unique) string {
 		buffer := new(bytes.Buffer)
 		arr := make([]byte, 0)
@@ -450,8 +455,12 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) Put(key K, values ...T) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.put(key, values...)
-	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
-	c.lastUpdated = time.Now()
+	n := time.Now()
+	c.lastUpdatedKeys[keysAsString(key.Keys())] = keyContainer[K]{
+		key:       key,
+		updatedAt: n,
+	}
+	c.lastUpdated = n
 }
 
 // Set updates the cache values for the provided key. If the key already exists,
@@ -461,8 +470,12 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) Set(key K, values ...T) {
 	defer c.vMtx.Unlock()
 	c.dropKey(key.Keys())
 	c.put(key, values...)
-	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
-	c.lastUpdated = time.Now()
+	n := time.Now()
+	c.lastUpdatedKeys[keysAsString(key.Keys())] = keyContainer[K]{
+		key:       key,
+		updatedAt: n,
+	}
+	c.lastUpdated = n
 }
 
 // PutQuietly adds values to the cache for the provided key but does so without
@@ -471,8 +484,12 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) PutQuietly(key K, values ...T) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.addTran(key, values...)
-	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
-	c.lastUpdated = time.Now()
+	n := time.Now()
+	c.lastUpdatedKeys[keysAsString(key.Keys())] = keyContainer[K]{
+		key:       key,
+		updatedAt: n,
+	}
+	c.lastUpdated = n
 }
 
 // Get retrieves the values associated with the provided key from the cache.
@@ -495,7 +512,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) Drop() {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.dropAll()
-	c.lastUpdatedKeys = make(map[string]time.Time)
+	c.lastUpdatedKeys = make(map[string]keyContainer[K])
 }
 
 // DropKey removes the values associated with the provided key from the cache. The operation is thread-safe.
@@ -503,8 +520,12 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) DropKey(key K) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.dropKey(key.Keys())
-	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
-	c.lastUpdated = time.Now()
+	n := time.Now()
+	c.lastUpdatedKeys[keysAsString(key.Keys())] = keyContainer[K]{
+		key:       key,
+		updatedAt: n,
+	}
+	c.lastUpdated = n
 }
 
 // Outdated checks if the provided key or the entire cache (if no key is provided)
@@ -519,7 +540,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) Outdated(key uopt.Opt[K]) bool {
 		if key.Present() {
 			k := key.Get()
 			if lu, ok := c.lastUpdatedKeys[keysAsString((*k).Keys())]; ok {
-				return time.Since(lu) > *c.ttl
+				return time.Since(lu.updatedAt) > *c.ttl
 			} else {
 				return true
 			}

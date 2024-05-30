@@ -28,6 +28,10 @@ type Cache[K Unique, T any] interface {
 	// This method should be thread-safe.
 	Get(key K) (*T, bool)
 
+	// Changes returns a slice of keys that have been modified in the cache.
+	// This method provides a way to track changes made to the cache, useful for scenarios like cache syncing.
+	Changes() []K
+
 	// Drop completely clears the cache, removing all entries. This method should be thread-safe.
 	Drop()
 
@@ -37,6 +41,7 @@ type Cache[K Unique, T any] interface {
 	// Outdated checks if the provided key or the entire cache (if no key is provided)
 	// is outdated based on the set TTL (time-to-live). Returns true if outdated, false otherwise.
 	// This method should be thread-safe.
+	// If key was not found returns false.
 	Outdated(key uopt.Opt[K]) bool
 
 	// SetQuietly is an optimized method adds a value to the cache for the provided key but does so without
@@ -50,11 +55,13 @@ type Cache[K Unique, T any] interface {
 // Unlike InMemoryHashMapMultiCache, it stores only one value per key.
 // This structure translates composite keys into a hash value using a user-provided hashing function.
 // Supports optional TTL for entries and ensures concurrency-safe operations using a mutex.
+// TTL parameter in cache doesn't automatically clean up all the entries.
+// Use ManagedCache wrapper to automatically manage outdated keys.
 type InMemoryHashMapCache[K Unique, T any, H comparable] struct {
 	values  map[H]T
 	changes []K
 
-	lastUpdatedKeys map[int64]time.Time
+	lastUpdatedKeys map[int64]keyContainer[K]
 	lastUpdated     time.Time
 	ttl             *time.Duration
 
@@ -69,7 +76,7 @@ func NewInMemoryHashMapCache[K Unique, T any, H comparable](toHash func(key int6
 	c := &InMemoryHashMapCache[K, T, H]{
 		values:          make(map[H]T),
 		changes:         make([]K, 0),
-		lastUpdatedKeys: make(map[int64]time.Time),
+		lastUpdatedKeys: make(map[int64]keyContainer[K]),
 		toHash:          toHash,
 	}
 	ttl.IfPresent(func(t time.Duration) {
@@ -97,8 +104,12 @@ func (c *InMemoryHashMapCache[K, T, H]) Set(key K, value T) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.put(key, value)
-	c.lastUpdatedKeys[key.Key()] = time.Now()
-	c.lastUpdated = time.Now()
+	n := time.Now()
+	c.lastUpdatedKeys[key.Key()] = keyContainer[K]{
+		key:       key,
+		updatedAt: n,
+	}
+	c.lastUpdated = n
 }
 
 // SetQuietly is an optimized method that adds value to the cache for the provided key but does so without
@@ -108,8 +119,12 @@ func (c *InMemoryHashMapCache[K, T, H]) SetQuietly(key K, value T) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.addTran(key, value)
-	c.lastUpdatedKeys[key.Key()] = time.Now()
-	c.lastUpdated = time.Now()
+	n := time.Now()
+	c.lastUpdatedKeys[key.Key()] = keyContainer[K]{
+		key:       key,
+		updatedAt: n,
+	}
+	c.lastUpdated = n
 }
 
 // Get retrieves the value associated with the provided key from the cache.
@@ -126,12 +141,18 @@ func (c *InMemoryHashMapCache[K, T, H]) Get(key K) (*T, bool) {
 	return &value, ok
 }
 
+// Changes returns a slice of keys that have been modified in the cache.
+// This method provides a way to track changes made to the cache, useful for scenarios like cache syncing.
+func (c *InMemoryHashMapCache[K, T, H]) Changes() []K {
+	return c.changes
+}
+
 // Drop completely clears the cache, removing all entries. The operation is thread-safe.
 func (c *InMemoryHashMapCache[K, T, H]) Drop() {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.dropAll()
-	c.lastUpdatedKeys = make(map[int64]time.Time)
+	c.lastUpdatedKeys = make(map[int64]keyContainer[K])
 }
 
 // DropKey removes the value associated with the provided key from the cache. The operation is thread-safe.
@@ -139,8 +160,12 @@ func (c *InMemoryHashMapCache[K, T, H]) DropKey(key K) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.dropKey(key.Key())
-	c.lastUpdatedKeys[key.Key()] = time.Now()
-	c.lastUpdated = time.Now()
+	n := time.Now()
+	c.lastUpdatedKeys[key.Key()] = keyContainer[K]{
+		key:       key,
+		updatedAt: n,
+	}
+	c.lastUpdated = n
 }
 
 // Outdated checks if the provided key or the entire cache (if no key is provided)
@@ -155,12 +180,12 @@ func (c *InMemoryHashMapCache[K, T, H]) Outdated(key uopt.Opt[K]) bool {
 		if key.Present() {
 			k := key.Get()
 			if lu, ok := c.lastUpdatedKeys[(*k).Key()]; ok {
-				return time.Since(lu) > *c.ttl
+				return time.Since(lu.updatedAt) > *c.ttl
 			} else {
 				return true
 			}
 		} else {
-			return time.Since(c.lastUpdated) > *c.ttl
+			return false
 		}
 	}
 }
