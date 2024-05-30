@@ -17,6 +17,25 @@ type container[K CompositeKey, T Comparable] struct {
 	node  map[int64]any
 }
 
+// The MultiCache interface defines a set of methods for a generic cache implementation.
+// This interface supports setting, getting, and managing cache entries with composite keys.
+// Unlike Cache, it is designed to handle multiple values per key and has a hierarchical key handling.
+//
+// Note on hierarchical key handling:
+//   - If a composite key (e.g., [1, 2, 3]) is already set, any broader keys that share the same prefix
+//     (e.g., [1, 2]) are considered "busy" as part of the hierarchy.
+//   - Setting a more specific key (e.g., [1, 2, 3, 4]) will replace the broader key's value (e.g., [1, 2, 3]).
+//   - This design ensures that more specific keys take precedence and can replace the values of their parent keys.
+//   - Additionally, retrieving a value using a broader key (e.g., [1, 2]) will return the values of the most specific key
+//     that shares the prefix (e.g., [1, 2, 3, 4]).
+//
+// Example:
+// - Set([1, 2, 3], "Value1") => [1, 2, 3] is set with "Value1".
+// - Set([1, 2, 3, 4], "Value2") => [1, 2, 3] is replaced, and [1, 2, 3, 4] is set with "Value2".
+// - Get([1, 2, 3]) => returns nil, as it has been replaced by [1, 2, 3, 4].
+//
+// This hierarchical key handling is useful for scenarios where more specific keys should override
+// the values of their parent keys, providing a clear and structured way to manage cache entries.
 type MultiCache[K CompositeKey, T Comparable] interface {
 	// Put inserts a new value(s) into the cache associated with the given key.
 	// If the key already exists in the cache, it appends the new value(s) to the existing values.
@@ -30,6 +49,7 @@ type MultiCache[K CompositeKey, T Comparable] interface {
 	// Get retrieves the value(s) associated with the given key from the cache.
 	// If the key is not found, it returns an empty slice.
 	// Retrieval is fast, especially for shallow depth keys.
+	// Supports retrieving a value using a broader key (e.g., [1, 2]) or a full/shallow key (e.g., [1, 2, 3, 4])
 	Get(key K) []T
 
 	// Changes returns a slice of keys that have been modified in the cache.
@@ -390,8 +410,8 @@ func NewDefaultHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time
 }
 
 func NewFarmHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, uint64] {
-	buffer := new(bytes.Buffer)
 	return NewInMemoryHashMapMultiCache[K, T, uint64](func(keys []int64) uint64 {
+		buffer := new(bytes.Buffer)
 		arr := make([]byte, 0)
 		for _, hash := range keys {
 			arr = append(arr, intToBytes(buffer, hash)...)
@@ -402,8 +422,8 @@ func NewFarmHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Du
 }
 
 func NewSha256HashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, string] {
-	buffer := new(bytes.Buffer)
 	return NewInMemoryHashMapMultiCache[K, T, string](func(keys []int64) string {
+		buffer := new(bytes.Buffer)
 		arr := make([]byte, 0)
 		for _, hash := range keys {
 			arr = append(arr, intToBytes(buffer, hash)...)
