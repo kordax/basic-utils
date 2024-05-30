@@ -18,7 +18,7 @@ import (
 // The Cache interface defines a set of methods for a generic cache implementation.
 // This interface supports setting, getting, and managing cache entries with composite keys.
 // Unlike MultiCache, it is designed to handle only one value per key and does not support hierarchical composite keys.
-type Cache[K Hashed, T any] interface {
+type Cache[K Unique, T any] interface {
 	// Set updates the cache value for the provided key. If the key already exists,
 	// its previous value is removed before adding the new value. This method should be thread-safe.
 	Set(key K, value T)
@@ -50,11 +50,11 @@ type Cache[K Hashed, T any] interface {
 // Unlike InMemoryHashMapMultiCache, it stores only one value per key.
 // This structure translates composite keys into a hash value using a user-provided hashing function.
 // Supports optional TTL for entries and ensures concurrency-safe operations using a mutex.
-type InMemoryHashMapCache[K Hashed, T any, H comparable] struct {
+type InMemoryHashMapCache[K Unique, T any, H comparable] struct {
 	values  map[H]T
 	changes []K
 
-	lastUpdatedKeys map[string]time.Time
+	lastUpdatedKeys map[int64]time.Time
 	lastUpdated     time.Time
 	ttl             *time.Duration
 
@@ -65,11 +65,11 @@ type InMemoryHashMapCache[K Hashed, T any, H comparable] struct {
 // NewInMemoryHashMapCache creates a new instance of the InMemoryHashMapCache.
 // It takes a hashing function to translate the composite keys to a desired hash type,
 // and an optional time-to-live duration for the cache entries.
-func NewInMemoryHashMapCache[K Hashed, T any, H comparable](toHash func(key int64) H, ttl uopt.Opt[time.Duration]) Cache[K, T] {
+func NewInMemoryHashMapCache[K Unique, T any, H comparable](toHash func(key int64) H, ttl uopt.Opt[time.Duration]) Cache[K, T] {
 	c := &InMemoryHashMapCache[K, T, H]{
 		values:          make(map[H]T),
 		changes:         make([]K, 0),
-		lastUpdatedKeys: make(map[string]time.Time),
+		lastUpdatedKeys: make(map[int64]time.Time),
 		toHash:          toHash,
 	}
 	ttl.IfPresent(func(t time.Duration) {
@@ -80,11 +80,11 @@ func NewInMemoryHashMapCache[K Hashed, T any, H comparable](toHash func(key int6
 }
 
 // NewDefaultHashMapCache creates a new instance of the InMemoryHashMapCache using SHA256 as the hashing algorithm.
-func NewDefaultHashMapCache[K Hashed, T any](ttl uopt.Opt[time.Duration]) Cache[K, T] {
+func NewDefaultHashMapCache[K Unique, T any](ttl uopt.Opt[time.Duration]) Cache[K, T] {
 	return NewFarmHashMapCache[K, T](ttl)
 }
 
-func NewFarmHashMapCache[K Hashed, T any](ttl uopt.Opt[time.Duration]) Cache[K, T] {
+func NewFarmHashMapCache[K Unique, T any](ttl uopt.Opt[time.Duration]) Cache[K, T] {
 	return NewInMemoryHashMapCache[K, T, uint64](func(key int64) uint64 {
 		buffer := new(bytes.Buffer)
 		return farm.Hash64(intToBytes(buffer, key))
@@ -97,7 +97,7 @@ func (c *InMemoryHashMapCache[K, T, H]) Set(key K, value T) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.put(key, value)
-	c.lastUpdatedKeys[key.String()] = time.Now()
+	c.lastUpdatedKeys[key.Key()] = time.Now()
 	c.lastUpdated = time.Now()
 }
 
@@ -108,7 +108,7 @@ func (c *InMemoryHashMapCache[K, T, H]) SetQuietly(key K, value T) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.addTran(key, value)
-	c.lastUpdatedKeys[key.String()] = time.Now()
+	c.lastUpdatedKeys[key.Key()] = time.Now()
 	c.lastUpdated = time.Now()
 }
 
@@ -131,7 +131,7 @@ func (c *InMemoryHashMapCache[K, T, H]) Drop() {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.dropAll()
-	c.lastUpdatedKeys = make(map[string]time.Time)
+	c.lastUpdatedKeys = make(map[int64]time.Time)
 }
 
 // DropKey removes the value associated with the provided key from the cache. The operation is thread-safe.
@@ -139,7 +139,7 @@ func (c *InMemoryHashMapCache[K, T, H]) DropKey(key K) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.dropKey(key.Key())
-	c.lastUpdatedKeys[key.String()] = time.Now()
+	c.lastUpdatedKeys[key.Key()] = time.Now()
 	c.lastUpdated = time.Now()
 }
 
@@ -154,7 +154,7 @@ func (c *InMemoryHashMapCache[K, T, H]) Outdated(key uopt.Opt[K]) bool {
 	} else {
 		if key.Present() {
 			k := key.Get()
-			if lu, ok := c.lastUpdatedKeys[(*k).String()]; ok {
+			if lu, ok := c.lastUpdatedKeys[(*k).Key()]; ok {
 				return time.Since(lu) > *c.ttl
 			} else {
 				return true

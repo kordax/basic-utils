@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -118,7 +120,7 @@ func (c *InMemoryTreeMultiCache[K, T]) Put(key K, val ...T) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.put(key, val...)
-	c.lastUpdatedKeys[key.String()] = time.Now()
+	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
 	c.lastUpdated = time.Now()
 }
 
@@ -129,7 +131,7 @@ func (c *InMemoryTreeMultiCache[K, T]) Set(key K, val ...T) {
 	defer c.vMtx.Unlock()
 	c.dropKeyRecursively(key.Keys(), 0, c.values)
 	c.put(key, val...)
-	c.lastUpdatedKeys[key.String()] = time.Now()
+	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
 	c.lastUpdated = time.Now()
 }
 
@@ -140,7 +142,7 @@ func (c *InMemoryTreeMultiCache[K, T]) PutQuietly(key K, val ...T) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.addTran(key, val...)
-	c.lastUpdatedKeys[key.String()] = time.Now()
+	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
 	c.lastUpdated = time.Now()
 }
 
@@ -182,7 +184,7 @@ func (c *InMemoryTreeMultiCache[K, T]) DropKey(key K) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.dropKeyRecursively(key.Keys(), 0, c.values)
-	c.lastUpdatedKeys[key.String()] = time.Now()
+	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
 	c.lastUpdated = time.Now()
 }
 
@@ -202,7 +204,7 @@ func (c *InMemoryTreeMultiCache[K, T]) Outdated(key uopt.Opt[K]) bool {
 	} else {
 		if key.Present() {
 			k := key.Get()
-			if lu, ok := c.lastUpdatedKeys[(*k).String()]; ok {
+			if lu, ok := c.lastUpdatedKeys[keysAsString((*k).Keys())]; ok {
 				return time.Since(lu) > *c.ttl
 			} else {
 				return true
@@ -238,60 +240,61 @@ func (c *InMemoryTreeMultiCache[K, T]) put(key K, val ...T) {
 }
 
 func (c *InMemoryTreeMultiCache[K, T]) addTran(key K, values ...T) {
-	hashes := key.Keys()
-	if len(hashes) == 0 {
+	keys := key.Keys()
+	if len(keys) == 0 {
 		return
 	}
 
-	bucket := c.tryToGetBucket(hashes)
-	lHash := key.Keys()[len(hashes)-1]
+	bucket := c.tryToGetBucket(keys)
+	lowKey := key.Keys()[len(keys)-1].Key()
 
 	for _, value := range values {
-		if ind, _ := uarray.ContainsPredicate(bucket[lHash], func(v *uarray.Pair[K, T]) bool {
+		if ind, _ := uarray.ContainsPredicate(bucket[lowKey], func(v *uarray.Pair[K, T]) bool {
 			return v.Right.Equals(value)
 		}); ind > -1 {
-			bucket[lHash][ind] = *uarray.NewPair[K, T](key, value)
+			bucket[lowKey][ind] = *uarray.NewPair[K, T](key, value)
 		} else {
-			bucket[lHash] = append(bucket[lHash], *uarray.NewPair[K, T](key, value))
+			bucket[lowKey] = append(bucket[lowKey], *uarray.NewPair[K, T](key, value))
 		}
 	}
 }
 
-func (c *InMemoryTreeMultiCache[K, T]) dropKeyRecursively(keys []int64, n int, bucket map[int64]any) {
-	hash := keys[n]
-	interBucket := bucket[hash]
+func (c *InMemoryTreeMultiCache[K, T]) dropKeyRecursively(keys []Unique, n int, bucket map[int64]any) {
+	key := keys[n].Key()
+	interBucket := bucket[key]
 	if interBucket != nil {
 		switch b := interBucket.(type) {
 		case container[K, T]:
 			if n+1 == len(keys) {
-				delete(bucket, hash)
+				delete(bucket, key)
 			} else {
 				c.dropKeyRecursively(keys, n+1, b.node)
 			}
 		default:
-			delete(bucket, hash)
+			delete(bucket, key)
 		}
 	}
 }
 
-func (c *InMemoryTreeMultiCache[K, T]) tryToGetBucket(keys []int64) map[int64][]uarray.Pair[K, T] {
+func (c *InMemoryTreeMultiCache[K, T]) tryToGetBucket(keys []Unique) map[int64][]uarray.Pair[K, T] {
 	return c.getBucket(keys, 0, c.values)
 }
 
-func (c *InMemoryTreeMultiCache[K, T]) getBucket(keys []int64, n int, interBucket map[int64]any) map[int64][]uarray.Pair[K, T] {
+func (c *InMemoryTreeMultiCache[K, T]) getBucket(keys []Unique, n int, interBucket map[int64]any) map[int64][]uarray.Pair[K, T] {
 	if keys == nil || n >= len(keys) {
 		return nil
 	}
 
-	if bucket, ok := interBucket[keys[n]]; ok {
+	hash := keys[n].Key()
+	if bucket, ok := interBucket[hash]; ok {
 		switch b := bucket.(type) {
 		case map[int64][]uarray.Pair[K, T]:
 			if n+1 < len(keys) {
-				interBucket[keys[n]] = container[K, T]{
+				interBucket[hash] = container[K, T]{
 					node:  make(map[int64]any),
 					pairs: b,
 				}
-				return c.getBucket(keys, n+1, interBucket[keys[n]].(container[K, T]).node)
+				return c.getBucket(keys, n+1, interBucket[hash].(container[K, T]).node)
 			} else {
 				return b
 			}
@@ -312,27 +315,27 @@ func (c *InMemoryTreeMultiCache[K, T]) getBucket(keys []int64, n int, interBucke
 		}
 	} else {
 		if n+1 == len(keys) {
-			interBucket[keys[n]] = map[int64][]uarray.Pair[K, T]{
-				keys[n]: nil,
+			interBucket[hash] = map[int64][]uarray.Pair[K, T]{
+				hash: nil,
 			}
-			return interBucket[keys[n]].(map[int64][]uarray.Pair[K, T])
+			return interBucket[hash].(map[int64][]uarray.Pair[K, T])
 		} else {
-			if entry, ok := interBucket[keys[n]]; !ok {
-				interBucket[keys[n]] = container[K, T]{
+			if entry, ok := interBucket[hash]; !ok {
+				interBucket[hash] = container[K, T]{
 					node:  make(map[int64]any),
 					pairs: make(map[int64][]uarray.Pair[K, T]),
 				}
-				return c.getBucket(keys, n+1, interBucket[keys[n]].(container[K, T]).node)
+				return c.getBucket(keys, n+1, interBucket[hash].(container[K, T]).node)
 			} else {
 				switch e := entry.(type) {
 				case map[int64][]uarray.Pair[K, T]:
-					interBucket[keys[n]] = container[K, T]{
+					interBucket[hash] = container[K, T]{
 						node:  make(map[int64]any),
 						pairs: e,
 					}
-					return c.getBucket(keys, n+1, interBucket[keys[n]].(container[K, T]).node)
+					return c.getBucket(keys, n+1, interBucket[hash].(container[K, T]).node)
 				case container[K, T]:
-					interBucket[keys[n]] = container[K, T]{
+					interBucket[hash] = container[K, T]{
 						pairs: e.pairs,
 					}
 					return c.getBucket(keys, n+1, e.node)
@@ -383,14 +386,14 @@ type InMemoryHashMapMultiCache[K CompositeKey, T Comparable, H comparable] struc
 	lastUpdated     time.Time
 	ttl             *time.Duration
 
-	toHash func(keys []int64) H
+	toHash func(keys []Unique) H
 	vMtx   sync.Mutex
 }
 
 // NewInMemoryHashMapMultiCache creates a new instance of the InMemoryHashMapMultiCache.
 // It takes a hashing function to translate the composite keys to a desired hash type,
 // and an optional time-to-live duration for the cache entries.
-func NewInMemoryHashMapMultiCache[K CompositeKey, T Comparable, H comparable](toHash func(keys []int64) H, ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, H] {
+func NewInMemoryHashMapMultiCache[K CompositeKey, T Comparable, H comparable](toHash func(keys []Unique) H, ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, H] {
 	c := &InMemoryHashMapMultiCache[K, T, H]{
 		values:          make(map[H][]T),
 		changes:         make([]K, 0),
@@ -410,11 +413,11 @@ func NewDefaultHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time
 }
 
 func NewFarmHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, uint64] {
-	return NewInMemoryHashMapMultiCache[K, T, uint64](func(keys []int64) uint64 {
+	return NewInMemoryHashMapMultiCache[K, T, uint64](func(keys []Unique) uint64 {
 		buffer := new(bytes.Buffer)
 		arr := make([]byte, 0)
 		for _, hash := range keys {
-			arr = append(arr, intToBytes(buffer, hash)...)
+			arr = append(arr, intToBytes(buffer, hash.Key())...)
 		}
 
 		return farm.Hash64(arr)
@@ -422,11 +425,11 @@ func NewFarmHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Du
 }
 
 func NewSha256HashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, string] {
-	return NewInMemoryHashMapMultiCache[K, T, string](func(keys []int64) string {
+	return NewInMemoryHashMapMultiCache[K, T, string](func(keys []Unique) string {
 		buffer := new(bytes.Buffer)
 		arr := make([]byte, 0)
 		for _, hash := range keys {
-			arr = append(arr, intToBytes(buffer, hash)...)
+			arr = append(arr, intToBytes(buffer, hash.Key())...)
 		}
 
 		h := sha256.New()
@@ -445,7 +448,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) Put(key K, values ...T) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.put(key, values...)
-	c.lastUpdatedKeys[key.String()] = time.Now()
+	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
 	c.lastUpdated = time.Now()
 }
 
@@ -456,7 +459,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) Set(key K, values ...T) {
 	defer c.vMtx.Unlock()
 	c.dropKey(key.Keys())
 	c.put(key, values...)
-	c.lastUpdatedKeys[key.String()] = time.Now()
+	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
 	c.lastUpdated = time.Now()
 }
 
@@ -466,7 +469,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) PutQuietly(key K, values ...T) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.addTran(key, values...)
-	c.lastUpdatedKeys[key.String()] = time.Now()
+	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
 	c.lastUpdated = time.Now()
 }
 
@@ -498,7 +501,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) DropKey(key K) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.dropKey(key.Keys())
-	c.lastUpdatedKeys[key.String()] = time.Now()
+	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
 	c.lastUpdated = time.Now()
 }
 
@@ -513,7 +516,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) Outdated(key uopt.Opt[K]) bool {
 	} else {
 		if key.Present() {
 			k := key.Get()
-			if lu, ok := c.lastUpdatedKeys[(*k).String()]; ok {
+			if lu, ok := c.lastUpdatedKeys[keysAsString((*k).Keys())]; ok {
 				return time.Since(lu) > *c.ttl
 			} else {
 				return true
@@ -574,7 +577,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) addTran(key K, values ...T) {
 	}
 }
 
-func (c *InMemoryHashMapMultiCache[K, T, H]) dropKey(keys []int64) {
+func (c *InMemoryHashMapMultiCache[K, T, H]) dropKey(keys []Unique) {
 	delete(c.values, c.toHash(keys))
 }
 
@@ -583,4 +586,12 @@ func intToBytes(buffer *bytes.Buffer, num int64) []byte {
 	_ = binary.Write(buffer, binary.LittleEndian, num)
 
 	return buffer.Bytes()
+}
+
+func keysAsString(keys []Unique) string {
+	var sb strings.Builder
+	for _, key := range keys {
+		sb.WriteString(strconv.FormatInt(key.Key(), 10))
+	}
+	return sb.String()
 }

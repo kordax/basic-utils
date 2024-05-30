@@ -61,13 +61,13 @@ func TestHashMapCache_PutQuietly(t *testing.T) {
 }
 
 func TestHashMapCache_TTLExpiry(t *testing.T) {
-	ttl := 1 * time.Second
+	ttl := 100 * time.Millisecond
 	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Of(ttl))
 	key := ucache.StringKey("ttlKey")
 	val := 42
 
 	c.Set(key, val)
-	time.Sleep(2 * time.Second)
+	time.Sleep(2 * ttl)
 	outdated := c.Outdated(uopt.Of(key))
 	assert.True(t, outdated, "key should be marked as outdated")
 }
