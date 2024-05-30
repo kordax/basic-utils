@@ -30,7 +30,7 @@ type container[K CompositeKey, T Comparable] struct {
 //
 // This hierarchical key handling is useful for scenarios where more specific keys should override
 // the values of their parent keys, providing a clear and structured way to manage cache entries.
-type MultiCache[K CompositeKey, T Comparable] interface {
+type MultiCache[K CompositeKey, T any] interface {
 	// Put inserts a new value(s) into the cache associated with the given key.
 	// If the key already exists in the cache, it appends the new value(s) to the existing values.
 	// This operation is relatively fast for shallow depth keys, but becomes slower as the depth increases.
@@ -385,7 +385,7 @@ func (c *InMemoryTreeMultiCache[K, T]) getNodePairsFlat(node map[int64]any, resu
 // especially the depth of the keys and the frequency of retrieval operations.
 // TTL parameter in cache doesn't automatically clean up all the entries.
 // Use ManagedMultiCache wrapper to automatically manage outdated keys.
-type InMemoryHashMapMultiCache[K CompositeKey, T Comparable, H comparable] struct {
+type InMemoryHashMapMultiCache[K CompositeKey, T any, H comparable] struct {
 	values  map[H][]T
 	changes []K
 
@@ -400,7 +400,7 @@ type InMemoryHashMapMultiCache[K CompositeKey, T Comparable, H comparable] struc
 // NewInMemoryHashMapMultiCache creates a new instance of the InMemoryHashMapMultiCache.
 // It takes a hashing function to translate the composite keys to a desired hash type,
 // and an optional time-to-live duration for the cache entries.
-func NewInMemoryHashMapMultiCache[K CompositeKey, T Comparable, H comparable](toHash func(keys []Unique) H, ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
+func NewInMemoryHashMapMultiCache[K CompositeKey, T any, H comparable](toHash func(keys []Unique) H, ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
 	c := &InMemoryHashMapMultiCache[K, T, H]{
 		values:          make(map[H][]T),
 		changes:         make([]K, 0),
