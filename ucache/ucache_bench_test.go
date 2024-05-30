@@ -17,10 +17,10 @@ import (
 )
 
 func BenchmarkInMemoryHashMapCachePut(b *testing.B) {
-	cache := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
-	keys := make([]SimpleCompositeKey[ucache.StringKey], b.N)
+	cache := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	keys := make([]ucache.StringKey, b.N)
 	for i := 0; i < b.N; i++ {
-		keys[i] = NewSimpleCompositeKey[ucache.StringKey](ucache.StringKey(fmt.Sprintf("key%d", i)))
+		keys[i] = ucache.StringKey(fmt.Sprintf("key%d", i))
 	}
 	b.ResetTimer()
 
@@ -30,10 +30,10 @@ func BenchmarkInMemoryHashMapCachePut(b *testing.B) {
 }
 
 func BenchmarkInMemoryHashMapCachePutConcurrent(b *testing.B) {
-	cache := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
-	keys := make([]SimpleCompositeKey[ucache.StringKey], b.N)
+	cache := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	keys := make([]ucache.StringKey, b.N)
 	for i := 0; i < b.N; i++ {
-		keys[i] = NewSimpleCompositeKey[ucache.StringKey](ucache.StringKey(fmt.Sprintf("key%d", i)))
+		keys[i] = ucache.StringKey(fmt.Sprintf("key%d", i))
 	}
 	b.ResetTimer()
 
@@ -47,10 +47,10 @@ func BenchmarkInMemoryHashMapCachePutConcurrent(b *testing.B) {
 
 func BenchmarkInMemoryHashMapCacheGet(b *testing.B) {
 	numItems := 10000
-	cache := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
-	keys := make([]SimpleCompositeKey[ucache.StringKey], numItems)
+	cache := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	keys := make([]ucache.StringKey, numItems)
 	for i := 0; i < numItems; i++ {
-		keys[i] = NewSimpleCompositeKey[ucache.StringKey](ucache.StringKey(fmt.Sprintf("key%d", i)))
+		keys[i] = ucache.StringKey(fmt.Sprintf("key%d", i))
 		cache.Set(keys[i], i)
 	}
 	b.ResetTimer()
@@ -62,10 +62,10 @@ func BenchmarkInMemoryHashMapCacheGet(b *testing.B) {
 
 func BenchmarkInMemoryHashMapCacheGetConcurrent(b *testing.B) {
 	numItems := 10000
-	cache := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
-	keys := make([]SimpleCompositeKey[ucache.StringKey], numItems)
+	cache := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	keys := make([]ucache.StringKey, numItems)
 	for i := 0; i < numItems; i++ {
-		keys[i] = NewSimpleCompositeKey[ucache.StringKey](ucache.StringKey(fmt.Sprintf("key%d", i)))
+		keys[i] = ucache.StringKey(fmt.Sprintf("key%d", i))
 		cache.Set(keys[i], i)
 	}
 	b.ResetTimer()
