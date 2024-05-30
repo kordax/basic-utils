@@ -576,7 +576,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) put(key K, values ...T) {
 
 func (c *InMemoryHashMapMultiCache[K, T, H]) addTran(key K, values ...T) {
 	hash := c.toHash(key.Keys())
-	c.values[hash] = values
+	c.values[hash] = append(c.values[hash], values...)
 }
 
 func (c *InMemoryHashMapMultiCache[K, T, H]) dropKey(keys []Unique) {

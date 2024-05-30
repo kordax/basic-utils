@@ -184,15 +184,15 @@ func TestHashMapMultiCache_PutQuietly(t *testing.T) {
 	c.PutQuietly(key, val)
 
 	results := c.Get(key)
-	assert.Len(t, results, 1)
+	assert.Len(t, results, 3)
 
 	c.PutQuietly(key, val2)
 	results = c.Get(key)
-	assert.Len(t, results, 1)
+	assert.Len(t, results, 4)
 
 	c.PutQuietly(key, val)
 	results = c.Get(key)
-	assert.Len(t, results, 1)
+	assert.Len(t, results, 5)
 }
 
 func TestTreeMultiCache(t *testing.T) {
@@ -512,4 +512,30 @@ func TestHashMapMultiCache_CompositeKey_LotsOfKeys(t *testing.T) {
 		results := c.Get(keys[i])
 		assert.Len(t, results, 0)
 	}
+}
+
+func TestInMemoryHashMapMultiCache_Put(t *testing.T) {
+	c := ucache.NewDefaultHashMapMultiCache[SimpleCompositeKey[ucache.StringKey], DummyComparable](uopt.Null[time.Duration]())
+	key := NewSimpleCompositeKey[ucache.StringKey]("kp_1", "kp_2")
+	val := DummyComparable{Val: 10}
+	val2 := DummyComparable{Val: 15}
+
+	c.Put(key, val)
+	c.Put(key, val2)
+
+	values := c.Get(key)
+	assert.Equal(t, []DummyComparable{val, val2}, values)
+}
+
+func TestInMemoryHashMapMultiCache_Set(t *testing.T) {
+	c := ucache.NewDefaultHashMapMultiCache[SimpleCompositeKey[ucache.StringKey], DummyComparable](uopt.Null[time.Duration]())
+	key := NewSimpleCompositeKey[ucache.StringKey]("kp_1", "kp_2")
+	val := DummyComparable{Val: 10}
+	val2 := DummyComparable{Val: 15}
+
+	c.Set(key, val)
+	c.Set(key, val2)
+
+	values := c.Get(key)
+	assert.Equal(t, []DummyComparable{val2}, values)
 }
