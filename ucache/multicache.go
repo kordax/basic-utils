@@ -23,14 +23,6 @@ type container[K CompositeKey, T Comparable] struct {
 // This interface supports setting, getting, and managing cache entries with composite keys.
 // Unlike Cache, it is designed to handle multiple values per key and has a hierarchical key handling.
 //
-// Note on hierarchical key handling:
-//   - If a composite key (e.g., [1, 2, 3]) is already set, any broader keys that share the same prefix
-//     (e.g., [1, 2]) are considered "busy" as part of the hierarchy.
-//   - Setting a more specific key (e.g., [1, 2, 3, 4]) will replace the broader key's value (e.g., [1, 2, 3]).
-//   - This design ensures that more specific keys take precedence and can replace the values of their parent keys.
-//   - Additionally, retrieving a value using a broader key (e.g., [1, 2]) will return the values of the most specific key
-//     that shares the prefix (e.g., [1, 2, 3, 4]).
-//
 // Example:
 // - Set([1, 2, 3], "Value1") => [1, 2, 3] is set with "Value1".
 // - Set([1, 2, 3, 4], "Value2") => [1, 2, 3] is replaced, and [1, 2, 3, 4] is set with "Value2".
@@ -100,6 +92,13 @@ type InMemoryTreeMultiCache[K CompositeKey, T Comparable] struct {
 // NewInMemoryTreeMultiCache creates a new instance of the InMemoryTreeMultiCache.
 // It takes an optional TTL (time-to-live) parameter to set expiration time for cache entries.
 // If the TTL is not provided, cache entries will not expire.
+// Note on hierarchical key handling:
+//   - If a composite key (e.g., [1, 2, 3]) is already set, any broader keys that share the same prefix
+//     (e.g., [1, 2]) are considered "busy" as part of the hierarchy.
+//   - Setting a more specific key (e.g., [1, 2, 3, 4]) will replace the broader key's value (e.g., [1, 2, 3]).
+//   - This design ensures that more specific keys take precedence and can replace the values of their parent keys.
+//   - Additionally, retrieving a value using a broader key (e.g., [1, 2]) will return the values of the most specific key
+//     that shares the prefix (e.g., [1, 2, 3, 4]).
 func NewInMemoryTreeMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) *InMemoryTreeMultiCache[K, T] {
 	c := &InMemoryTreeMultiCache[K, T]{
 		values:          make(map[int64]any),
@@ -370,6 +369,9 @@ func (c *InMemoryTreeMultiCache[K, T]) getNodePairsFlat(node map[int64]any, resu
 // This cache structure translates composite keys into a hash value using a user-provided
 // hashing function. The cache supports optional TTL (time-to-live) for entries.
 // Concurrency-safe operations are ensured through the use of a mutex.
+// Unlike InMemoryTreeMultiCache, it doesn't support a hierarchy for keys, so each key is unique.
+// - Setting a more specific key (e.g., [1, 2, 3, 4]) WILL NOT replace the value of a broader key (e.g., [1, 2, 3]).
+// - Deleting a specific key or a parent key (e.g., [1, 2]) will not affect the other one.
 //
 // Performance Comparison with InMemoryTreeMultiCache:
 // - Insertions: InMemoryTreeMultiCache is slightly faster for single-depth insertions and significantly faster for deeper depths.
@@ -552,29 +554,8 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) put(key K, values ...T) {
 }
 
 func (c *InMemoryHashMapMultiCache[K, T, H]) addTran(key K, values ...T) {
-	keys := key.Keys()
-	if len(values) == 0 {
-		return
-	}
-
-	for i := 0; i < len(keys); i++ {
-		hash := c.toHash(keys[:i+1])
-		for _, value := range values {
-			if existing, found := c.values[hash]; found {
-				if ind, entry := uarray.ContainsPredicate[T](existing, func(v *T) bool {
-					return (*v).Equals(value)
-				}); entry == nil {
-					// Collision detected
-					c.values[hash] = append(existing, value)
-				} else {
-					// Else replace, this value is already hashed
-					c.values[hash][ind] = value
-				}
-			} else {
-				c.values[hash] = []T{value}
-			}
-		}
-	}
+	hash := c.toHash(key.Keys())
+	c.values[hash] = values
 }
 
 func (c *InMemoryHashMapMultiCache[K, T, H]) dropKey(keys []Unique) {

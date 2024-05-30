@@ -123,10 +123,7 @@ func TestHashMapMultiCache(t *testing.T) {
 	}
 
 	result = c.Get(partialComplexKey)
-	assert.NotEmpty(t, result)
-	for i := 0; i < 10; i++ {
-		assert.Contains(t, result, DummyComparable{i})
-	}
+	assert.Empty(t, result)
 }
 
 func TestHashMapMultiCache_CompositeKey(t *testing.T) {
@@ -163,7 +160,7 @@ func TestHashMapMultiCache_DropKey(t *testing.T) {
 	catRes := c.Get(categoryKey)
 	res := c.Get(key)
 	res2 := c.Get(key2)
-	assert.Len(t, catRes, 2)
+	assert.Len(t, catRes, 1)
 	assert.Len(t, res, 1)
 	assert.Len(t, res2, 1)
 
@@ -171,7 +168,7 @@ func TestHashMapMultiCache_DropKey(t *testing.T) {
 	catRes = c.Get(categoryKey)
 	res = c.Get(key)
 	res2 = c.Get(key2)
-	assert.Len(t, catRes, 2)
+	assert.Len(t, catRes, 1)
 	assert.Len(t, res, 0)
 	assert.Len(t, res2, 1)
 }
@@ -191,11 +188,11 @@ func TestHashMapMultiCache_PutQuietly(t *testing.T) {
 
 	c.PutQuietly(key, val2)
 	results = c.Get(key)
-	assert.Len(t, results, 2)
+	assert.Len(t, results, 1)
 
 	c.PutQuietly(key, val)
 	results = c.Get(key)
-	assert.Len(t, results, 2)
+	assert.Len(t, results, 1)
 }
 
 func TestTreeMultiCache(t *testing.T) {
