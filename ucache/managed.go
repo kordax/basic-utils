@@ -65,6 +65,10 @@ func (b *ManagedCache[K, T]) Get(key K) (*T, bool) {
 	return b.cache.Get(key)
 }
 
+func (b *ManagedCache[K, T]) Changes() []K {
+	return b.cache.Changes()
+}
+
 func (b *ManagedCache[K, T]) Drop() {
 	b.cache.Drop()
 }
