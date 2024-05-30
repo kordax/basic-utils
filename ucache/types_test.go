@@ -81,7 +81,7 @@ func TestUIntKey_Equals(t *testing.T) {
 func TestUIntKey_Key(t *testing.T) {
 	value := ucache.UIntKey(123)
 	key := value.Key()
-	assert.Equal(t, 123, key)
+	assert.EqualValues(t, 123, key)
 
 	value2 := ucache.UIntKey(456)
 	key2 := value2.Key()
@@ -92,8 +92,8 @@ func TestIntCompositeKey_Keys(t *testing.T) {
 	value := ucache.NewIntCompositeKey(123, 456)
 	keys := value.Keys()
 	assert.Len(t, keys, 2)
-	assert.Contains(t, keys, int64(123))
-	assert.Contains(t, keys, int64(456))
+	assert.Contains(t, keys, ucache.IntKey(123))
+	assert.Contains(t, keys, ucache.IntKey(456))
 
 	value2 := ucache.NewIntCompositeKey(789)
 	keys2 := value2.Keys()
@@ -146,14 +146,15 @@ func TestUIntCompositeKey_Keys_String(t *testing.T) {
 
 func TestIntCompositeKey_Keys_String(t *testing.T) {
 	key := ucache.NewIntCompositeKey(1, 2, 3)
-	assert.EqualValues(t, []int64{1, 2, 3}, key.Keys())
+	expectedUniqueKeys := []ucache.Unique{ucache.IntKey(1), ucache.IntKey(2), ucache.IntKey(3)}
+	assert.EqualValues(t, expectedUniqueKeys, key.Keys())
 	assert.Equal(t, "1, 2, 3", key.String())
 }
 
 func TestStrCompositeKey_Keys_String(t *testing.T) {
 	key := ucache.NewStrCompositeKey("a", "b", "c")
-	expectedKeys := []int64{97, 98, 99} // ASCII values of 'a', 'b', 'c'
-	assert.EqualValues(t, expectedKeys, key.Keys())
+	expectedUniqueKeys := []ucache.Unique{ucache.IntKey(97), ucache.IntKey(98), ucache.IntKey(99)} // ASCII values of 'a', 'b', 'c'
+	assert.EqualValues(t, expectedUniqueKeys, key.Keys())
 	assert.Equal(t, "a, b, c", key.String())
 }
 

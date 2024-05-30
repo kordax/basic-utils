@@ -45,7 +45,7 @@ func (s SimpleKey) String() string {
 	return strconv.Itoa(int(s))
 }
 
-type SimpleCompositeKey[T ucache.Hashed] struct {
+type SimpleCompositeKey[T ucache.Unique] struct {
 	keys []T
 }
 
@@ -67,10 +67,10 @@ func (s SimpleCompositeKey[T]) Equals(other ucache.Comparable) bool {
 	}
 }
 
-func (s SimpleCompositeKey[T]) Keys() []int64 {
-	result := make([]int64, len(s.keys))
+func (s SimpleCompositeKey[T]) Keys() []ucache.Unique {
+	result := make([]ucache.Unique, len(s.keys))
 	for i, key := range s.keys {
-		result[i] = key.Key()
+		result[i] = ucache.UIntKey(key.Key())
 	}
 
 	return result
@@ -79,13 +79,13 @@ func (s SimpleCompositeKey[T]) Keys() []int64 {
 func (s SimpleCompositeKey[T]) String() string {
 	rep := make([]string, len(s.keys))
 	for i, key := range s.keys {
-		rep[i] = key.String()
+		rep[i] = strconv.FormatInt(key.Key(), 10)
 	}
 
 	return strings.Join(rep, ", ")
 }
 
-func NewSimpleCompositeKey[T ucache.Hashed](keys ...T) SimpleCompositeKey[T] {
+func NewSimpleCompositeKey[T ucache.Unique](keys ...T) SimpleCompositeKey[T] {
 	return SimpleCompositeKey[T]{keys: keys}
 }
 
@@ -363,8 +363,12 @@ type CollisionTestKey struct {
 }
 
 // Implement the CompositeKey interface for TestKey
-func (k CollisionTestKey) Keys() []int64 {
-	return k.hash
+func (k CollisionTestKey) Keys() []ucache.Unique {
+	result := make([]ucache.Unique, len(k.hash))
+	for i, h := range k.hash {
+		result[i] = ucache.IntKey(h)
+	}
+	return result
 }
 
 func (k CollisionTestKey) String() string {
