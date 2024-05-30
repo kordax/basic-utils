@@ -486,3 +486,30 @@ func TestInMemoryTreeMultiCache_Outdated_WithDifferentTTLs(t *testing.T) {
 	time.Sleep(longTTL - mediumTTL)
 	assert.True(t, cLong.Outdated(uopt.Of(key)))
 }
+
+func TestHashMapMultiCache_CompositeKey_LotsOfKeys(t *testing.T) {
+	c := ucache.NewDefaultHashMapMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
+
+	keysCount := 10000
+
+	keys := make([]ucache.StrCompositeKey, keysCount)
+	values := make([]DummyComparable, keysCount)
+	for i := 0; i < keysCount; i++ {
+		category := "category" + strconv.Itoa(i%10) // Vary the category
+		keys[i] = ucache.NewStrCompositeKey(category, "key_"+strconv.Itoa(i))
+		values[i] = DummyComparable{Val: i}
+		c.Set(keys[i], values[i])
+	}
+
+	for i := 0; i < keysCount; i++ {
+		results := c.Get(keys[i])
+		assert.Len(t, results, 1)
+		assert.EqualValues(t, results[0], values[i])
+	}
+
+	for i := 0; i < keysCount; i++ {
+		c.DropKey(keys[i])
+		results := c.Get(keys[i])
+		assert.Len(t, results, 0)
+	}
+}
