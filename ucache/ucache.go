@@ -161,6 +161,8 @@ func (c *InMemoryHashMapCache[K, T, H]) Get(key K) (*T, bool) {
 // Changes returns a slice of keys that have been modified in the cache.
 // This method provides a way to track changes made to the cache, useful for scenarios like cache syncing.
 func (c *InMemoryHashMapCache[K, T, H]) Changes() []K {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
 	return c.changes
 }
 
