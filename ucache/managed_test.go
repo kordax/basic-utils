@@ -82,7 +82,8 @@ func TestManagedMultiCache_Outdated(t *testing.T) {
 
 	managedCache.Set(key, value)
 	time.Sleep(2 * ttl)
-	assert.True(t, managedCache.Outdated(uopt.Of(key)))
+	values := managedCache.Get(key)
+	assert.Empty(t, values)
 }
 
 func TestManagedCache_SetAndGet(t *testing.T) {
