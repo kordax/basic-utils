@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/dgryski/go-farm"
 	"github.com/kordax/basic-utils/uarray"
@@ -14,6 +15,11 @@ import (
 type UIntKey uint64
 type IntKey int64
 type StringKey string
+
+type keyContainer[K any] struct {
+	key       K
+	updatedAt time.Time
+}
 
 /*
 Comparable entity
