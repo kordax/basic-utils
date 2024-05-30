@@ -169,6 +169,8 @@ func (c *InMemoryTreeMultiCache[K, T]) Get(key K) []T {
 // Changes returns a slice of keys that have been modified in the cache.
 // This method provides a way to track changes made to the cache, useful for scenarios like cache syncing.
 func (c *InMemoryTreeMultiCache[K, T]) Changes() []K {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
 	return c.changes
 }
 
