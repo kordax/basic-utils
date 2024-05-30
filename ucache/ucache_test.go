@@ -7,8 +7,6 @@
 package ucache_test
 
 import (
-	"math/rand"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -19,44 +17,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHashMapCache(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
-	key := NewSimpleCompositeKey[ucache.StringKey]("atest")
-	key2 := NewSimpleCompositeKey[ucache.StringKey]("bSeCond-keyQ@!%!%#")
-	val := 326
-	c.Set(key, val)
-
-	cached, ok := c.Get(key)
-	require.True(t, ok, "value was expected to be cached")
-	assert.Equal(t, val, *cached)
-
-	for i := 0; i < 10; i++ {
-		c.Set(key, i)
-	}
-	c.Set(key2, 65535)
-
-	result, ok := c.Get(key2)
-	require.True(t, ok, "value was expected to be cached")
-	assert.Equal(t, *result, 65535)
-
-	complexKeyBase := []ucache.StringKey{"p1", "p2", "p3"}
-	partialComplexKey := NewSimpleCompositeKey[ucache.StringKey](complexKeyBase...)
-
-	for i := 0; i < 10; i++ {
-		complexKey := NewSimpleCompositeKey[ucache.StringKey](append(complexKeyBase, ucache.StringKey("number:"+strconv.Itoa(i)))...)
-		c.Set(complexKey, i)
-	}
-
-	result, ok = c.Get(partialComplexKey)
-	require.True(t, ok, "value was expected to be cached")
-	assert.NotEmpty(t, result)
-	assert.Equal(t, 9, *result)
-}
-
 func TestHashMapCache_CompositeKey(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[ucache.StrCompositeKey, int](uopt.Null[time.Duration]())
-	key := ucache.NewStrCompositeKey("category", "kp_2")
-	key2 := ucache.NewStrCompositeKey("category2", "kp_2")
+	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	key := ucache.StringKey("category")
+	key2 := ucache.StringKey("category2")
 	val := 10
 	val2 := 236261
 
@@ -71,43 +35,9 @@ func TestHashMapCache_CompositeKey(t *testing.T) {
 	assert.EqualValues(t, val2, *result2)
 }
 
-func TestHashMapCache_DropKey(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[ucache.StrCompositeKey, int](uopt.Null[time.Duration]())
-	categoryKey := ucache.NewStrCompositeKey("category")
-	overlappingKey := ucache.NewStrCompositeKey("category", "kp_232626")
-	key2 := ucache.NewStrCompositeKey("category2", "kp_232626")
-	catVal := rand.Int()
-	val := rand.Int()
-	val2 := rand.Int()
-
-	c.Set(categoryKey, catVal)
-	c.Set(overlappingKey, val)
-	c.Set(key2, val2)
-
-	catRes, _ := c.Get(categoryKey)
-
-	res, ok := c.Get(overlappingKey)
-	require.True(t, ok, "value was expected to be cached")
-	res2, ok := c.Get(key2)
-	require.True(t, ok, "value was expected to be cached")
-	assert.Equal(t, val, *catRes)
-	assert.Equal(t, val, *res)
-	assert.Equal(t, val2, *res2)
-
-	c.DropKey(overlappingKey)
-	catRes, ok = c.Get(categoryKey)
-	require.True(t, ok, "value was expected to remain")
-	assert.Equal(t, val, *catRes)
-	_, ok = c.Get(overlappingKey)
-	require.False(t, ok, "value was expected to be cleared out of the cache")
-	res2, ok = c.Get(key2)
-	require.True(t, ok, "value was expected to remain")
-	assert.Equal(t, val2, *res2)
-}
-
 func TestHashMapCache_PutQuietly(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
-	key := NewSimpleCompositeKey[ucache.StringKey]("kp_1", "kp_2")
+	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	key := ucache.StringKey("kp_1")
 	val := 10
 	val2 := 15
 
@@ -132,8 +62,8 @@ func TestHashMapCache_PutQuietly(t *testing.T) {
 
 func TestHashMapCache_TTLExpiry(t *testing.T) {
 	ttl := 1 * time.Second
-	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Of(ttl))
-	key := NewSimpleCompositeKey[ucache.StringKey]("ttlKey")
+	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Of(ttl))
+	key := ucache.StringKey("ttlKey")
 	val := 42
 
 	c.Set(key, val)
@@ -143,8 +73,8 @@ func TestHashMapCache_TTLExpiry(t *testing.T) {
 }
 
 func TestHashMapCache_Concurrency(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
-	key := NewSimpleCompositeKey[ucache.StringKey]("concurrencyKey")
+	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	key := ucache.StringKey("concurrencyKey")
 	val := 42
 
 	var wg sync.WaitGroup
@@ -161,8 +91,8 @@ func TestHashMapCache_Concurrency(t *testing.T) {
 }
 
 func TestHashMapCache_EmptyCache(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
-	key := NewSimpleCompositeKey[ucache.StringKey]("emptyKey")
+	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	key := ucache.StringKey("emptyKey")
 
 	_, ok := c.Get(key)
 	assert.False(t, ok, "key should not be found in an empty cache")
@@ -173,9 +103,9 @@ func TestHashMapCache_EmptyCache(t *testing.T) {
 }
 
 func TestHashMapCache_DropAll(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
-	key := NewSimpleCompositeKey[ucache.StringKey]("key1")
-	key2 := NewSimpleCompositeKey[ucache.StringKey]("key2")
+	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	key := ucache.StringKey("key1")
+	key2 := ucache.StringKey("key2")
 	c.Set(key, 1)
 	c.Set(key2, 2)
 
@@ -187,14 +117,110 @@ func TestHashMapCache_DropAll(t *testing.T) {
 	assert.False(t, ok2, "key2 should be dropped")
 }
 
-func TestHashMapCache_PartialKeyMatch(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[SimpleCompositeKey[ucache.StringKey], int](uopt.Null[time.Duration]())
-	fullKey := NewSimpleCompositeKey[ucache.StringKey]("part1", "part2")
-	partialKey := NewSimpleCompositeKey[ucache.StringKey]("part1")
-	val := 123
+func TestInMemoryHashMapCache(t *testing.T) {
+	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string, uint64](func(key int64) uint64 {
+		return uint64(key)
+	}, uopt.Null[time.Duration]())
 
-	c.Set(fullKey, val)
-	result, ok := c.Get(partialKey)
-	assert.True(t, ok, "partial key should match")
-	assert.Equal(t, val, *result)
+	// Define multiple keys and values
+	key1 := ucache.IntKey(1)
+	value1 := "MyValue"
+
+	key2 := ucache.IntKey(2)
+	value2 := "AnotherValue"
+
+	key3 := ucache.IntKey(3)
+	value3 := "ThirdValue"
+
+	key4 := ucache.IntKey(4)
+	value4 := "FourthValue"
+
+	key5 := ucache.IntKey(5)
+	value5 := "FifthValue"
+
+	// Test setting and getting multiple keys
+	cache.Set(key1, value1)
+	cache.Set(key2, value2)
+	cache.Set(key3, value3)
+	cache.Set(key4, value4)
+	cache.Set(key5, value5)
+
+	// Verify all keys return correct values
+	retrievedValue, ok := cache.Get(key1)
+	require.True(t, ok, "Expected to retrieve value for key1")
+	assert.Equal(t, value1, *retrievedValue, "Retrieved value should match the set value")
+
+	retrievedValue, ok = cache.Get(key2)
+	require.True(t, ok, "Expected to retrieve value for key2")
+	assert.Equal(t, value2, *retrievedValue, "Retrieved value should match the set value")
+
+	retrievedValue, ok = cache.Get(key3)
+	require.True(t, ok, "Expected to retrieve value for key3")
+	assert.Equal(t, value3, *retrievedValue, "Retrieved value should match the set value")
+
+	retrievedValue, ok = cache.Get(key4)
+	require.True(t, ok, "Expected to retrieve value for key4")
+	assert.Equal(t, value4, *retrievedValue, "Retrieved value should match the set value")
+
+	retrievedValue, ok = cache.Get(key5)
+	require.True(t, ok, "Expected to retrieve value for key5")
+	assert.Equal(t, value5, *retrievedValue, "Retrieved value should match the set value")
+
+	// Test updating values for existing keys
+	updatedValue1 := "UpdatedMyValue"
+	cache.Set(key1, updatedValue1)
+	retrievedValue, ok = cache.Get(key1)
+	require.True(t, ok, "Expected to retrieve updated value for key1")
+	assert.Equal(t, updatedValue1, *retrievedValue, "Retrieved value should match the updated value")
+
+	// Test removing keys
+	cache.DropKey(key1)
+	retrievedValue, ok = cache.Get(key1)
+	assert.False(t, ok, "Expected key1 to be removed from cache")
+	assert.Nil(t, retrievedValue, "Retrieved value for removed key1 should be nil")
+
+	// Ensure other keys are still retrievable and correct after removing key1
+	retrievedValue, ok = cache.Get(key2)
+	require.True(t, ok, "Expected to retrieve value for key2")
+	assert.Equal(t, value2, *retrievedValue, "Retrieved value should match the set value")
+
+	retrievedValue, ok = cache.Get(key3)
+	require.True(t, ok, "Expected to retrieve value for key3")
+	assert.Equal(t, value3, *retrievedValue, "Retrieved value should match the set value")
+
+	retrievedValue, ok = cache.Get(key4)
+	require.True(t, ok, "Expected to retrieve value for key4")
+	assert.Equal(t, value4, *retrievedValue, "Retrieved value should match the set value")
+
+	retrievedValue, ok = cache.Get(key5)
+	require.True(t, ok, "Expected to retrieve value for key5")
+	assert.Equal(t, value5, *retrievedValue, "Retrieved value should match the set value")
+
+	// Test SetQuietly
+	cache.SetQuietly(key1, updatedValue1)
+	retrievedValue, ok = cache.Get(key1)
+	require.True(t, ok, "Expected to retrieve value for key1 after SetQuietly")
+	assert.Equal(t, updatedValue1, *retrievedValue, "Retrieved value should match the set value")
+
+	// Test Drop (clearing the entire cache)
+	cache.Drop()
+	retrievedValue, ok = cache.Get(key1)
+	assert.False(t, ok, "Expected key1 to be removed from cache after Drop")
+	assert.Nil(t, retrievedValue, "Retrieved value for removed key1 should be nil after Drop")
+
+	retrievedValue, ok = cache.Get(key2)
+	assert.False(t, ok, "Expected key2 to be removed from cache after Drop")
+	assert.Nil(t, retrievedValue, "Retrieved value for removed key2 should be nil after Drop")
+
+	retrievedValue, ok = cache.Get(key3)
+	assert.False(t, ok, "Expected key3 to be removed from cache after Drop")
+	assert.Nil(t, retrievedValue, "Retrieved value for removed key3 should be nil after Drop")
+
+	retrievedValue, ok = cache.Get(key4)
+	assert.False(t, ok, "Expected key4 to be removed from cache after Drop")
+	assert.Nil(t, retrievedValue, "Retrieved value for removed key4 should be nil after Drop")
+
+	retrievedValue, ok = cache.Get(key5)
+	assert.False(t, ok, "Expected key5 to be removed from cache after Drop")
+	assert.Nil(t, retrievedValue, "Retrieved value for removed key5 should be nil after Drop")
 }
