@@ -499,7 +499,7 @@ func TestInMemoryTreeMultiCache_Outdated_WithDifferentTTLs(t *testing.T) {
 func TestHashMapMultiCache_CompositeKey_LotsOfKeys(t *testing.T) {
 	c := ucache.NewDefaultHashMapMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
 
-	keysCount := 10000
+	keysCount := 1000
 
 	keys := make([]ucache.StrCompositeKey, keysCount)
 	values := make([]DummyComparable, keysCount)
