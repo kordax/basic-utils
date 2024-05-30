@@ -224,3 +224,26 @@ func TestInMemoryHashMapCache(t *testing.T) {
 	assert.False(t, ok, "Expected key5 to be removed from cache after Drop")
 	assert.Nil(t, retrievedValue, "Retrieved value for removed key5 should be nil after Drop")
 }
+
+func TestHashMapCacheHighCollisionProbability(t *testing.T) {
+	c := ucache.NewFarmHashMapCache[CollisionTestKey, ucache.Int64Value](uopt.Null[time.Duration]())
+
+	// Define a set of keys that all produce the same hash code
+	keys := []CollisionTestKey{
+		{id: 1, hash: []int64{1, 2, 3}},
+		{id: 2, hash: []int64{1, 2, 3}},
+		{id: 3, hash: []int64{1, 2, 3}},
+	}
+
+	// Add values to the c for each key
+	for i, key := range keys {
+		c.Set(key, ucache.NewInt64Value(int64(i)))
+	}
+
+	// Ensure that all values can be retrieved despite the high collision probability
+	for i, key := range keys {
+		value, ok := c.Get(key)
+		require.True(t, ok, "Expected to retrieve value for key")
+		assert.EqualValues(t, ucache.NewInt64Value(int64(i)), *value, "Expected value for key %s", key.String())
+	}
+}
