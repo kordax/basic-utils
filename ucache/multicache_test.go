@@ -359,6 +359,15 @@ type CollisionTestKey struct {
 	hash []int64
 }
 
+func (k CollisionTestKey) Key() int64 {
+	var resultStr string
+	for _, num := range k.hash {
+		resultStr += strconv.FormatInt(num, 10)
+	}
+	result, _ := strconv.ParseInt(resultStr, 10, 64)
+	return result
+}
+
 // Implement the CompositeKey interface for TestKey
 func (k CollisionTestKey) Keys() []ucache.Unique {
 	result := make([]ucache.Unique, len(k.hash))
@@ -538,4 +547,26 @@ func TestInMemoryHashMapMultiCache_Set(t *testing.T) {
 
 	values := c.Get(key)
 	assert.Equal(t, []DummyComparable{val2}, values)
+}
+
+func TestHashMapMultiCacheHighCollisionProbability(t *testing.T) {
+	c := ucache.NewFarmHashMapMultiCache[CollisionTestKey, ucache.Int64Value](uopt.Null[time.Duration]())
+
+	// Define a set of keys that all produce the same hash code
+	keys := []CollisionTestKey{
+		{id: 1, hash: []int64{1, 2, 3}},
+		{id: 2, hash: []int64{1, 2, 3}},
+		{id: 3, hash: []int64{1, 2, 3}},
+	}
+
+	// Add values to the c for each key
+	for i, key := range keys {
+		c.Put(key, ucache.NewInt64Value(int64(i)))
+	}
+
+	// Ensure that all values can be retrieved despite the high collision probability
+	for i, key := range keys {
+		values := c.Get(key)
+		assert.Contains(t, values, ucache.NewInt64Value(int64(i))) // Check if the expected value is present in the retrieved values
+	}
 }

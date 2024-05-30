@@ -51,14 +51,20 @@ type Cache[K Unique, T any] interface {
 	SetQuietly(key K, value T)
 }
 
+type hashValueContainer[K Unique, T any] struct {
+	key   K
+	value T
+}
+
 // InMemoryHashMapCache provides an in-memory caching mechanism using hashmaps for single-value entries.
 // Unlike InMemoryHashMapMultiCache, it stores only one value per key.
+// This implementation supports linked-chain collision resolution, so at the worst it should be O(n) complexity.
 // This structure translates composite keys into a hash value using a user-provided hashing function.
 // Supports optional TTL for entries and ensures concurrency-safe operations using a mutex.
 // TTL parameter in cache doesn't automatically clean up all the entries.
 // Use ManagedCache wrapper to automatically manage outdated keys.
 type InMemoryHashMapCache[K Unique, T any, H comparable] struct {
-	values  map[H]T
+	values  map[H][]hashValueContainer[K, T]
 	changes []K
 
 	lastUpdatedKeys map[int64]keyContainer[K]
@@ -74,7 +80,7 @@ type InMemoryHashMapCache[K Unique, T any, H comparable] struct {
 // and an optional time-to-live duration for the cache entries.
 func NewInMemoryHashMapCache[K Unique, T any, H comparable](toHash func(key int64) H, ttl uopt.Opt[time.Duration]) Cache[K, T] {
 	c := &InMemoryHashMapCache[K, T, H]{
-		values:          make(map[H]T),
+		values:          make(map[H][]hashValueContainer[K, T]),
 		changes:         make([]K, 0),
 		lastUpdatedKeys: make(map[int64]keyContainer[K]),
 		toHash:          toHash,
@@ -134,11 +140,22 @@ func (c *InMemoryHashMapCache[K, T, H]) Get(key K) (*T, bool) {
 	defer c.vMtx.Unlock()
 	c.changes = nil
 
-	value, ok := c.values[c.toHash(key.Key())]
+	values, ok := c.values[c.toHash(key.Key())]
 	if !ok {
 		return nil, false
 	}
-	return &value, ok
+
+	if len(values) > 0 {
+		for _, v := range values {
+			if v.key.Equals(key) {
+				return &v.value, true
+			}
+		}
+
+		return nil, false
+	}
+
+	return &values[0].value, ok
 }
 
 // Changes returns a slice of keys that have been modified in the cache.
@@ -191,7 +208,7 @@ func (c *InMemoryHashMapCache[K, T, H]) Outdated(key uopt.Opt[K]) bool {
 }
 
 func (c *InMemoryHashMapCache[K, T, H]) dropAll() {
-	c.values = make(map[H]T)
+	c.values = make(map[H][]hashValueContainer[K, T])
 	c.changes = nil
 }
 
@@ -215,7 +232,35 @@ func (c *InMemoryHashMapCache[K, T, H]) put(key K, value T) {
 }
 
 func (c *InMemoryHashMapCache[K, T, H]) addTran(key K, value T) {
-	c.values[c.toHash(key.Key())] = value
+	keyHash := c.toHash(key.Key())
+	values := c.values[keyHash]
+	if len(values) == 0 {
+		values = make([]hashValueContainer[K, T], 0)
+		values = append(values, hashValueContainer[K, T]{
+			key:   key,
+			value: value,
+		})
+		c.values[keyHash] = values
+	} else {
+		ind := -1
+		for i, v := range values {
+			if v.key.Equals(key) {
+				ind = i
+			}
+		}
+		if ind != -1 {
+			values[ind] = hashValueContainer[K, T]{
+				key:   key,
+				value: value,
+			}
+		} else {
+			values = append(values, hashValueContainer[K, T]{
+				key:   key,
+				value: value,
+			})
+			c.values[keyHash] = values
+		}
+	}
 }
 
 func (c *InMemoryHashMapCache[K, T, H]) dropKey(key int64) {
