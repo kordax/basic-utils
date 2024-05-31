@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kordax/basic-utils/umap"
 	"github.com/kordax/basic-utils/uopt"
 )
 
@@ -23,11 +24,13 @@ type Cache[K Unique, T any] interface {
 
 	// Get retrieves the value associated with the provided key from the cache.
 	// It returns the value and a boolean indicating whether the key was found.
-	// This method should be thread-safe.
+	// This method should be thread-safe. Get operation drops down change state of the item, meaning that item becomes
+	// actual after Get operation.
 	Get(key K) (*T, bool)
 
 	// Changes returns a slice of keys that have been modified in the cache.
 	// This method provides a way to track changes made to the cache, useful for scenarios like cache syncing.
+	// Cache changes will be updated only on modifying operations, meaning that in-fact, changes contain all the present keys.
 	Changes() []K
 
 	// Drop completely clears the cache, removing all entries. This method should be thread-safe.
@@ -63,7 +66,7 @@ type hashValueContainer[K Unique, T any] struct {
 // Use ManagedCache wrapper to automatically manage outdated keys.
 type InMemoryHashMapCache[K Unique, T any] struct {
 	values  map[int64][]hashValueContainer[K, T]
-	changes []K
+	changes map[int64]K
 
 	lastUpdatedKeys map[int64]keyContainer[K]
 	lastUpdated     time.Time
@@ -78,7 +81,7 @@ type InMemoryHashMapCache[K Unique, T any] struct {
 func NewInMemoryHashMapCache[K Unique, T any](ttl uopt.Opt[time.Duration]) Cache[K, T] {
 	c := &InMemoryHashMapCache[K, T]{
 		values:          make(map[int64][]hashValueContainer[K, T]),
-		changes:         make([]K, 0),
+		changes:         make(map[int64]K),
 		lastUpdatedKeys: make(map[int64]keyContainer[K]),
 	}
 	ttl.IfPresent(func(t time.Duration) {
@@ -122,7 +125,6 @@ func (c *InMemoryHashMapCache[K, T]) SetQuietly(key K, value T) {
 func (c *InMemoryHashMapCache[K, T]) Get(key K) (*T, bool) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
-	c.changes = nil
 
 	values, ok := c.values[key.Key()]
 	if !ok {
@@ -147,7 +149,7 @@ func (c *InMemoryHashMapCache[K, T]) Get(key K) (*T, bool) {
 func (c *InMemoryHashMapCache[K, T]) Changes() []K {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
-	return c.changes
+	return umap.Values(c.changes)
 }
 
 // Drop completely clears the cache, removing all entries. The operation is thread-safe.
@@ -155,6 +157,7 @@ func (c *InMemoryHashMapCache[K, T]) Drop() {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.dropAll()
+	c.changes = nil
 	c.lastUpdatedKeys = make(map[int64]keyContainer[K])
 }
 
@@ -162,8 +165,10 @@ func (c *InMemoryHashMapCache[K, T]) Drop() {
 func (c *InMemoryHashMapCache[K, T]) DropKey(key K) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
+	hash := key.Key()
 	c.dropKey(key.Key())
 	n := time.Now()
+	delete(c.changes, hash)
 	c.lastUpdatedKeys[key.Key()] = keyContainer[K]{
 		key:       key,
 		updatedAt: n,
@@ -195,11 +200,10 @@ func (c *InMemoryHashMapCache[K, T]) Outdated(key uopt.Opt[K]) bool {
 
 func (c *InMemoryHashMapCache[K, T]) dropAll() {
 	c.values = make(map[int64][]hashValueContainer[K, T])
-	c.changes = nil
 }
 
 func (c *InMemoryHashMapCache[K, T]) put(key K, value T) {
-	c.addTran(key, value)
+	hash := c.addTran(key, value)
 	changes := len(c.changes) == 0
 	found := false
 	for _, diff := range c.changes {
@@ -213,11 +217,11 @@ func (c *InMemoryHashMapCache[K, T]) put(key K, value T) {
 		}
 	}
 	if changes || !found {
-		c.changes = append(c.changes, key)
+		c.changes[hash] = key
 	}
 }
 
-func (c *InMemoryHashMapCache[K, T]) addTran(key K, value T) {
+func (c *InMemoryHashMapCache[K, T]) addTran(key K, value T) int64 {
 	keyHash := key.Key()
 	values := c.values[keyHash]
 	if len(values) == 0 {
@@ -247,6 +251,8 @@ func (c *InMemoryHashMapCache[K, T]) addTran(key K, value T) {
 			c.values[keyHash] = values
 		}
 	}
+
+	return keyHash
 }
 
 func (c *InMemoryHashMapCache[K, T]) dropKey(key int64) {

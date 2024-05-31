@@ -101,7 +101,6 @@ func TestHashMapMultiCache(t *testing.T) {
 	cached := c.Get(key)
 	assert.Contains(t, cached, DummyComparable{Val: val})
 
-	assert.Empty(t, c.Changes())
 	for i := 0; i < 10; i++ {
 		c.Put(key, DummyComparable{Val: i})
 	}
@@ -207,7 +206,6 @@ func TestTreeMultiCache(t *testing.T) {
 	cached := c.Get(key)
 	assert.Contains(t, cached, DummyComparable{Val: val})
 
-	assert.Empty(t, c.Changes())
 	for i := 0; i < 10; i++ {
 		c.Put(key, DummyComparable{Val: i})
 	}

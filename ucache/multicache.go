@@ -11,6 +11,7 @@ import (
 
 	"github.com/dgryski/go-farm"
 	"github.com/kordax/basic-utils/uarray"
+	"github.com/kordax/basic-utils/umap"
 	"github.com/kordax/basic-utils/uopt"
 )
 
@@ -48,6 +49,7 @@ type MultiCache[K CompositeKey, T any] interface {
 
 	// Changes returns a slice of keys that have been modified in the cache.
 	// This method provides a way to track changes made to the cache, useful for scenarios like cache syncing.
+	// Cache changes will be updated only on modifying operations, meaning that in-fact, changes contain all the present keys.
 	Changes() []K
 
 	// Drop removes all entries from the cache.
@@ -154,7 +156,7 @@ func (c *InMemoryTreeMultiCache[K, T]) PutQuietly(key K, val ...T) {
 func (c *InMemoryTreeMultiCache[K, T]) Get(key K) []T {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
-	c.changes = nil
+
 	bucket := c.tryToGetBucket(key.Keys())
 	result := make([]T, 0)
 	for _, pairs := range bucket {
@@ -190,6 +192,12 @@ func (c *InMemoryTreeMultiCache[K, T]) DropKey(key K) {
 	c.dropKeyRecursively(key.Keys(), 0, c.values)
 	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
 	c.lastUpdated = time.Now()
+	ind, _ := uarray.ContainsPredicate(c.changes, func(v *K) bool {
+		return (*v).Equals(key)
+	})
+	if ind > -1 {
+		c.changes = uarray.CopyWithoutIndex(c.changes, ind)
+	}
 }
 
 // Outdated checks if a given key or the entire cache is outdated based on the TTL.
@@ -389,7 +397,7 @@ func (c *InMemoryTreeMultiCache[K, T]) getNodePairsFlat(node map[int64]any, resu
 // Use ManagedMultiCache wrapper to automatically manage outdated keys.
 type InMemoryHashMapMultiCache[K CompositeKey, T any, H comparable] struct {
 	values  map[H][]T
-	changes []K
+	changes map[H]K
 
 	lastUpdatedKeys map[string]keyContainer[K]
 	lastUpdated     time.Time
@@ -405,7 +413,7 @@ type InMemoryHashMapMultiCache[K CompositeKey, T any, H comparable] struct {
 func NewInMemoryHashMapMultiCache[K CompositeKey, T any, H comparable](toHash func(keys []Unique) H, ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
 	c := &InMemoryHashMapMultiCache[K, T, H]{
 		values:          make(map[H][]T),
-		changes:         make([]K, 0),
+		changes:         make(map[H]K, 0),
 		lastUpdatedKeys: make(map[string]keyContainer[K]),
 		toHash:          toHash,
 	}
@@ -499,14 +507,13 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) PutQuietly(key K, values ...T) {
 func (c *InMemoryHashMapMultiCache[K, T, H]) Get(key K) []T {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
-	c.changes = nil
 
 	return c.values[c.toHash(key.Keys())]
 }
 
 // Changes returns a list of keys that have experienced changes in the cache since the last reset.
 func (c *InMemoryHashMapMultiCache[K, T, H]) Changes() []K {
-	return c.changes
+	return umap.Values(c.changes)
 }
 
 // Drop completely clears the cache, removing all entries. The operation is thread-safe.
@@ -521,13 +528,14 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) Drop() {
 func (c *InMemoryHashMapMultiCache[K, T, H]) DropKey(key K) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
-	c.dropKey(key.Keys())
+	hash := c.dropKey(key.Keys())
 	n := time.Now()
 	c.lastUpdatedKeys[keysAsString(key.Keys())] = keyContainer[K]{
 		key:       key,
 		updatedAt: n,
 	}
 	c.lastUpdated = n
+	delete(c.changes, hash)
 }
 
 // Outdated checks if the provided key or the entire cache (if no key is provided)
@@ -558,7 +566,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) dropAll() {
 }
 
 func (c *InMemoryHashMapMultiCache[K, T, H]) put(key K, values ...T) {
-	c.addTran(key, values...)
+	hash := c.addTran(key, values...)
 	changes := len(c.changes) == 0
 	found := false
 	for _, diff := range c.changes {
@@ -572,17 +580,21 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) put(key K, values ...T) {
 		}
 	}
 	if changes || !found {
-		c.changes = append(c.changes, key)
+		c.changes[hash] = key
 	}
 }
 
-func (c *InMemoryHashMapMultiCache[K, T, H]) addTran(key K, values ...T) {
+func (c *InMemoryHashMapMultiCache[K, T, H]) addTran(key K, values ...T) H {
 	hash := c.toHash(key.Keys())
 	c.values[hash] = append(c.values[hash], values...)
+
+	return hash
 }
 
-func (c *InMemoryHashMapMultiCache[K, T, H]) dropKey(keys []Unique) {
+func (c *InMemoryHashMapMultiCache[K, T, H]) dropKey(keys []Unique) H {
+	hash := c.toHash(keys)
 	delete(c.values, c.toHash(keys))
+	return hash
 }
 
 func intToBytes(buffer *bytes.Buffer, num int64) []byte {
