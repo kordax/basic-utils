@@ -451,3 +451,42 @@ func TestFarmHash64EntityCollisions(t *testing.T) {
 		assert.Equal(t, value, *found)
 	}
 }
+
+func TestNewFarmHashCompositeKey(t *testing.T) {
+	key1 := *ucache.Hashed("key1")
+	key2 := *ucache.Hashed("key2")
+
+	compositeKey := ucache.NewFarmHashCompositeKey("key1", "key2")
+
+	require.Equal(t, 2, len(compositeKey.Keys()))
+
+	assert.Equal(t, key1.Key(), compositeKey.Keys()[0].Key())
+	assert.Equal(t, key2.Key(), compositeKey.Keys()[1].Key())
+}
+
+func TestFarmHash64CompositeKey_Equals(t *testing.T) {
+	key1 := *ucache.Hashed("key1")
+	key2 := *ucache.Hashed("key2")
+
+	compositeKey1 := ucache.NewFarmHashCompositeKey(key1, key2)
+	compositeKey2 := ucache.NewFarmHashCompositeKey(key1, key2)
+
+	key3 := *ucache.Hashed("key3")
+	compositeKey3 := ucache.NewFarmHashCompositeKey(key1, key3)
+
+	assert.True(t, compositeKey1.Equals(compositeKey2))
+	assert.False(t, compositeKey1.Equals(compositeKey3))
+}
+
+func TestFarmHash64CompositeKey_Keys(t *testing.T) {
+	key1 := *ucache.Hashed("key1")
+	key2 := *ucache.Hashed("key2")
+
+	compositeKey := ucache.NewFarmHashCompositeKey("key1", "key2")
+	keys := compositeKey.Keys()
+
+	assert.Equal(t, 2, len(keys))
+
+	assert.Equal(t, key1.Key(), keys[0].Key())
+	assert.Equal(t, key2.Key(), keys[1].Key())
+}
