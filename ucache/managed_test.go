@@ -87,9 +87,7 @@ func TestManagedMultiCache_Outdated(t *testing.T) {
 }
 
 func TestManagedCache_SetAndGet(t *testing.T) {
-	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string, uint64](func(key int64) uint64 {
-		return uint64(key)
-	}, uopt.Null[time.Duration]())
+	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Null[time.Duration]())
 	managedCache := ucache.NewManagedCache(cache, time.Second)
 	defer managedCache.Stop()
 
@@ -103,9 +101,7 @@ func TestManagedCache_SetAndGet(t *testing.T) {
 }
 
 func TestManagedCache_Drop(t *testing.T) {
-	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string, uint64](func(key int64) uint64 {
-		return uint64(key)
-	}, uopt.Null[time.Duration]())
+	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Null[time.Duration]())
 	managedCache := ucache.NewManagedCache(cache, time.Second)
 	defer managedCache.Stop()
 
@@ -120,9 +116,7 @@ func TestManagedCache_Drop(t *testing.T) {
 }
 
 func TestManagedCache_DropKey(t *testing.T) {
-	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string, uint64](func(key int64) uint64 {
-		return uint64(key)
-	}, uopt.Null[time.Duration]())
+	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Null[time.Duration]())
 	managedCache := ucache.NewManagedCache(cache, time.Second)
 	defer managedCache.Stop()
 
@@ -137,9 +131,7 @@ func TestManagedCache_DropKey(t *testing.T) {
 }
 
 func TestManagedCache_SetQuietly(t *testing.T) {
-	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string, uint64](func(key int64) uint64 {
-		return uint64(key)
-	}, uopt.Null[time.Duration]())
+	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Null[time.Duration]())
 	managedCache := ucache.NewManagedCache(cache, time.Second)
 	defer managedCache.Stop()
 
@@ -154,9 +146,7 @@ func TestManagedCache_SetQuietly(t *testing.T) {
 
 func TestManagedCache_Outdated(t *testing.T) {
 	ttl := 1 * time.Millisecond
-	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string, uint64](func(key int64) uint64 {
-		return uint64(key)
-	}, uopt.Of(ttl))
+	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Of(ttl))
 	managedCache := ucache.NewManagedCache(cache, time.Nanosecond)
 	defer managedCache.Stop()
 

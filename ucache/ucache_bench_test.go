@@ -17,7 +17,7 @@ import (
 )
 
 func BenchmarkInMemoryHashMapCachePut(b *testing.B) {
-	cache := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	cache := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 	keys := make([]ucache.StringKey, b.N)
 	for i := 0; i < b.N; i++ {
 		keys[i] = ucache.StringKey(fmt.Sprintf("key%d", i))
@@ -30,7 +30,7 @@ func BenchmarkInMemoryHashMapCachePut(b *testing.B) {
 }
 
 func BenchmarkInMemoryHashMapCachePutConcurrent(b *testing.B) {
-	cache := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	cache := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 	keys := make([]ucache.StringKey, b.N)
 	for i := 0; i < b.N; i++ {
 		keys[i] = ucache.StringKey(fmt.Sprintf("key%d", i))
@@ -47,7 +47,7 @@ func BenchmarkInMemoryHashMapCachePutConcurrent(b *testing.B) {
 
 func BenchmarkInMemoryHashMapCacheGet(b *testing.B) {
 	numItems := 10000
-	cache := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	cache := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 	keys := make([]ucache.StringKey, numItems)
 	for i := 0; i < numItems; i++ {
 		keys[i] = ucache.StringKey(fmt.Sprintf("key%d", i))
@@ -62,7 +62,7 @@ func BenchmarkInMemoryHashMapCacheGet(b *testing.B) {
 
 func BenchmarkInMemoryHashMapCacheGetConcurrent(b *testing.B) {
 	numItems := 10000
-	cache := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	cache := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 	keys := make([]ucache.StringKey, numItems)
 	for i := 0; i < numItems; i++ {
 		keys[i] = ucache.StringKey(fmt.Sprintf("key%d", i))
