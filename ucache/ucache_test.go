@@ -18,7 +18,7 @@ import (
 )
 
 func TestHashMapCache_CompositeKey(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 	key := ucache.StringKey("category")
 	key2 := ucache.StringKey("category2")
 	val := 10
@@ -36,7 +36,7 @@ func TestHashMapCache_CompositeKey(t *testing.T) {
 }
 
 func TestHashMapCache_PutQuietly(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 	key := ucache.StringKey("kp_1")
 	val := 10
 	val2 := 15
@@ -62,7 +62,7 @@ func TestHashMapCache_PutQuietly(t *testing.T) {
 
 func TestHashMapCache_TTLExpiry(t *testing.T) {
 	ttl := 100 * time.Millisecond
-	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Of(ttl))
+	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Of(ttl))
 	key := ucache.StringKey("ttlKey")
 	val := 42
 
@@ -73,7 +73,7 @@ func TestHashMapCache_TTLExpiry(t *testing.T) {
 }
 
 func TestHashMapCache_Concurrency(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 	key := ucache.StringKey("concurrencyKey")
 	val := 42
 
@@ -91,7 +91,7 @@ func TestHashMapCache_Concurrency(t *testing.T) {
 }
 
 func TestHashMapCache_EmptyCache(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 	key := ucache.StringKey("emptyKey")
 
 	_, ok := c.Get(key)
@@ -103,7 +103,7 @@ func TestHashMapCache_EmptyCache(t *testing.T) {
 }
 
 func TestHashMapCache_DropAll(t *testing.T) {
-	c := ucache.NewDefaultHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 	key := ucache.StringKey("key1")
 	key2 := ucache.StringKey("key2")
 	c.Set(key, 1)
@@ -118,9 +118,7 @@ func TestHashMapCache_DropAll(t *testing.T) {
 }
 
 func TestInMemoryHashMapCache(t *testing.T) {
-	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string, uint64](func(key int64) uint64 {
-		return uint64(key)
-	}, uopt.Null[time.Duration]())
+	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Null[time.Duration]())
 
 	// Define multiple keys and values
 	key1 := ucache.IntKey(1)
@@ -226,7 +224,7 @@ func TestInMemoryHashMapCache(t *testing.T) {
 }
 
 func TestHashMapCacheHighCollisionProbability(t *testing.T) {
-	c := ucache.NewFarmHashMapCache[CollisionTestKey, ucache.Int64Value](uopt.Null[time.Duration]())
+	c := ucache.NewInMemoryHashMapCache[CollisionTestKey, ucache.Int64Value](uopt.Null[time.Duration]())
 
 	// Define a set of keys that all produce the same hash code
 	keys := []CollisionTestKey{

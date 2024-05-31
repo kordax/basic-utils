@@ -1,6 +1,8 @@
 package ucache_test
 
 import (
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -8,6 +10,7 @@ import (
 	"github.com/kordax/basic-utils/ucache"
 	"github.com/kordax/basic-utils/uopt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStringKey_Key(t *testing.T) {
@@ -318,4 +321,133 @@ func TestKeysWithCache(t *testing.T) {
 	cache.Put(stringKey, ucache.NewStringValue("value for string"))
 	retrievedString := cache.Get(stringKey)
 	assert.Equal(t, []ucache.StringValue{ucache.NewStringValue("value for string")}, retrievedString, "StringKey retrieval failed")
+}
+
+func TestFarmHash64Entity(t *testing.T) {
+	cache := ucache.NewInMemoryHashMapCache[*ucache.FarmHash64Entity, ucache.StringValue](uopt.NullDuration())
+
+	type nested struct {
+		ExportedNestedStringField string
+		ExportedNestedIntField    int
+	}
+
+	type custom struct {
+		ExportedStringField string
+		exportedIntField    int
+		ExportedFloatField  float64
+		ExportedBoolField   bool
+		ExportedPointer     *int
+		ExportedMapField    map[string]int
+		ExportedSliceField  []string
+		ExportedNested      nested
+		ExportedNestedPtr   *nested
+		ExportedInterface   interface{}
+		unexportedField     string // This field will not be serialized
+	}
+
+	val1 := 42
+	nestedVal := nested{
+		ExportedNestedStringField: "nested",
+		ExportedNestedIntField:    100,
+	}
+
+	key1 := custom{
+		ExportedStringField: "value1",
+		exportedIntField:    1,
+		ExportedFloatField:  1.1,
+		ExportedBoolField:   true,
+		ExportedPointer:     &val1,
+		ExportedMapField:    map[string]int{"one": 1, "two": 2},
+		ExportedSliceField:  []string{"slice1", "slice2"},
+		ExportedNested:      nestedVal,
+		ExportedNestedPtr:   &nestedVal,
+		ExportedInterface:   "interface1",
+		unexportedField:     "unexported",
+	}
+	value1 := ucache.NewStringValue("data1")
+
+	key2 := custom{
+		ExportedStringField: "value2",
+		exportedIntField:    2,
+		ExportedFloatField:  2.2,
+		ExportedBoolField:   false,
+		ExportedPointer:     &val1,
+		ExportedMapField:    map[string]int{"three": 3, "four": 4},
+		ExportedSliceField:  []string{"slice3", "slice4"},
+		ExportedNested:      nestedVal,
+		ExportedNestedPtr:   &nestedVal,
+		ExportedInterface:   "interface2",
+		unexportedField:     "unexported",
+	}
+	value2 := ucache.NewStringValue("data2")
+
+	wrappedKey1 := ucache.Hashed(key1)
+	wrappedKey2 := ucache.Hashed(key2)
+
+	cache.Set(wrappedKey1, value1)
+	cache.Set(wrappedKey2, value2)
+
+	found1, ok1 := cache.Get(wrappedKey1)
+	found2, ok2 := cache.Get(wrappedKey2)
+
+	require.True(t, ok1)
+	assert.Equal(t, value1, *found1)
+
+	require.True(t, ok2)
+	assert.Equal(t, value2, *found2)
+}
+
+func TestFarmHash64EntityCollisions(t *testing.T) {
+	cache := ucache.NewInMemoryHashMapCache[*ucache.FarmHash64Entity, ucache.StringValue](uopt.NullDuration())
+
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	type nested struct {
+		ExportedNestedStringField string
+		ExportedNestedIntField    int
+	}
+
+	type custom struct {
+		ExportedStringField string
+		ExportedIntField    int
+		ExportedFloatField  float64
+		ExportedBoolField   bool
+		ExportedPointer     *int
+		ExportedMapField    map[string]int
+		ExportedSliceField  []string
+		ExportedNested      nested
+		ExportedNestedPtr   *nested
+		ExportedInterface   interface{}
+		unexportedField     string
+	}
+
+	val1 := 42
+	nestedVal := nested{
+		ExportedNestedStringField: "nested",
+		ExportedNestedIntField:    100,
+	}
+
+	for i := 0; i < 100000; i++ {
+		key := custom{
+			ExportedStringField: fmt.Sprintf("value%d", i),
+			ExportedIntField:    i,
+			ExportedFloatField:  rand.Float64(),
+			ExportedBoolField:   i%2 == 0,
+			ExportedPointer:     &val1,
+			ExportedMapField:    map[string]int{fmt.Sprintf("key%d", i): i},
+			ExportedSliceField:  []string{fmt.Sprintf("slice%d", i)},
+			ExportedNested:      nestedVal,
+			ExportedNestedPtr:   &nestedVal,
+			ExportedInterface:   fmt.Sprintf("interface%d", i),
+			unexportedField:     fmt.Sprintf("unexported%d", i),
+		}
+		value := ucache.NewStringValue(fmt.Sprintf("data%d", i))
+
+		wrappedKey := ucache.Hashed(key)
+		cache.Set(wrappedKey, value)
+
+		found, ok := cache.Get(wrappedKey)
+		require.True(t, ok)
+		assert.Equal(t, value, *found)
+	}
 }
