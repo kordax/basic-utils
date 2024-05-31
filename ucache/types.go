@@ -487,6 +487,49 @@ func (e *FarmHash64Entity) Key() int64 {
 	return e.calculateHash()
 }
 
+type FarmHash64CompositeKey struct {
+	keys []ComparableKey[FarmHash64Entity]
+}
+
+// NewFarmHashCompositeKey creates a GenericCompositeKey that supports only 'comparable' keys
+func NewFarmHashCompositeKey(keys ...any) FarmHash64CompositeKey {
+	var conv []ComparableKey[any]
+	for _, key := range keys {
+		if !isComparable(key) {
+			panic(fmt.Errorf("unsupported key type passed to NewGenericCompositeKey: %s", reflect.TypeOf(key).Kind().String()))
+		}
+		conv = append(conv, NewComparableKey(key))
+	}
+	return FarmHash64CompositeKey{keys: any(conv).([]ComparableKey[FarmHash64Entity])}
+}
+
+func (k FarmHash64CompositeKey) Equals(other Comparable) bool {
+	switch o := other.(type) {
+	case FarmHash64CompositeKey:
+		return uarray.EqualsWithOrder(k.keys, o.keys)
+	default:
+		return false
+	}
+}
+
+func (k FarmHash64CompositeKey) Keys() []Unique {
+	result := make([]Unique, len(k.keys))
+	for i, key := range k.keys {
+		result[i] = IntKey(key.Key())
+	}
+
+	return result
+}
+
+func (k FarmHash64CompositeKey) String() string {
+	builder := strings.Builder{}
+	for _, key := range k.keys {
+		builder.WriteString(convertToString(key))
+	}
+
+	return builder.String()
+}
+
 func convertToString[T comparable](input T) string {
 	switch value := any(input).(type) {
 	case string:

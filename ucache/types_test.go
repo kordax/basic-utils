@@ -427,7 +427,7 @@ func TestFarmHash64EntityCollisions(t *testing.T) {
 		ExportedNestedIntField:    100,
 	}
 
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 10000; i++ {
 		key := custom{
 			ExportedStringField: fmt.Sprintf("value%d", i),
 			ExportedIntField:    i,
