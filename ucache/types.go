@@ -300,7 +300,7 @@ func NewGenericCompositeKey(keys ...any) GenericCompositeKey {
 	var conv []ComparableKey[any]
 	for _, key := range keys {
 		if !isComparable(key) {
-			panic(fmt.Errorf("unsupported key type passed to NewGenericCompositeKey: %s", reflect.TypeOf(key).Kind().String()))
+			panic(fmt.Errorf("unsupported key type passed to NewGenericCompositeKey: %s", reflect.TypeOf(key).Name()))
 		}
 		conv = append(conv, NewComparableKey(key))
 	}
@@ -488,25 +488,28 @@ func (e *FarmHash64Entity) Key() int64 {
 }
 
 type FarmHash64CompositeKey struct {
-	keys []ComparableKey[FarmHash64Entity]
+	keys []*FarmHash64Entity
 }
 
-// NewFarmHashCompositeKey creates a GenericCompositeKey that supports only 'comparable' keys
+// NewFarmHashCompositeKey creates a GenericCompositeKey with Farm64 support.
 func NewFarmHashCompositeKey(keys ...any) FarmHash64CompositeKey {
-	var conv []ComparableKey[any]
+	var conv []*FarmHash64Entity
 	for _, key := range keys {
-		if !isComparable(key) {
-			panic(fmt.Errorf("unsupported key type passed to NewGenericCompositeKey: %s", reflect.TypeOf(key).Kind().String()))
-		}
-		conv = append(conv, NewComparableKey(key))
+		conv = append(conv, Hashed(key))
 	}
-	return FarmHash64CompositeKey{keys: any(conv).([]ComparableKey[FarmHash64Entity])}
+	return FarmHash64CompositeKey{keys: conv}
 }
 
 func (k FarmHash64CompositeKey) Equals(other Comparable) bool {
 	switch o := other.(type) {
 	case FarmHash64CompositeKey:
-		return uarray.EqualsWithOrder(k.keys, o.keys)
+		derefThis := uarray.Map(k.keys, func(v **FarmHash64Entity) FarmHash64Entity {
+			return **v
+		})
+		derefOther := uarray.Map(o.keys, func(v **FarmHash64Entity) FarmHash64Entity {
+			return **v
+		})
+		return uarray.EqualsWithOrder(derefThis, derefOther)
 	default:
 		return false
 	}
@@ -515,19 +518,10 @@ func (k FarmHash64CompositeKey) Equals(other Comparable) bool {
 func (k FarmHash64CompositeKey) Keys() []Unique {
 	result := make([]Unique, len(k.keys))
 	for i, key := range k.keys {
-		result[i] = IntKey(key.Key())
+		result[i] = key
 	}
 
 	return result
-}
-
-func (k FarmHash64CompositeKey) String() string {
-	builder := strings.Builder{}
-	for _, key := range k.keys {
-		builder.WriteString(convertToString(key))
-	}
-
-	return builder.String()
 }
 
 func convertToString[T comparable](input T) string {
@@ -570,9 +564,12 @@ func convertToString[T comparable](input T) string {
 }
 
 func isComparable(value interface{}) bool {
+	if value == nil {
+		return false
+	}
+
 	t := reflect.TypeOf(value)
 
-	// Handling pointers by getting the underlying element type
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}

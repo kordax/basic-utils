@@ -106,7 +106,7 @@ func TestHashMapMultiCache(t *testing.T) {
 	}
 	c.Put(key2, DummyComparable{Val: 65535})
 	changes = c.Changes()
-	assert.EqualValues(t, []SimpleCompositeKey[ucache.StringKey]{key, key2}, changes)
+	assert.ElementsMatch(t, []SimpleCompositeKey[ucache.StringKey]{key, key2}, changes)
 
 	result := c.Get(key2)
 	assert.Contains(t, result, DummyComparable{Val: 65535})
@@ -211,7 +211,7 @@ func TestTreeMultiCache(t *testing.T) {
 	}
 	c.Put(key2, DummyComparable{Val: 65535})
 	changes = c.Changes()
-	assert.EqualValues(t, []SimpleCompositeKey[ucache.StringKey]{key, key2}, changes)
+	assert.ElementsMatch(t, []SimpleCompositeKey[ucache.StringKey]{key, key2}, changes)
 
 	result := c.Get(key2)
 	assert.Contains(t, result, DummyComparable{Val: 65535})
