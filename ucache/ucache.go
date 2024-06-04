@@ -167,13 +167,8 @@ func (c *InMemoryHashMapCache[K, T]) DropKey(key K) {
 	defer c.vMtx.Unlock()
 	hash := key.Key()
 	c.dropKey(key.Key())
-	n := time.Now()
 	delete(c.changes, hash)
-	c.lastUpdatedKeys[key.Key()] = keyContainer[K]{
-		key:       key,
-		updatedAt: n,
-	}
-	c.lastUpdated = n
+	delete(c.lastUpdatedKeys, key.Key())
 }
 
 // Outdated checks if the provided key or the entire cache (if no key is provided)
