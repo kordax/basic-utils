@@ -7,12 +7,15 @@
 package ucache_test
 
 import (
+	"runtime"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/kordax/basic-utils/ucache"
 	"github.com/kordax/basic-utils/uopt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestManagedMultiCache_SetAndGet(t *testing.T) {
@@ -157,4 +160,30 @@ func TestManagedCache_Outdated(t *testing.T) {
 	time.Sleep(10 * ttl)
 	_, ok := managedCache.Get(key)
 	assert.False(t, ok)
+}
+
+func TestManagedCache_MemoryLeaks(t *testing.T) {
+	ttl := time.Nanosecond
+	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Of(ttl))
+	managedCache := ucache.NewManagedCache(cache, time.Nanosecond)
+	defer managedCache.Stop()
+
+	iterations := 100000
+
+	before := new(runtime.MemStats)
+	runtime.ReadMemStats(before)
+	for i := range iterations {
+		managedCache.Set(ucache.IntKey(i), "TestValue"+strconv.Itoa(i))
+	}
+
+	for i := range iterations {
+		_, ok := managedCache.Get(ucache.IntKey(i))
+		require.False(t, ok)
+	}
+
+	runtime.GC()
+	after := new(runtime.MemStats)
+	runtime.ReadMemStats(after)
+
+	assert.LessOrEqual(t, after.HeapAlloc, before.HeapAlloc*3)
 }

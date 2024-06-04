@@ -190,8 +190,7 @@ func (c *InMemoryTreeMultiCache[K, T]) DropKey(key K) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.dropKeyRecursively(key.Keys(), 0, c.values)
-	c.lastUpdatedKeys[keysAsString(key.Keys())] = time.Now()
-	c.lastUpdated = time.Now()
+	delete(c.lastUpdatedKeys, keysAsString(key.Keys()))
 	ind, _ := uarray.ContainsPredicate(c.changes, func(v *K) bool {
 		return (*v).Equals(key)
 	})
@@ -529,12 +528,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) DropKey(key K) {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	hash := c.dropKey(key.Keys())
-	n := time.Now()
-	c.lastUpdatedKeys[keysAsString(key.Keys())] = keyContainer[K]{
-		key:       key,
-		updatedAt: n,
-	}
-	c.lastUpdated = n
+	delete(c.lastUpdatedKeys, keysAsString(key.Keys()))
 	delete(c.changes, hash)
 }
 
