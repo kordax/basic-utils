@@ -182,6 +182,44 @@ func TestContainsAny(t *testing.T) {
 	}
 }
 
+func TestAllMatch(t *testing.T) {
+	slice := []string{"apple", "banana", "orange", "grape", "watermelon"}
+
+	// Test case for matching predicate
+	predicate := func(v *string) bool {
+		return len(*v) > 3
+	}
+	match := uarray.AllMatch(slice, predicate)
+	if !match {
+		t.Errorf("Expected AllMatch to return true, but got false")
+	}
+
+	// Test case for non-matching predicate
+	predicate = func(v *string) bool {
+		return len(*v) > 5
+	}
+	match = uarray.AllMatch(slice, predicate)
+	if match {
+		t.Errorf("Expected AllMatch to return false, but got true")
+	}
+
+	// Additional test case for empty slice
+	emptySlice := []string{}
+	match = uarray.AllMatch(emptySlice, predicate)
+	if !match {
+		t.Errorf("Expected AllMatch to return true for empty slice, but got false")
+	}
+
+	// Test case with different predicate
+	predicate = func(v *string) bool {
+		return *v != "banana"
+	}
+	match = uarray.AllMatch(slice, predicate)
+	if match {
+		t.Errorf("Expected AllMatch to return false, but got true")
+	}
+}
+
 func TestAnyMatch(t *testing.T) {
 	slice := []string{"apple", "banana", "orange"}
 
