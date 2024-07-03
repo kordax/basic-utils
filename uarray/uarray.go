@@ -87,8 +87,17 @@ func ContainsAny[V comparable](from []V, values ...V) int {
 	return -1
 }
 
+// AllMatch checks if all slice elements match the predicate.
+// Returns true if all elements match the predicate, false otherwise.
+func AllMatch[T any](values []T, predicate func(v *T) bool) bool {
+	ind, _ := ContainsPredicate(values, func(v *T) bool {
+		return !predicate(v)
+	})
+	return ind == -1
+}
+
 // AnyMatch checks if slice has an element that matches predicate.
-// Returns true if there's a match, -1 otherwise.
+// Returns true if there's a match, false otherwise.
 func AnyMatch[T any](values []T, predicate func(v *T) bool) bool {
 	ind, _ := ContainsPredicate(values, predicate)
 	return ind != -1
