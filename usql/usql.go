@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// NullString constructs an sql.NullString from a regular string.
+// NullString constructs a sql.NullString from a regular string.
 // It sets the Valid field to true if the provided string is not empty.
 func NullString(v string) sql.NullString {
 	return sql.NullString{
