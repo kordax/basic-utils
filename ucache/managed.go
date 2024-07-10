@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/uopt"
 )
 
@@ -11,13 +12,13 @@ import (
 // periodic cleanup of outdated cache entries. It uses a background goroutine to perform
 // cleanup tasks based on the provided TTL (time-to-live) value.
 // The Stop method must be called to clean up resources if you want to stop managing the cache.
-type ManagedCache[K Unique, T any] struct {
+type ManagedCache[K uconst.Unique, T any] struct {
 	cache    Cache[K, T]
 	stopChan chan struct{}
 	wg       sync.WaitGroup
 }
 
-func NewManagedCache[K Unique, T any](cache Cache[K, T], tick time.Duration) *ManagedCache[K, T] {
+func NewManagedCache[K uconst.Unique, T any](cache Cache[K, T], tick time.Duration) *ManagedCache[K, T] {
 	b := &ManagedCache[K, T]{
 		cache:    cache,
 		stopChan: make(chan struct{}),
@@ -89,13 +90,13 @@ func (b *ManagedCache[K, T]) SetQuietly(key K, value T) {
 // periodic cleanup of outdated cache entries. It uses a background goroutine to perform
 // cleanup tasks based on the provided TTL (time-to-live) value.
 // The Stop method must be called to clean up resources if you want to stop managing the cache.
-type ManagedMultiCache[K CompositeKey, T Comparable] struct {
+type ManagedMultiCache[K CompositeKey, T uconst.Comparable] struct {
 	cache    MultiCache[K, T]
 	stopChan chan struct{}
 	wg       sync.WaitGroup
 }
 
-func NewManagedMultiCache[K CompositeKey, T Comparable](cache MultiCache[K, T], tick time.Duration) *ManagedMultiCache[K, T] {
+func NewManagedMultiCache[K CompositeKey, T uconst.Comparable](cache MultiCache[K, T], tick time.Duration) *ManagedMultiCache[K, T] {
 	b := &ManagedMultiCache[K, T]{
 		cache:    cache,
 		stopChan: make(chan struct{}),

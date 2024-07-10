@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kordax/basic-utils/ucache"
+	"github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/uopt"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +22,7 @@ func (d DummyComparable) Hash() int {
 	return d.Val<<31 + d.Val
 }
 
-func (d DummyComparable) Equals(other ucache.Comparable) bool {
+func (d DummyComparable) Equals(other uconst.Comparable) bool {
 	switch o := other.(type) {
 	case DummyComparable:
 		return d.Val == o.Val
@@ -33,7 +34,7 @@ func (d DummyComparable) Equals(other ucache.Comparable) bool {
 //goland:noinspection GoUnusedExportedType
 type SimpleKey int64
 
-func (s SimpleKey) Equals(other ucache.Comparable) bool {
+func (s SimpleKey) Equals(other uconst.Comparable) bool {
 	return s == other
 }
 
@@ -45,11 +46,11 @@ func (s SimpleKey) String() string {
 	return strconv.Itoa(int(s))
 }
 
-type SimpleCompositeKey[T ucache.Unique] struct {
+type SimpleCompositeKey[T uconst.Unique] struct {
 	keys []T
 }
 
-func (s SimpleCompositeKey[T]) Equals(other ucache.Comparable) bool {
+func (s SimpleCompositeKey[T]) Equals(other uconst.Comparable) bool {
 	switch o := other.(type) {
 	case SimpleCompositeKey[T]:
 		for i, k := range s.keys {
@@ -67,8 +68,8 @@ func (s SimpleCompositeKey[T]) Equals(other ucache.Comparable) bool {
 	}
 }
 
-func (s SimpleCompositeKey[T]) Keys() []ucache.Unique {
-	result := make([]ucache.Unique, len(s.keys))
+func (s SimpleCompositeKey[T]) Keys() []uconst.Unique {
+	result := make([]uconst.Unique, len(s.keys))
 	for i, key := range s.keys {
 		result[i] = ucache.UIntKey(key.Key())
 	}
@@ -85,7 +86,7 @@ func (s SimpleCompositeKey[T]) String() string {
 	return strings.Join(rep, ", ")
 }
 
-func NewSimpleCompositeKey[T ucache.Unique](keys ...T) SimpleCompositeKey[T] {
+func NewSimpleCompositeKey[T uconst.Unique](keys ...T) SimpleCompositeKey[T] {
 	return SimpleCompositeKey[T]{keys: keys}
 }
 
@@ -367,8 +368,8 @@ func (k CollisionTestKey) Key() int64 {
 }
 
 // Implement the CompositeKey interface for TestKey
-func (k CollisionTestKey) Keys() []ucache.Unique {
-	result := make([]ucache.Unique, len(k.hash))
+func (k CollisionTestKey) Keys() []uconst.Unique {
+	result := make([]uconst.Unique, len(k.hash))
 	for i, h := range k.hash {
 		result[i] = ucache.IntKey(h)
 	}
@@ -379,7 +380,7 @@ func (k CollisionTestKey) String() string {
 	return strconv.Itoa(k.id)
 }
 
-func (k CollisionTestKey) Equals(other ucache.Comparable) bool {
+func (k CollisionTestKey) Equals(other uconst.Comparable) bool {
 	ok, _ := other.(CollisionTestKey)
 	return k.id == ok.id
 }

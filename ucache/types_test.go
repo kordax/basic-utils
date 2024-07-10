@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kordax/basic-utils/ucache"
+	"github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/uopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -149,14 +150,14 @@ func TestUIntCompositeKey_Keys_String(t *testing.T) {
 
 func TestIntCompositeKey_Keys_String(t *testing.T) {
 	key := ucache.NewIntCompositeKey(1, 2, 3)
-	expectedUniqueKeys := []ucache.Unique{ucache.IntKey(1), ucache.IntKey(2), ucache.IntKey(3)}
+	expectedUniqueKeys := []uconst.Unique{ucache.IntKey(1), ucache.IntKey(2), ucache.IntKey(3)}
 	assert.EqualValues(t, expectedUniqueKeys, key.Keys())
 	assert.Equal(t, "1, 2, 3", key.String())
 }
 
 func TestStrCompositeKey_Keys_String(t *testing.T) {
 	key := ucache.NewStrCompositeKey("a", "b", "c")
-	expectedUniqueKeys := []ucache.Unique{ucache.IntKey(97), ucache.IntKey(98), ucache.IntKey(99)} // ASCII values of 'a', 'b', 'c'
+	expectedUniqueKeys := []uconst.Unique{ucache.IntKey(97), ucache.IntKey(98), ucache.IntKey(99)} // ASCII values of 'a', 'b', 'c'
 	assert.EqualValues(t, expectedUniqueKeys, key.Keys())
 	assert.Equal(t, "a, b, c", key.String())
 }

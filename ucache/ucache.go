@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/umap"
 	"github.com/kordax/basic-utils/uopt"
 )
@@ -17,7 +18,7 @@ import (
 // The Cache interface defines a set of methods for a generic cache implementation.
 // This interface supports setting, getting, and managing cache entries with composite keys.
 // Unlike MultiCache, it is designed to handle only one value per key and does not support hierarchical composite keys.
-type Cache[K Unique, T any] interface {
+type Cache[K uconst.Unique, T any] interface {
 	// Set updates the cache value for the provided key. If the key already exists,
 	// its previous value is removed before adding the new value. This method should be thread-safe.
 	Set(key K, value T)
@@ -52,7 +53,7 @@ type Cache[K Unique, T any] interface {
 	SetQuietly(key K, value T)
 }
 
-type hashValueContainer[K Unique, T any] struct {
+type hashValueContainer[K uconst.Unique, T any] struct {
 	key   K
 	value T
 }
@@ -64,7 +65,7 @@ type hashValueContainer[K Unique, T any] struct {
 // Supports optional TTL for entries and ensures concurrency-safe operations using a mutex.
 // TTL parameter in cache doesn't automatically clean up all the entries.
 // Use ManagedCache wrapper to automatically manage outdated keys.
-type InMemoryHashMapCache[K Unique, T any] struct {
+type InMemoryHashMapCache[K uconst.Unique, T any] struct {
 	values  map[int64][]hashValueContainer[K, T]
 	changes map[int64]K
 
@@ -78,7 +79,7 @@ type InMemoryHashMapCache[K Unique, T any] struct {
 // NewInMemoryHashMapCache creates a new instance of the InMemoryHashMapCache.
 // It takes a hashing function to translate the composite keys to a desired hash type,
 // and an optional time-to-live duration for the cache entries.
-func NewInMemoryHashMapCache[K Unique, T any](ttl uopt.Opt[time.Duration]) Cache[K, T] {
+func NewInMemoryHashMapCache[K uconst.Unique, T any](ttl uopt.Opt[time.Duration]) Cache[K, T] {
 	c := &InMemoryHashMapCache[K, T]{
 		values:          make(map[int64][]hashValueContainer[K, T]),
 		changes:         make(map[int64]K),
