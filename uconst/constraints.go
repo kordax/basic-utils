@@ -1,10 +1,10 @@
 /*
  * @kordax (Dmitry Morozov)
  * dmorozov@valoru-software.com
- * Copyright (c) 2023.
+ * Copyright (c) 2023-2024.
  */
 
-package basicutils
+package uconst
 
 type Numeric interface {
 	Integer | ~float32 | ~float64

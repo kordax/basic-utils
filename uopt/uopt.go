@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"time"
 
-	basicutils "github.com/kordax/basic-utils"
+	basicutils "github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/uref"
 )
 

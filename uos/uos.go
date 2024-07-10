@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	basicutils "github.com/kordax/basic-utils"
 	"github.com/kordax/basic-utils/uarray"
+	basicutils "github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/umath"
 )
 
