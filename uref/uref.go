@@ -6,8 +6,6 @@
 
 package uref
 
-import "reflect"
-
 func Ref[T any](t T) *T {
 	return &t
 }
@@ -30,21 +28,16 @@ func CompareF[T any](ptr1, ptr2 *T, compare func(t1, t2 *T) bool) bool {
 }
 
 // Or returns value of val or 'other', but supports any other type
-func Or[R any](val any, other R) R {
-	v := reflect.ValueOf(val)
-	if !v.IsValid() || v.IsZero() {
+func Or[R any, P *R](val P, other R) R {
+	if val == nil {
 		return other
 	}
 
-	if v.Type() != reflect.TypeOf(other) {
-		return other
-	}
-
-	return val.(R)
+	return *val
 }
 
 // Do safely executes function 'do' in case ptr is not nil or returns 'nil' otherwise.
-func Do[T any](ptr *T, do func(v T) *T) *T {
+func Do[R any, P *R](ptr P, do func(v R) *R) *R {
 	if ptr == nil {
 		return nil
 	} else {
@@ -52,25 +45,11 @@ func Do[T any](ptr *T, do func(v T) *T) *T {
 	}
 }
 
-// Def behaves as Or(val, *new(R)), so it returns default value if value is not present or types are different
-func Def[R any](val R) R {
-	v := reflect.ValueOf(val)
-	if !v.IsValid() || v.IsZero() {
-		newR := reflect.New(v.Type()).Elem()
-
-		if v.Kind() == reflect.Ptr {
-			newPtr := reflect.New(v.Type().Elem())
-			return newPtr.Interface().(R)
-		}
-
-		return newR.Interface().(R)
+// Def behaves as Or(val, *new(R)), so it returns default type value if value is not present.
+func Def[R any, P *R](val P) R {
+	if val == nil {
+		return *new(R)
 	}
 
-	other := *new(R)
-	if v.Type() != reflect.TypeOf(other) &&
-		v.Type() != reflect.TypeOf(&other) {
-		return other
-	}
-
-	return val
+	return *val
 }

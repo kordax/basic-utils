@@ -60,17 +60,13 @@ func TestCompareF(t *testing.T) {
 }
 
 func TestOr(t *testing.T) {
-	val := ""
-	res := uref.Or(val, "default")
-	if res != "default" {
-		t.Errorf("Expected 'default', but got '%s'", res)
-	}
+	var valRef *string
+	res := uref.Or(valRef, "default")
+	assert.Equal(t, "default", res)
 
-	val = "value"
-	res = uref.Or(val, "default")
-	if res != "value" {
-		t.Errorf("Expected 'value', but got '%s'", res)
-	}
+	val := "value"
+	res = uref.Or(&val, "default")
+	assert.Equal(t, val, res)
 }
 
 func TestDo(t *testing.T) {
@@ -98,13 +94,13 @@ func TestDo(t *testing.T) {
 
 func TestDef(t *testing.T) {
 	var f *float64
-	assert.Equal(t, uref.Ref(0.0), uref.Def(f))
-	assert.Equal(t, 5, uref.Def(5))
-	assert.Equal(t, 0, uref.Def(0))
-	assert.Equal(t, uref.Ref("hello"), uref.Def(uref.Ref("hello")))
-	assert.Equal(t, "", uref.Def(""))
-	assert.Equal(t, true, uref.Def(true))
-	assert.Equal(t, false, uref.Def(false))
-	assert.Equal(t, []int{1, 2}, uref.Def([]int{1, 2}))
-	assert.Equal(t, []int{}, uref.Def([]int{}))
+	assert.Equal(t, 0.0, uref.Def(f))
+	assert.Equal(t, 5, uref.Def(uref.Ref(5)))
+	assert.Equal(t, 0, uref.Def(uref.Ref(0)))
+	assert.Equal(t, "hello", uref.Def(uref.Ref("hello")))
+	assert.Equal(t, "", uref.Def(uref.Ref("")))
+	assert.Equal(t, true, uref.Def(uref.Ref(true)))
+	assert.Equal(t, false, uref.Def(uref.Ref(false)))
+	assert.Equal(t, []int{1, 2}, uref.Def(uref.Ref([]int{1, 2})))
+	assert.Equal(t, []int{}, uref.Def(uref.Ref([]int{})))
 }
