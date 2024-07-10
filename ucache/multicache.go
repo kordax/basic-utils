@@ -11,11 +11,12 @@ import (
 
 	"github.com/dgryski/go-farm"
 	"github.com/kordax/basic-utils/uarray"
+	"github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/umap"
 	"github.com/kordax/basic-utils/uopt"
 )
 
-type container[K CompositeKey, T Comparable] struct {
+type container[K CompositeKey, T uconst.Comparable] struct {
 	pairs map[int64][]uarray.Pair[K, T]
 	node  map[int64]any
 }
@@ -83,7 +84,7 @@ type MultiCache[K CompositeKey, T any] interface {
 // - Set operation's performance is consistent regardless of the depth of the key.
 // TTL parameter in cache doesn't automatically clean up all the entries.
 // Use ManagedMultiCache wrapper to automatically manage outdated keys.
-type InMemoryTreeMultiCache[K CompositeKey, T Comparable] struct {
+type InMemoryTreeMultiCache[K CompositeKey, T uconst.Comparable] struct {
 	values  map[int64]any
 	changes []K
 
@@ -104,7 +105,7 @@ type InMemoryTreeMultiCache[K CompositeKey, T Comparable] struct {
 //   - This design ensures that more specific keys take precedence and can replace the values of their parent keys.
 //   - Additionally, retrieving a value using a broader key (e.g., [1, 2]) will return the values of the most specific key
 //     that shares the prefix (e.g., [1, 2, 3, 4]).
-func NewInMemoryTreeMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
+func NewInMemoryTreeMultiCache[K CompositeKey, T uconst.Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
 	c := &InMemoryTreeMultiCache[K, T]{
 		values:          make(map[int64]any),
 		changes:         make([]K, 0),
@@ -270,7 +271,7 @@ func (c *InMemoryTreeMultiCache[K, T]) addTran(key K, values ...T) {
 	}
 }
 
-func (c *InMemoryTreeMultiCache[K, T]) dropKeyRecursively(keys []Unique, n int, bucket map[int64]any) {
+func (c *InMemoryTreeMultiCache[K, T]) dropKeyRecursively(keys []uconst.Unique, n int, bucket map[int64]any) {
 	key := keys[n].Key()
 	interBucket := bucket[key]
 	if interBucket != nil {
@@ -287,11 +288,11 @@ func (c *InMemoryTreeMultiCache[K, T]) dropKeyRecursively(keys []Unique, n int, 
 	}
 }
 
-func (c *InMemoryTreeMultiCache[K, T]) tryToGetBucket(keys []Unique) map[int64][]uarray.Pair[K, T] {
+func (c *InMemoryTreeMultiCache[K, T]) tryToGetBucket(keys []uconst.Unique) map[int64][]uarray.Pair[K, T] {
 	return c.getBucket(keys, 0, c.values)
 }
 
-func (c *InMemoryTreeMultiCache[K, T]) getBucket(keys []Unique, n int, interBucket map[int64]any) map[int64][]uarray.Pair[K, T] {
+func (c *InMemoryTreeMultiCache[K, T]) getBucket(keys []uconst.Unique, n int, interBucket map[int64]any) map[int64][]uarray.Pair[K, T] {
 	if keys == nil || n >= len(keys) {
 		return nil
 	}
@@ -402,14 +403,14 @@ type InMemoryHashMapMultiCache[K CompositeKey, T any, H comparable] struct {
 	lastUpdated     time.Time
 	ttl             *time.Duration
 
-	toHash func(keys []Unique) H
+	toHash func(keys []uconst.Unique) H
 	vMtx   sync.Mutex
 }
 
 // NewInMemoryHashMapMultiCache creates a new instance of the InMemoryHashMapMultiCache.
 // It takes a hashing function to translate the composite keys to a desired hash type,
 // and an optional time-to-live duration for the cache entries.
-func NewInMemoryHashMapMultiCache[K CompositeKey, T any, H comparable](toHash func(keys []Unique) H, ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
+func NewInMemoryHashMapMultiCache[K CompositeKey, T any, H comparable](toHash func(keys []uconst.Unique) H, ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
 	c := &InMemoryHashMapMultiCache[K, T, H]{
 		values:          make(map[H][]T),
 		changes:         make(map[H]K, 0),
@@ -424,12 +425,12 @@ func NewInMemoryHashMapMultiCache[K CompositeKey, T any, H comparable](toHash fu
 }
 
 // NewDefaultHashMapMultiCache creates a new instance of the InMemoryHashMapMultiCache using SHA256 as the hashing algorithm.
-func NewDefaultHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
+func NewDefaultHashMapMultiCache[K CompositeKey, T uconst.Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
 	return NewFarmHashMapMultiCache[K, T](ttl)
 }
 
-func NewFarmHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
-	return NewInMemoryHashMapMultiCache[K, T, uint64](func(keys []Unique) uint64 {
+func NewFarmHashMapMultiCache[K CompositeKey, T uconst.Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
+	return NewInMemoryHashMapMultiCache[K, T, uint64](func(keys []uconst.Unique) uint64 {
 		buffer := new(bytes.Buffer)
 		arr := make([]byte, 0)
 		for _, hash := range keys {
@@ -440,8 +441,8 @@ func NewFarmHashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Du
 	}, ttl)
 }
 
-func NewSha256HashMapMultiCache[K CompositeKey, T Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
-	return NewInMemoryHashMapMultiCache[K, T, string](func(keys []Unique) string {
+func NewSha256HashMapMultiCache[K CompositeKey, T uconst.Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
+	return NewInMemoryHashMapMultiCache[K, T, string](func(keys []uconst.Unique) string {
 		buffer := new(bytes.Buffer)
 		arr := make([]byte, 0)
 		for _, hash := range keys {
@@ -585,7 +586,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) addTran(key K, values ...T) H {
 	return hash
 }
 
-func (c *InMemoryHashMapMultiCache[K, T, H]) dropKey(keys []Unique) H {
+func (c *InMemoryHashMapMultiCache[K, T, H]) dropKey(keys []uconst.Unique) H {
 	hash := c.toHash(keys)
 	delete(c.values, c.toHash(keys))
 	return hash
@@ -598,7 +599,7 @@ func intToBytes(buffer *bytes.Buffer, num int64) []byte {
 	return buffer.Bytes()
 }
 
-func keysAsString(keys []Unique) string {
+func keysAsString(keys []uconst.Unique) string {
 	var sb strings.Builder
 	for _, key := range keys {
 		sb.WriteString(strconv.FormatInt(key.Key(), 10))

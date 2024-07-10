@@ -10,6 +10,7 @@ import (
 
 	"github.com/dgryski/go-farm"
 	"github.com/kordax/basic-utils/uarray"
+	"github.com/kordax/basic-utils/uconst"
 	"github.com/vmihailenco/msgpack/v5"
 )
 
@@ -23,29 +24,14 @@ type keyContainer[K any] struct {
 }
 
 /*
-Comparable entity
-*/
-type Comparable interface {
-	Equals(other Comparable) bool
-}
-
-/*
-Unique specifies an abstract key with an ability to provide hash.
-*/
-type Unique interface {
-	Comparable
-	Key() int64 // Key should return a unique item key. It can be a hash or just an index.
-}
-
-/*
 CompositeKey specifies an abstract key with an ability to provide an ordered list of available keys.
 */
 type CompositeKey interface {
-	Comparable
-	Keys() []Unique // Keys returns an ordered list of keys ordered by priority (ASC), so the first element has the most prio.
+	uconst.Comparable
+	Keys() []uconst.Unique // Keys returns an ordered list of keys ordered by priority (ASC), so the first element has the most prio.
 }
 
-func (k IntKey) Equals(other Comparable) bool {
+func (k IntKey) Equals(other uconst.Comparable) bool {
 	otherKey, ok := other.(IntKey)
 	return ok && k == otherKey
 }
@@ -54,15 +40,15 @@ func (k IntKey) Key() int64 {
 	return int64(k)
 }
 
-func (k IntKey) Keys() []Unique {
-	return []Unique{k}
+func (k IntKey) Keys() []uconst.Unique {
+	return []uconst.Unique{k}
 }
 
 func (k IntKey) String() string {
 	return fmt.Sprintf("%d", k)
 }
 
-func (k StringKey) Equals(other Comparable) bool {
+func (k StringKey) Equals(other uconst.Comparable) bool {
 	otherKey, ok := other.(StringKey)
 	return ok && k == otherKey
 }
@@ -76,15 +62,15 @@ func (k StringKey) Key() int64 {
 	return hash
 }
 
-func (k StringKey) Keys() []Unique {
-	return []Unique{IntKey(farm.Hash64([]byte(k)))}
+func (k StringKey) Keys() []uconst.Unique {
+	return []uconst.Unique{IntKey(farm.Hash64([]byte(k)))}
 }
 
 func (k StringKey) String() string {
 	return string(k)
 }
 
-func (k UIntKey) Equals(other Comparable) bool {
+func (k UIntKey) Equals(other uconst.Comparable) bool {
 	otherKey, ok := other.(UIntKey)
 	return ok && k == otherKey
 }
@@ -93,8 +79,8 @@ func (k UIntKey) Key() int64 {
 	return int64(k)
 }
 
-func (k UIntKey) Keys() []Unique {
-	return []Unique{k}
+func (k UIntKey) Keys() []uconst.Unique {
+	return []uconst.Unique{k}
 }
 
 func (k UIntKey) String() string {
@@ -143,16 +129,16 @@ func (k ComparableKey[T]) String() string {
 	return convertToString(k.v)
 }
 
-func (k ComparableKey[T]) Equals(other Comparable) bool {
+func (k ComparableKey[T]) Equals(other uconst.Comparable) bool {
 	otherKey, ok := other.(ComparableKey[T])
 	return ok && k == otherKey
 }
 
-type ComparableSlice[T Comparable] struct {
+type ComparableSlice[T uconst.Comparable] struct {
 	Data []T
 }
 
-func (c ComparableSlice[T]) Equals(other Comparable) bool {
+func (c ComparableSlice[T]) Equals(other uconst.Comparable) bool {
 	switch o := other.(type) {
 	case ComparableSlice[T]:
 		return c.eq(o)
@@ -187,7 +173,7 @@ func NewUIntCompositeKey(keys ...uint64) UIntCompositeKey {
 	return UIntCompositeKey{keys: conv}
 }
 
-func (k UIntCompositeKey) Equals(other Comparable) bool {
+func (k UIntCompositeKey) Equals(other uconst.Comparable) bool {
 	switch o := other.(type) {
 	case UIntCompositeKey:
 		return uarray.EqualsWithOrder(k.keys, o.keys)
@@ -227,7 +213,7 @@ func NewIntCompositeKey(keys ...int64) IntCompositeKey {
 	return IntCompositeKey{keys: conv}
 }
 
-func (k IntCompositeKey) Equals(other Comparable) bool {
+func (k IntCompositeKey) Equals(other uconst.Comparable) bool {
 	switch o := other.(type) {
 	case IntCompositeKey:
 		return uarray.EqualsWithOrder(k.keys, o.keys)
@@ -236,8 +222,8 @@ func (k IntCompositeKey) Equals(other Comparable) bool {
 	}
 }
 
-func (k IntCompositeKey) Keys() []Unique {
-	result := make([]Unique, len(k.keys))
+func (k IntCompositeKey) Keys() []uconst.Unique {
+	result := make([]uconst.Unique, len(k.keys))
 	for i, key := range k.keys {
 		result[i] = IntKey(key.Key())
 	}
@@ -267,7 +253,7 @@ func NewStrCompositeKey(keys ...string) StrCompositeKey {
 	return StrCompositeKey{keys: conv}
 }
 
-func (k StrCompositeKey) Equals(other Comparable) bool {
+func (k StrCompositeKey) Equals(other uconst.Comparable) bool {
 	switch o := other.(type) {
 	case StrCompositeKey:
 		return uarray.EqualsWithOrder(k.keys, o.keys)
@@ -276,8 +262,8 @@ func (k StrCompositeKey) Equals(other Comparable) bool {
 	}
 }
 
-func (k StrCompositeKey) Keys() []Unique {
-	result := make([]Unique, len(k.keys))
+func (k StrCompositeKey) Keys() []uconst.Unique {
+	result := make([]uconst.Unique, len(k.keys))
 	for i, key := range k.keys {
 		result[i] = IntKey(key.Key())
 	}
@@ -307,7 +293,7 @@ func NewGenericCompositeKey(keys ...any) GenericCompositeKey {
 	return GenericCompositeKey{keys: any(conv).([]ComparableKey[any])}
 }
 
-func (k GenericCompositeKey) Equals(other Comparable) bool {
+func (k GenericCompositeKey) Equals(other uconst.Comparable) bool {
 	switch o := other.(type) {
 	case GenericCompositeKey:
 		return uarray.EqualsWithOrder(k.keys, o.keys)
@@ -316,8 +302,8 @@ func (k GenericCompositeKey) Equals(other Comparable) bool {
 	}
 }
 
-func (k GenericCompositeKey) Keys() []Unique {
-	result := make([]Unique, len(k.keys))
+func (k GenericCompositeKey) Keys() []uconst.Unique {
+	result := make([]uconst.Unique, len(k.keys))
 	for i, key := range k.keys {
 		result[i] = IntKey(key.Key())
 	}
@@ -346,7 +332,7 @@ func (s StringValue) Value() string {
 	return s.v
 }
 
-func (s StringValue) Equals(other Comparable) bool {
+func (s StringValue) Equals(other uconst.Comparable) bool {
 	otherValuePtr, pok := other.(*StringValue)
 	if !pok {
 		otherValue, ok := other.(StringValue)
@@ -373,7 +359,7 @@ func (s StringSliceValue) Values() []string {
 	return s.v
 }
 
-func (s StringSliceValue) Equals(other Comparable) bool {
+func (s StringSliceValue) Equals(other uconst.Comparable) bool {
 	otherValuePtr, pok := other.(*StringSliceValue)
 	if !pok {
 		otherValue, ok := other.(StringSliceValue)
@@ -399,7 +385,7 @@ func (s Int64Value) Value() string {
 	return strconv.FormatInt(s.v, 10)
 }
 
-func (s Int64Value) Equals(other Comparable) bool {
+func (s Int64Value) Equals(other uconst.Comparable) bool {
 	otherValuePtr, pok := other.(*Int64Value)
 	if !pok {
 		otherValue, ok := other.(Int64Value)
@@ -414,7 +400,7 @@ func (s Int64Value) Equals(other Comparable) bool {
 }
 
 /*
-FarmHash64Entity wraps any object and provides a Unique implementation
+FarmHash64Entity wraps any object and provides a uconst.Unique implementation
 using farm's 64-bit hash function to be used in cache.
 This hashed entity uses internal hash to avoid redundant rehashing operations.
 
@@ -437,7 +423,7 @@ type FarmHash64Entity struct {
 /*
 Hashed is a constructor function that creates and returns a new instance
 of FarmHash64Entity, wrapping the provided object. This instance provides
-a Unique implementation using farm's 64-bit hash function.
+a uconst.Unique implementation using farm's 64-bit hash function.
 
 Usage:
   - To uniquely identify objects based on their content rather than their
@@ -475,7 +461,7 @@ func (e *FarmHash64Entity) calculateHash() int64 {
 	return e.hashValue
 }
 
-func (e *FarmHash64Entity) Equals(other Comparable) bool {
+func (e *FarmHash64Entity) Equals(other uconst.Comparable) bool {
 	otherFH, ok := other.(*FarmHash64Entity)
 	if !ok {
 		return false
@@ -500,7 +486,7 @@ func NewFarmHashCompositeKey(keys ...any) FarmHash64CompositeKey {
 	return FarmHash64CompositeKey{keys: conv}
 }
 
-func (k FarmHash64CompositeKey) Equals(other Comparable) bool {
+func (k FarmHash64CompositeKey) Equals(other uconst.Comparable) bool {
 	switch o := other.(type) {
 	case FarmHash64CompositeKey:
 		derefThis := uarray.Map(k.keys, func(v **FarmHash64Entity) FarmHash64Entity {
@@ -515,8 +501,8 @@ func (k FarmHash64CompositeKey) Equals(other Comparable) bool {
 	}
 }
 
-func (k FarmHash64CompositeKey) Keys() []Unique {
-	result := make([]Unique, len(k.keys))
+func (k FarmHash64CompositeKey) Keys() []uconst.Unique {
+	result := make([]uconst.Unique, len(k.keys))
 	for i, key := range k.keys {
 		result[i] = key
 	}

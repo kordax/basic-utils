@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/uopt"
 )
 
@@ -18,7 +19,7 @@ const (
 )
 
 // prepareCacheIntKey populates the cache with IntKey items.
-func prepareCacheIntKey(c MultiCache[IntCompositeKey, Comparable], num int64) []IntCompositeKey {
+func prepareCacheIntKey(c MultiCache[IntCompositeKey, uconst.Comparable], num int64) []IntCompositeKey {
 	keys := make([]IntCompositeKey, num)
 	for i := int64(0); i < num; i++ {
 		key := NewIntCompositeKey(i)
@@ -30,7 +31,7 @@ func prepareCacheIntKey(c MultiCache[IntCompositeKey, Comparable], num int64) []
 }
 
 // prepareCacheIntKey populates the cache with IntKey items.
-func prepareCacheIntKeyWithDepth(c MultiCache[IntCompositeKey, Comparable], num, maxDepth int64) []IntCompositeKey {
+func prepareCacheIntKeyWithDepth(c MultiCache[IntCompositeKey, uconst.Comparable], num, maxDepth int64) []IntCompositeKey {
 	keys := make([]IntCompositeKey, num)
 	for i := int64(0); i < num; i++ {
 		var hashes []int64
@@ -46,7 +47,7 @@ func prepareCacheIntKeyWithDepth(c MultiCache[IntCompositeKey, Comparable], num,
 }
 
 func BenchmarkSha256HashMapMultiCachePutIntKeySingle(b *testing.B) {
-	c := NewSha256HashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewSha256HashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := make([]IntCompositeKey, int64(b.N))
 	for i := int64(0); i < int64(b.N); i++ {
 		var hashes []int64
@@ -64,7 +65,7 @@ func BenchmarkSha256HashMapMultiCachePutIntKeySingle(b *testing.B) {
 }
 
 func BenchmarkSha256HashMapMultiCachePutIntKeySingleDepth100(b *testing.B) {
-	c := NewSha256HashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewSha256HashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := make([]IntCompositeKey, b.N)
 	for i := int64(0); i < int64(b.N); i++ {
 		var hashes []int64
@@ -82,7 +83,7 @@ func BenchmarkSha256HashMapMultiCachePutIntKeySingleDepth100(b *testing.B) {
 }
 
 func BenchmarkSha256HashMapMultiCachePutIntKeyConcurrent(b *testing.B) {
-	c := NewSha256HashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewSha256HashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := make([]IntCompositeKey, b.N)
 	for i := int64(0); i < int64(b.N); i++ {
 		var hashes []int64
@@ -102,7 +103,7 @@ func BenchmarkSha256HashMapMultiCachePutIntKeyConcurrent(b *testing.B) {
 }
 
 func BenchmarkSha256HashMapMultiCachePutIntKeyConcurrentDepth100(b *testing.B) {
-	c := NewSha256HashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewSha256HashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := make([]IntCompositeKey, b.N+1)
 	for i := int64(0); i < int64(b.N); i++ {
 		var hashes []int64
@@ -122,7 +123,7 @@ func BenchmarkSha256HashMapMultiCachePutIntKeyConcurrentDepth100(b *testing.B) {
 }
 
 func BenchmarkSha256HashMapMultiCacheGetIntKeySingle(b *testing.B) {
-	c := NewSha256HashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewSha256HashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, numItems)
 	b.ResetTimer()
 
@@ -132,7 +133,7 @@ func BenchmarkSha256HashMapMultiCacheGetIntKeySingle(b *testing.B) {
 }
 
 func BenchmarkSha256HashMapMultiCacheGetIntKeySingleDeepDepth100(b *testing.B) {
-	c := NewSha256HashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewSha256HashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKeyWithDepth(c, numItems, 100)
 	b.ResetTimer()
 
@@ -142,7 +143,7 @@ func BenchmarkSha256HashMapMultiCacheGetIntKeySingleDeepDepth100(b *testing.B) {
 }
 
 func BenchmarkSha256HashMapMultiCacheGetIntKeyConcurrent(b *testing.B) {
-	c := NewSha256HashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewSha256HashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, numItems)
 	b.ResetTimer()
 
@@ -154,7 +155,7 @@ func BenchmarkSha256HashMapMultiCacheGetIntKeyConcurrent(b *testing.B) {
 }
 
 func BenchmarkSha256HashMapMultiCacheSetIntKeySingle(b *testing.B) {
-	c := NewSha256HashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewSha256HashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, numItems)
 	b.ResetTimer()
 
@@ -164,7 +165,7 @@ func BenchmarkSha256HashMapMultiCacheSetIntKeySingle(b *testing.B) {
 }
 
 func BenchmarkSha256HashMapMultiCacheSetIntKeyConcurrent(b *testing.B) {
-	c := NewSha256HashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewSha256HashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, numItems)
 	b.ResetTimer()
 
@@ -177,7 +178,7 @@ func BenchmarkSha256HashMapMultiCacheSetIntKeyConcurrent(b *testing.B) {
 
 func BenchmarkSha256HashMapMultiCacheGetIntKeySingle10xItems(b *testing.B) {
 	num := int64(numItems * 10)
-	c := NewSha256HashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewSha256HashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, num)
 	b.ResetTimer()
 
@@ -187,7 +188,7 @@ func BenchmarkSha256HashMapMultiCacheGetIntKeySingle10xItems(b *testing.B) {
 }
 
 func BenchmarkFarmHashMapMultiCachePutIntKeySingle(b *testing.B) {
-	c := NewFarmHashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewFarmHashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := make([]IntCompositeKey, int64(b.N))
 	for i := int64(0); i < int64(b.N); i++ {
 		var hashes []int64
@@ -205,7 +206,7 @@ func BenchmarkFarmHashMapMultiCachePutIntKeySingle(b *testing.B) {
 }
 
 func BenchmarkFarmHashMapMultiCachePutIntKeySingleDepth100(b *testing.B) {
-	c := NewFarmHashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewFarmHashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := make([]IntCompositeKey, b.N)
 	for i := int64(0); i < int64(b.N); i++ {
 		var hashes []int64
@@ -223,7 +224,7 @@ func BenchmarkFarmHashMapMultiCachePutIntKeySingleDepth100(b *testing.B) {
 }
 
 func BenchmarkFarmHashMapMultiCachePutIntKeyConcurrent(b *testing.B) {
-	c := NewFarmHashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewFarmHashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := make([]IntCompositeKey, b.N)
 	for i := int64(0); i < int64(b.N); i++ {
 		var hashes []int64
@@ -243,7 +244,7 @@ func BenchmarkFarmHashMapMultiCachePutIntKeyConcurrent(b *testing.B) {
 }
 
 func BenchmarkFarmHashMapMultiCachePutIntKeyConcurrentDepth100(b *testing.B) {
-	c := NewFarmHashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewFarmHashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := make([]IntCompositeKey, b.N+1)
 	for i := int64(0); i < int64(b.N); i++ {
 		var hashes []int64
@@ -263,7 +264,7 @@ func BenchmarkFarmHashMapMultiCachePutIntKeyConcurrentDepth100(b *testing.B) {
 }
 
 func BenchmarkFarmHashMapMultiCacheGetIntKeySingle(b *testing.B) {
-	c := NewFarmHashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewFarmHashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, numItems)
 	b.ResetTimer()
 
@@ -273,7 +274,7 @@ func BenchmarkFarmHashMapMultiCacheGetIntKeySingle(b *testing.B) {
 }
 
 func BenchmarkFarmHashMapMultiCacheGetIntKeySingleDeepDepth100(b *testing.B) {
-	c := NewFarmHashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewFarmHashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKeyWithDepth(c, numItems, 100)
 	b.ResetTimer()
 
@@ -283,7 +284,7 @@ func BenchmarkFarmHashMapMultiCacheGetIntKeySingleDeepDepth100(b *testing.B) {
 }
 
 func BenchmarkFarmHashMapMultiCacheGetIntKeyConcurrent(b *testing.B) {
-	c := NewFarmHashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewFarmHashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, numItems)
 	b.ResetTimer()
 
@@ -295,7 +296,7 @@ func BenchmarkFarmHashMapMultiCacheGetIntKeyConcurrent(b *testing.B) {
 }
 
 func BenchmarkFarmHashMapMultiCacheSetIntKeySingle(b *testing.B) {
-	c := NewFarmHashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewFarmHashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, numItems)
 	b.ResetTimer()
 
@@ -305,7 +306,7 @@ func BenchmarkFarmHashMapMultiCacheSetIntKeySingle(b *testing.B) {
 }
 
 func BenchmarkFarmHashMapMultiCacheSetIntKeyConcurrent(b *testing.B) {
-	c := NewFarmHashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewFarmHashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, numItems)
 	b.ResetTimer()
 
@@ -318,7 +319,7 @@ func BenchmarkFarmHashMapMultiCacheSetIntKeyConcurrent(b *testing.B) {
 
 func BenchmarkFarmHashMapMultiCacheGetIntKeySingle10xItems(b *testing.B) {
 	num := int64(numItems * 10)
-	c := NewFarmHashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewFarmHashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, num)
 	b.ResetTimer()
 
@@ -328,7 +329,7 @@ func BenchmarkFarmHashMapMultiCacheGetIntKeySingle10xItems(b *testing.B) {
 }
 
 func BenchmarkTreeMultiCachePutIntKeySingle(b *testing.B) {
-	c := NewInMemoryTreeMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewInMemoryTreeMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := make([]IntCompositeKey, int64(b.N))
 	for i := int64(0); i < int64(b.N); i++ {
 		var hashes []int64
@@ -346,7 +347,7 @@ func BenchmarkTreeMultiCachePutIntKeySingle(b *testing.B) {
 }
 
 func BenchmarkTreeMultiCachePutIntKeySingleDepth100(b *testing.B) {
-	c := NewInMemoryTreeMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewInMemoryTreeMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := make([]IntCompositeKey, b.N)
 	for i := int64(0); i < int64(b.N); i++ {
 		var hashes []int64
@@ -364,7 +365,7 @@ func BenchmarkTreeMultiCachePutIntKeySingleDepth100(b *testing.B) {
 }
 
 func BenchmarkTreeMultiCachePutIntKeyConcurrent(b *testing.B) {
-	c := NewInMemoryTreeMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewInMemoryTreeMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := make([]IntCompositeKey, b.N)
 	for i := int64(0); i < int64(b.N); i++ {
 		var hashes []int64
@@ -384,7 +385,7 @@ func BenchmarkTreeMultiCachePutIntKeyConcurrent(b *testing.B) {
 }
 
 func BenchmarkTreeMultiCachePutIntKeyConcurrentDepth100(b *testing.B) {
-	c := NewInMemoryTreeMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewInMemoryTreeMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := make([]IntCompositeKey, b.N+1)
 	for i := int64(0); i < int64(b.N); i++ {
 		var hashes []int64
@@ -404,7 +405,7 @@ func BenchmarkTreeMultiCachePutIntKeyConcurrentDepth100(b *testing.B) {
 }
 
 func BenchmarkTreeMultiCacheGetIntKeySingle(b *testing.B) {
-	c := NewInMemoryTreeMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewInMemoryTreeMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, numItems)
 	b.ResetTimer()
 
@@ -414,7 +415,7 @@ func BenchmarkTreeMultiCacheGetIntKeySingle(b *testing.B) {
 }
 
 func BenchmarkTreeMultiCacheGetIntKeySingleDeepDepth100(b *testing.B) {
-	c := NewInMemoryTreeMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewInMemoryTreeMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKeyWithDepth(c, numItems, 100)
 	b.ResetTimer()
 
@@ -424,7 +425,7 @@ func BenchmarkTreeMultiCacheGetIntKeySingleDeepDepth100(b *testing.B) {
 }
 
 func BenchmarkTreeMultiCacheGetIntKeyConcurrent(b *testing.B) {
-	c := NewInMemoryTreeMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewInMemoryTreeMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, numItems)
 	b.ResetTimer()
 
@@ -436,7 +437,7 @@ func BenchmarkTreeMultiCacheGetIntKeyConcurrent(b *testing.B) {
 }
 
 func BenchmarkTreeMultiCacheSetIntKeySingle(b *testing.B) {
-	c := NewInMemoryTreeMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewInMemoryTreeMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, numItems)
 	b.ResetTimer()
 
@@ -446,7 +447,7 @@ func BenchmarkTreeMultiCacheSetIntKeySingle(b *testing.B) {
 }
 
 func BenchmarkTreeMultiCacheSetIntKeyConcurrent(b *testing.B) {
-	c := NewInMemoryTreeMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewInMemoryTreeMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, numItems)
 	b.ResetTimer()
 
@@ -459,7 +460,7 @@ func BenchmarkTreeMultiCacheSetIntKeyConcurrent(b *testing.B) {
 
 func BenchmarkTreeMultiCacheGetIntKeySingle10xItems(b *testing.B) {
 	num := int64(numItems * 10)
-	c := NewInMemoryTreeMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewInMemoryTreeMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	keys := prepareCacheIntKey(c, num)
 	b.ResetTimer()
 
@@ -469,21 +470,21 @@ func BenchmarkTreeMultiCacheGetIntKeySingle10xItems(b *testing.B) {
 }
 
 func BenchmarkMemoryFarmHashMapMultiCache(b *testing.B) {
-	c := NewFarmHashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewFarmHashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	benchmarkMemoryUsage(b, c)
 }
 
 func BenchmarkMemorySha256HashMapMultiCache(b *testing.B) {
-	c := NewSha256HashMapMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewSha256HashMapMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	benchmarkMemoryUsage(b, c)
 }
 
 func BenchmarkMemoryTreeMultiCache(b *testing.B) {
-	c := NewInMemoryTreeMultiCache[IntCompositeKey, Comparable](uopt.Null[time.Duration]())
+	c := NewInMemoryTreeMultiCache[IntCompositeKey, uconst.Comparable](uopt.Null[time.Duration]())
 	benchmarkMemoryUsage(b, c)
 }
 
-func benchmarkMemoryUsage(b *testing.B, c MultiCache[IntCompositeKey, Comparable]) {
+func benchmarkMemoryUsage(b *testing.B, c MultiCache[IntCompositeKey, uconst.Comparable]) {
 	var m runtime.MemStats
 
 	for i := int64(0); i < numItems; i++ {

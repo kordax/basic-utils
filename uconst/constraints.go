@@ -21,7 +21,3 @@ type Float interface {
 type SignedNumeric interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~float32 | ~float64
 }
-
-type Comparable interface {
-	Numeric | ~string | ~bool
-}
