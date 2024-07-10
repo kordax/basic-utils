@@ -9,7 +9,7 @@ package uarray
 import (
 	"sort"
 
-	basicutils "github.com/kordax/basic-utils"
+	basicutils "github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/umap"
 	"golang.org/x/exp/constraints"
 )
