@@ -69,6 +69,17 @@ func TestOr(t *testing.T) {
 	assert.Equal(t, val, res)
 }
 
+func TestOrRef(t *testing.T) {
+	var value *string
+	other := uref.Ref("Test")
+	res := uref.OrRef(value, other)
+	assert.EqualValues(t, other, res)
+
+	value = uref.Ref("Value")
+	res = uref.OrRef(value, other)
+	assert.Equal(t, value, res)
+}
+
 func TestDo(t *testing.T) {
 	val := 5
 	ptr := &val
