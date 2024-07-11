@@ -43,7 +43,7 @@ This is due to the usage of features and packages introduced in this version.
 
 - **usql**: Utilities related to sql types and methods.
 
-- **usrlz*: Serialization package.
+- **usrlz**: Serialization package.
 
 - **ustr**: Utilities related to string operations.
 
