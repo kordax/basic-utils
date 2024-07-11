@@ -23,7 +23,7 @@ type node[T comparable] struct {
 
 // ConcurrentHashSet is a work-in-progress experimental thread-safe set implementation that uses atomic operations and sync.Map.
 // !!! This implementation is not yet optimized and may contain bugs. For stable usage, prefer SynchronizedHashSet.
-// Deprecated.
+// Deprecated, use SynchronizedHashSet instead.
 type ConcurrentHashSet[T comparable] struct {
 	buckets sync.Map
 
