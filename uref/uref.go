@@ -27,13 +27,22 @@ func CompareF[T any](ptr1, ptr2 *T, compare func(t1, t2 *T) bool) bool {
 	return compare(ptr1, ptr2)
 }
 
-// Or returns value of val or 'other', but supports any other type
+// Or returns value of val or 'other' if val is nil.
 func Or[R any, P *R](val P, other R) R {
 	if val == nil {
 		return other
 	}
 
 	return *val
+}
+
+// OrRef acts same as Or, but returns reference.
+func OrRef[R any, P *R](val P, other P) P {
+	if val == nil {
+		return other
+	}
+
+	return val
 }
 
 // Do safely executes function 'do' in case ptr is not nil or returns 'nil' otherwise.
