@@ -7,12 +7,15 @@
 package uarray
 
 import (
+	"slices"
 	"sort"
 
 	basicutils "github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/umap"
 	"golang.org/x/exp/constraints"
 )
+
+var dummy struct{}
 
 type Pair[L any, R any] struct {
 	Left  L
@@ -337,6 +340,30 @@ func CopyWithoutIndex[T any](src []T, index int) []T {
 	cpy = append(cpy, src[:index]...)
 
 	return append(cpy, src[index+1:]...)
+}
+
+// CopyWithoutIndexes copies a slice while ignoring elements at specific indexes. Duplicate values for indexes are ignored.
+func CopyWithoutIndexes[T any](src []T, indexes []int) []T {
+	indexMap := make(map[int]struct{})
+	for _, index := range indexes {
+		indexMap[index] = dummy
+	}
+
+	uniqueIndexes := make([]int, 0, len(indexMap))
+	for index := range indexMap {
+		uniqueIndexes = append(uniqueIndexes, index)
+	}
+
+	slices.Sort(uniqueIndexes)
+	slices.Reverse(uniqueIndexes)
+
+	for _, index := range uniqueIndexes {
+		if index < len(src) {
+			src = append(src[:index], src[index+1:]...)
+		}
+	}
+
+	return src
 }
 
 // CollectAsMap collects corresponding values to a map.
