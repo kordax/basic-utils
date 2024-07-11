@@ -51,6 +51,15 @@ func TestUniqueHashMultiMap_Append(t *testing.T) {
 
 	addedCount := mm.Append("key", TestStruct{ID: 1, Name: "Hello"}, TestStruct{ID: 3, Name: "New"})
 	assert.Equal(t, 1, addedCount, "Expected one new value, as 'Hello' is a duplicate")
+
+	values, _ := mm.Get("key")
+	require.Len(t, values, 3, "Expected three values after append")
+	expectedValues := []TestStruct{
+		{ID: 1, Name: "Hello"},
+		{ID: 2, Name: "World"},
+		{ID: 3, Name: "New"},
+	}
+	assert.ElementsMatch(t, expectedValues, values, "Expected values to be [{ID: 1, Name: \"Hello\"}, {ID: 2, Name: \"World\"}, {ID: 3, Name: \"New\"}]")
 }
 
 func TestUniqueHashMultiMap_Remove(t *testing.T) {
