@@ -12,8 +12,8 @@ import (
 	"github.com/kordax/basic-utils/umap"
 )
 
-func BenchmarkUniqueMultiMap_Set(b *testing.B) {
-	multiMap := umap.NewUniqueMultiMap[int, string]()
+func BenchmarkHashMultiMap_Set(b *testing.B) {
+	multiMap := umap.NewHashMultiMap[int, string]()
 
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
@@ -25,8 +25,8 @@ func BenchmarkUniqueMultiMap_Set(b *testing.B) {
 	}
 }
 
-func BenchmarkUniqueMultiMap_Get(b *testing.B) {
-	multiMap := umap.NewUniqueMultiMap[int, string]()
+func BenchmarkHashMultiMap_Get(b *testing.B) {
+	multiMap := umap.NewHashMultiMap[int, string]()
 
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()

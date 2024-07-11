@@ -8,6 +8,8 @@ package umap
 
 type void struct{}
 
+var dummy void
+
 // UniqueMultiMap is a generic data structure that implements a multi-value map,
 // where each key K can be associated with multiple unique values of type V.
 //
@@ -57,7 +59,7 @@ func (m *UniqueMultiMap[K, V]) Set(key K, values ...V) int {
 	ref := m.store[key]
 	for _, value := range values {
 		if _, exists := ref[value]; !exists {
-			ref[value] = void{}
+			ref[value] = dummy
 			addedCount++
 		}
 	}
@@ -75,7 +77,7 @@ func (m *UniqueMultiMap[K, V]) Append(key K, values ...V) int {
 	addedCount := 0
 	for _, value := range values {
 		if _, found := hashMap[value]; !found {
-			hashMap[value] = void{}
+			hashMap[value] = dummy
 			addedCount++
 		}
 	}
