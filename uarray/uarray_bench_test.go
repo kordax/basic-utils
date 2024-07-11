@@ -42,3 +42,13 @@ func BenchmarkEqualValues(b *testing.B) {
 		EqualValues(slice1, slice2)
 	}
 }
+
+func BenchmarkCopyWithoutIndexes(b *testing.B) {
+	src := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	indexes := []int{2, 5, 8}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		CopyWithoutIndexes(src, indexes)
+	}
+}

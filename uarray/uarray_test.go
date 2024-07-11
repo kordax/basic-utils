@@ -503,6 +503,65 @@ func TestCopyWithoutIndex(t *testing.T) {
 	}
 }
 
+func TestCopyWithoutIndexes(t *testing.T) {
+	tests := []struct {
+		name     string
+		src      []int
+		indexes  []int
+		expected []int
+	}{
+		{
+			name:     "single index",
+			src:      []int{1, 2, 3, 4, 5},
+			indexes:  []int{2},
+			expected: []int{1, 2, 4, 5},
+		},
+		{
+			name:     "multiple indexes",
+			src:      []int{1, 2, 3, 4, 5},
+			indexes:  []int{1, 3},
+			expected: []int{1, 3, 5},
+		},
+		{
+			name:     "indexes out of order",
+			src:      []int{1, 2, 3, 4, 5},
+			indexes:  []int{3, 1},
+			expected: []int{1, 3, 5},
+		},
+		{
+			name:     "duplicate indexes",
+			src:      []int{1, 2, 3, 4, 5},
+			indexes:  []int{1, 1},
+			expected: []int{1, 3, 4, 5},
+		},
+		{
+			name:     "no indexes",
+			src:      []int{1, 2, 3, 4, 5},
+			indexes:  []int{},
+			expected: []int{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "indexes out of bounds",
+			src:      []int{1, 2, 3, 4, 5},
+			indexes:  []int{10},
+			expected: []int{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "all indexes",
+			src:      []int{1, 2, 3, 4, 5},
+			indexes:  []int{0, 1, 2, 3, 4},
+			expected: []int{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cpy := uarray.CopyWithoutIndexes(tt.src, tt.indexes)
+			require.Equal(t, tt.expected, cpy, "result should match expected slice")
+		})
+	}
+}
+
 func TestCollectAsMap(t *testing.T) {
 	values := []string{"apple", "banana"}
 	result := uarray.CollectAsMap(values, func(v *string) int {
