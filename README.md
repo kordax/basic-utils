@@ -39,7 +39,11 @@ This is due to the usage of features and packages introduced in this version.
 
 - **uref**: Utilities related to references.
 
+- **uset**: (WIP) Package with Set implementation.
+
 - **usql**: Utilities related to sql types and methods.
+
+- **usrlz*: Serialization package.
 
 - **ustr**: Utilities related to string operations.
 
