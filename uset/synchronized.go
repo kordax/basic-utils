@@ -15,8 +15,8 @@ type SynchronizedHashSet[T comparable] struct {
 	mtx sync.RWMutex
 }
 
-func NewSynchronizedHashSet[T comparable]() *SynchronizedHashSet[T] {
-	return &SynchronizedHashSet[T]{hs: NewHashSet[T]()}
+func NewSynchronizedHashSet[T comparable](values ...T) *SynchronizedHashSet[T] {
+	return &SynchronizedHashSet[T]{hs: NewHashSet[T](values...)}
 }
 
 func NewSynchronizedHashSetFromSet[T comparable](hs *HashSet[T]) *SynchronizedHashSet[T] {

@@ -13,8 +13,13 @@ type HashSet[T comparable] struct {
 }
 
 // NewHashSet creates a new instance of HashSet with the default size
-func NewHashSet[T comparable]() *HashSet[T] {
-	return &HashSet[T]{m: make(map[T]dummy)}
+func NewHashSet[T comparable](values ...T) *HashSet[T] {
+	m := make(map[T]dummy)
+	for _, v := range values {
+		m[v] = dummy{}
+	}
+
+	return &HashSet[T]{m: m}
 }
 
 // NewHashSetWithSize creates a new instance of HashSet with a specified initial size
