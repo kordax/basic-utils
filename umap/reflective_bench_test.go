@@ -13,22 +13,17 @@ import (
 )
 
 func BenchmarkReflectiveMultiMap_Set(b *testing.B) {
-	multiMap := umap.NewReflectiveMultiMap[int, string]()
+	m := umap.NewReflectiveMultiMap[int, string]()
 
 	for i := 0; i < b.N; i++ {
-		key := generateTestKey(i)
-		values := generateTestValues(i)
-
-		multiMap.Set(key, values...)
+		m.Set(generateTestKey(i), generateTestValues(i)...)
 	}
 }
 
 func BenchmarkReflectiveMultiMap_Get(b *testing.B) {
-	multiMap := umap.NewReflectiveMultiMap[int, string]()
+	m := umap.NewReflectiveMultiMap[int, string]()
 
 	for i := 0; i < b.N; i++ {
-		key := generateTestKey(i)
-
-		_, _ = multiMap.Get(key)
+		_, _ = m.Get(generateTestKey(i))
 	}
 }

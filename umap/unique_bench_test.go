@@ -13,26 +13,23 @@ import (
 )
 
 func BenchmarkUniqueMultiMap_Set(b *testing.B) {
-	multiMap := umap.NewUniqueMultiMap[int, string]()
+	m := umap.NewUniqueMultiMap[int, string]()
 
 	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		key := generateTestKey(i)
-		values := generateTestValues(i)
-		b.StartTimer()
-
-		multiMap.Set(key, values...)
+		m.Set(generateTestKey(i), generateTestValues(i)...)
 	}
 }
 
 func BenchmarkUniqueMultiMap_Get(b *testing.B) {
-	multiMap := umap.NewUniqueMultiMap[int, string]()
+	m := umap.NewUniqueMultiMap[int, string]()
+
+	b.StopTimer()
+	for i := 0; i < b.N; i++ {
+		m.Set(generateTestKey(i), generateTestValues(i)...)
+	}
+	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		key := generateTestKey(i)
-		b.StartTimer()
-
-		_, _ = multiMap.Get(key)
+		_, _ = m.Get(generateTestKey(i))
 	}
 }
