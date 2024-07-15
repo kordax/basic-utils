@@ -59,6 +59,10 @@ item := q.Poll(5 * time.Second)
 #### For the priority queue:
 
 ```go
+package myprogram
+
+import "github.com/kordax/basic-utils/queue"
+
 pq := queue.NewPrioritizedPriorityQueueint
 pq.Queue(1, 3) // The number 3 here is the priority
 pq.Queue(2, 1)
