@@ -7,7 +7,7 @@
 package uconst
 
 type Numeric interface {
-	Integer | ~float32 | ~float64
+	Integer | Float
 }
 
 type Integer interface {
