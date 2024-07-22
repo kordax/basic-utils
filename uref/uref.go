@@ -54,6 +54,13 @@ func Do[R any, P *R](ptr P, do func(v R) *R) *R {
 	}
 }
 
+// Run safely executes function 'do' if ptr is not nil.
+func Run[R any, P *R](ptr P, do func(v R)) {
+	if ptr != nil {
+		do(*ptr)
+	}
+}
+
 // Def behaves as Or(val, *new(R)), so it returns default type value if value is not present.
 func Def[R any, P *R](val P) R {
 	if val == nil {
