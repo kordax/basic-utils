@@ -103,6 +103,26 @@ func TestDo(t *testing.T) {
 	}
 }
 
+func TestRun(t *testing.T) {
+	val := 5
+	ptr := &val
+	called := false
+
+	uref.Run(ptr, func(v int) {
+		called = true
+		assert.Equal(t, 5, v, "Expected value to be 5")
+	})
+	assert.True(t, called, "Expected function to be called")
+
+	var nilPtr *int
+	called = false
+
+	uref.Run(nilPtr, func(v int) {
+		called = true
+	})
+	assert.False(t, called, "Expected function to not be called")
+}
+
 func TestDef(t *testing.T) {
 	var f *float64
 	assert.Equal(t, 0.0, uref.Def(f))
