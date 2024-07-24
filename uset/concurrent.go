@@ -134,3 +134,15 @@ func (s *ConcurrentHashSet[T]) Clear() {
 		return true
 	})
 }
+
+// Values retrieves all the values
+func (s *ConcurrentHashSet[T]) Values() []T {
+	values := make([]T, 0, s.Size())
+
+	s.buckets.Range(func(_, v interface{}) bool {
+		values = append(values, v.(T))
+		return true
+	})
+
+	return values
+}

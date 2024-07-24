@@ -6,6 +6,8 @@
 
 package uset
 
+import "github.com/kordax/basic-utils/umap"
+
 // HashSet is a generic set data structure that ensures all elements are unique.
 // It uses a map to provide efficient operations for adding, removing, and checking elements.
 type HashSet[T comparable] struct {
@@ -72,4 +74,9 @@ func (s *HashSet[T]) Size() int {
 // Clear returns the number of elements in the set
 func (s *HashSet[T]) Clear() {
 	s.m = make(map[T]dummy)
+}
+
+// Values retrieves all the values
+func (s *HashSet[T]) Values() []T {
+	return umap.Keys(s.m)
 }

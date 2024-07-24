@@ -71,18 +71,3 @@ func TestComparableHashSet_Clear(t *testing.T) {
 	assert.False(t, set.Contains(testElement{key: 1}))
 	assert.False(t, set.Contains(testElement{key: 2}))
 }
-
-func TestComparableHashSet_Compare(t *testing.T) {
-	t.Parallel()
-
-	set := uset.NewComparableHashSet[testElement, int]()
-
-	elem1 := testElement{key: 1}
-	elem2 := testElement{key: 2}
-	elem3 := testElement{key: 1}
-
-	assert.Equal(t, false, set.Compare(elem1, elem2), "elem1 should be less than elem2")
-	assert.Equal(t, false, set.Compare(elem2, elem1), "elem2 should be greater than elem1")
-
-	assert.Equal(t, true, set.Compare(elem1, elem3), "elem1 should be equal to elem3")
-}

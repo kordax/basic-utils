@@ -89,7 +89,7 @@ func (s *OrderedHashSet[T, K]) Clear() {
 	s.list = []T{}
 }
 
-// AsSlice returns a slice of all elements in the set, in the order they were added.
-func (s *OrderedHashSet[T, K]) AsSlice() []T {
+// OrderedList returns a slice of all elements in the set, in the order they were added.
+func (s *OrderedHashSet[T, K]) OrderedList() []T {
 	return s.list
 }

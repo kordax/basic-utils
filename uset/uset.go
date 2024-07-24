@@ -15,17 +15,7 @@ type Set[T comparable] interface {
 	Remove(value T) bool
 	Size() int
 	Clear()
-}
-
-// ComparableSet is an interface that represents a set of unique items that can be retrieved in the original insertion order.
-// It is parameterized by T, which must implement uconst.UniqueKey[K], and K, which must be comparable.
-type ComparableSet[T uconst.UniqueKey[K], K comparable] interface {
-	Add(value T) bool
-	Contains(value T) bool
-	Remove(value T) bool
-	Size() int
-	Clear()
-	Compare(lhv, rhv T) bool
+	Values() []T
 }
 
 // OrderedSet is an interface that represents a set of unique items that can be retrieved in the original insertion order.
@@ -36,5 +26,5 @@ type OrderedSet[T uconst.UniqueKey[K], K comparable] interface {
 	Remove(value T) bool
 	Size() int
 	Clear()
-	AsSlice() []T
+	OrderedList() []T // OrderedList returns the slice of ordered items while preserving their natural order
 }
