@@ -41,6 +41,7 @@ func NewSingleListenerWatcher[T any](ch chan T, f watchFunc[T]) *ParallelWatcher
 	return w
 }
 
+// Register replaces the watching function in case it's required.
 func (w *ParallelWatcher[T]) Register(f watchFunc[T]) {
 	w.f.Store(&f)
 }

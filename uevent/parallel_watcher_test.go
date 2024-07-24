@@ -17,70 +17,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Define a watchFunc type for the test
-type watchFunc[T any] func(ctx context.Context, msg *T)
-
-func TestBroadcastWatcher(t *testing.T) {
+func TestParallelWatcher(t *testing.T) {
 	inputCh := make(chan int)
-	watcher := uevent.NewBroadcastWatcher(inputCh)
+	expectedResults := uarray.Range(0, 10)
+	expectedCount := len(expectedResults)
 
-	var wg1 sync.WaitGroup
-	var wg2 sync.WaitGroup
+	var wg sync.WaitGroup
 	var m sync.Mutex
 
-	expectedResults := uarray.Range(0, 10)
-	expectedCount := len(expectedResults)
-
-	// Register listener 1
-	var received1 []int
-	wg1.Add(expectedCount)
-	watcher.Register(func(ctx context.Context, msg *int) {
-		defer wg1.Done()
+	// Register the function that will receive messages
+	var received []int
+	wg.Add(expectedCount)
+	watcherFunc := func(ctx context.Context, msg *int) {
+		defer wg.Done()
 		m.Lock()
 		defer m.Unlock()
-		received1 = append(received1, *msg)
-	})
+		received = append(received, *msg)
+	}
 
-	// Register listener 2
-	var received2 []int
-	wg2.Add(expectedCount)
-	watcher.Register(func(ctx context.Context, msg *int) {
-		defer wg2.Done()
-		m.Lock()
-		defer m.Unlock()
-		received2 = append(received2, *msg)
-	})
-
-	// Create a context with cancellation
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	started := watcher.Watch(ctx)
-	require.True(t, started, "Watcher should have started successfully")
-
-	startedAgain := watcher.Watch(ctx)
-	require.False(t, startedAgain, "Watcher should not start again")
-
-	go func() {
-		for i := 0; i <= expectedCount-1; i++ {
-			inputCh <- i
-		}
-		close(inputCh)
-	}()
-
-	wg1.Wait()
-	wg2.Wait()
-
-	assert.ElementsMatch(t, expectedResults, received1, "listener1 received messages do not match the expected results")
-	assert.ElementsMatch(t, expectedResults, received2, "listener2 received messages do not match the expected results")
-}
-
-func TestBroadcastWatcherWithNoListeners(t *testing.T) {
-	inputCh := make(chan int)
-	watcher := uevent.NewBroadcastWatcher(inputCh)
-
-	expectedResults := uarray.Range(0, 10)
-	expectedCount := len(expectedResults)
+	watcher := uevent.NewSingleListenerWatcher(inputCh, watcherFunc)
 
 	// Create a context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -101,24 +56,67 @@ func TestBroadcastWatcherWithNoListeners(t *testing.T) {
 		}
 		close(inputCh)
 	}()
+
+	// Wait for all listeners to finish
+	wg.Wait()
+
+	assert.ElementsMatch(t, expectedResults, received, "Received messages do not match the expected results")
 }
 
-func TestBroadcastWatcherContextCancel(t *testing.T) {
+func TestParallelWatcherWithNoMessages(t *testing.T) {
 	inputCh := make(chan int)
-	watcher := uevent.NewBroadcastWatcher(inputCh)
+	expectedResults := []int{}
+	expectedCount := len(expectedResults)
 
+	var wg sync.WaitGroup
+
+	// Register the function that will receive messages
+	var received []int
+	wg.Add(expectedCount)
+	watcherFunc := func(ctx context.Context, msg *int) {
+		defer wg.Done()
+		received = append(received, *msg)
+	}
+
+	watcher := uevent.NewSingleListenerWatcher(inputCh, watcherFunc)
+
+	// Create a context with cancellation
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Start the watcher
+	started := watcher.Watch(ctx)
+	require.True(t, started, "Watcher should have started successfully")
+
+	// Ensure the watcher cannot be started again
+	startedAgain := watcher.Watch(ctx)
+	require.False(t, startedAgain, "Watcher should not start again")
+
+	// No messages to send, just close the channel
+	close(inputCh)
+
+	// Wait for all listeners to finish
+	wg.Wait()
+
+	assert.ElementsMatch(t, expectedResults, received, "Received messages do not match the expected results")
+}
+
+func TestParallelWatcherContextCancel(t *testing.T) {
+	inputCh := make(chan int)
 	expectedResults := uarray.Range(0, 10)
 	expectedCount := len(expectedResults)
 
 	var wg sync.WaitGroup
 
-	// Register listener 1
-	var received1 []int
+	// Register the function that will receive messages
+	var received []int
 	wg.Add(expectedCount)
-	watcher.Register(func(ctx context.Context, msg *int) {
+	watcherFunc := func(ctx context.Context, msg *int) {
 		defer wg.Done()
-		received1 = append(received1, *msg)
-	})
+		received = append(received, *msg)
+	}
+
+	watcher := uevent.NewSingleListenerWatcher(inputCh, watcherFunc)
 
 	// Create a context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -142,5 +140,5 @@ func TestBroadcastWatcherContextCancel(t *testing.T) {
 		close(inputCh)
 	}()
 
-	assert.ElementsMatch(t, []int{}, received1, "Listener 1 should not have received any messages due to context cancellation")
+	assert.ElementsMatch(t, []int{}, received, "Received messages do not match the expected results")
 }
