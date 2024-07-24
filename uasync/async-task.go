@@ -91,7 +91,7 @@ func tryTask[R any](fn func() (*R, error), try int, max int) (*R, error) {
 	r, err := fn() // Execute the task function.
 	if err != nil {
 		if try < max {
-			return tryTask(fn, try+1, max)
+			return tryTask[R](fn, try+1, max)
 		} else {
 			return nil, fmt.Errorf("attempt %d has failed: %w", try, err)
 		}
