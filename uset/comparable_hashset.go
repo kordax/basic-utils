@@ -11,7 +11,7 @@ import (
 	"github.com/kordax/basic-utils/umap"
 )
 
-// ComparableHashSet is the same as HashSet
+// ComparableHashSet is the same as HashSet, but allows for custom UniqueKey definition.
 type ComparableHashSet[T uconst.UniqueKey[K], K comparable] struct {
 	m map[K]T
 }
@@ -78,22 +78,6 @@ func (s *ComparableHashSet[T, K]) Size() int {
 // Clear returns the number of elements in the set
 func (s *ComparableHashSet[T, K]) Clear() {
 	s.m = make(map[K]T)
-}
-
-// Compare compares two values of type T based on their keys and returns an integer indicating their relative order.
-// The keys are obtained by calling the Key() method on the values of type T.
-//
-// Parameters:
-// - lhv: The left-hand value to be compared.
-// - rhv: The right-hand value to be compared.
-//
-// Returns:
-// - true if keys are equals
-// - false otherwise
-//
-// The method assumes that T implements a Key() method that returns an integer value which can be used for comparison.
-func (s *ComparableHashSet[T, K]) Compare(lhv, rhv T) bool {
-	return lhv.Key() == rhv.Key()
 }
 
 func (s *ComparableHashSet[T, K]) Values() []T {

@@ -87,7 +87,7 @@ func TestOrderedHashSet_AsSlice(t *testing.T) {
 			{key: 2},
 			{key: 3},
 		}
-		assert.Equal(t, expected, set.AsSlice())
+		assert.Equal(t, expected, set.OrderedList())
 	})
 
 	t.Run("Duplicate elements", func(t *testing.T) {
@@ -100,7 +100,7 @@ func TestOrderedHashSet_AsSlice(t *testing.T) {
 			{key: 1},
 			{key: 2},
 		}
-		assert.Equal(t, expected, set.AsSlice())
+		assert.Equal(t, expected, set.OrderedList())
 	})
 
 	t.Run("Removing an element", func(t *testing.T) {
@@ -114,7 +114,7 @@ func TestOrderedHashSet_AsSlice(t *testing.T) {
 			{key: 1},
 			{key: 3},
 		}
-		assert.Equal(t, expected, set.AsSlice())
+		assert.Equal(t, expected, set.OrderedList())
 	})
 
 	t.Run("Multiple operations", func(t *testing.T) {
@@ -132,12 +132,12 @@ func TestOrderedHashSet_AsSlice(t *testing.T) {
 			{key: 4},
 			{key: 1},
 		}
-		assert.Equal(t, expected, set.AsSlice())
+		assert.Equal(t, expected, set.OrderedList())
 	})
 
 	t.Run("No elements", func(t *testing.T) {
 		set := uset.NewOrderedHashSet[testElement, int]()
-		assert.Empty(t, set.AsSlice())
+		assert.Empty(t, set.OrderedList())
 	})
 
 	t.Run("Clearing the set", func(t *testing.T) {
@@ -146,7 +146,7 @@ func TestOrderedHashSet_AsSlice(t *testing.T) {
 		set.Add(testElement{key: 2})
 		set.Clear()
 
-		assert.Empty(t, set.AsSlice())
+		assert.Empty(t, set.OrderedList())
 	})
 
 	t.Run("Elements added after clearing the set", func(t *testing.T) {
@@ -162,7 +162,7 @@ func TestOrderedHashSet_AsSlice(t *testing.T) {
 			{key: 3},
 			{key: 4},
 		}
-		assert.Equal(t, expected, set.AsSlice())
+		assert.Equal(t, expected, set.OrderedList())
 	})
 
 	t.Run("Interleaved operations", func(t *testing.T) {
@@ -178,6 +178,6 @@ func TestOrderedHashSet_AsSlice(t *testing.T) {
 			{key: 7},
 			{key: 8},
 		}
-		assert.Equal(t, expected, set.AsSlice())
+		assert.Equal(t, expected, set.OrderedList())
 	})
 }
