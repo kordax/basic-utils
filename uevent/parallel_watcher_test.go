@@ -35,7 +35,7 @@ func TestParallelWatcher(t *testing.T) {
 		received = append(received, *msg)
 	}
 
-	watcher := uevent.NewSingleListenerWatcher(inputCh, watcherFunc)
+	watcher := uevent.NewParallelWatcher(inputCh, watcherFunc)
 
 	// Create a context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -78,7 +78,7 @@ func TestParallelWatcherWithNoMessages(t *testing.T) {
 		received = append(received, *msg)
 	}
 
-	watcher := uevent.NewSingleListenerWatcher(inputCh, watcherFunc)
+	watcher := uevent.NewParallelWatcher(inputCh, watcherFunc)
 
 	// Create a context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -116,7 +116,7 @@ func TestParallelWatcherContextCancel(t *testing.T) {
 		received = append(received, *msg)
 	}
 
-	watcher := uevent.NewSingleListenerWatcher(inputCh, watcherFunc)
+	watcher := uevent.NewParallelWatcher(inputCh, watcherFunc)
 
 	// Create a context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
