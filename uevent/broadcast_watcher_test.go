@@ -17,9 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Define a watchFunc type for the test
-type watchFunc[T any] func(ctx context.Context, msg *T)
-
 func TestBroadcastWatcher(t *testing.T) {
 	inputCh := make(chan int)
 	watcher := uevent.NewBroadcastWatcher(inputCh)
