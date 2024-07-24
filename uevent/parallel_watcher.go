@@ -26,7 +26,7 @@ import (
 // - m: A mutex to ensure that Watch is thread-safe.
 // - watching: An atomic boolean to track whether a watcher is currently active.
 type ParallelWatcher[T any] struct {
-	ch chan T
+	ch <-chan T
 
 	m        sync.Mutex
 	watching atomic.Bool
@@ -34,7 +34,7 @@ type ParallelWatcher[T any] struct {
 	f atomic.Pointer[watchFunc[T]]
 }
 
-func NewSingleListenerWatcher[T any](ch chan T, f watchFunc[T]) *ParallelWatcher[T] {
+func NewSingleListenerWatcher[T any](ch <-chan T, f watchFunc[T]) *ParallelWatcher[T] {
 	w := &ParallelWatcher[T]{ch: ch}
 	w.Register(f)
 
