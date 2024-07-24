@@ -9,6 +9,8 @@ package uset
 import "github.com/kordax/basic-utils/uconst"
 
 // OrderedHashSet is a set implementation that preserves the order of elements as they were added.
+// This implementation is slower than a traditional HashSet or ComparableHashset, therefore it's recommended to use this
+// only in cases you need to retrieve the items in their original order.
 type OrderedHashSet[T uconst.UniqueKey[K], K comparable] struct {
 	m    map[K]dummy
 	list []T
