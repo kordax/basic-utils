@@ -34,7 +34,7 @@ type ParallelWatcher[T any] struct {
 	f atomic.Pointer[watchFunc[T]]
 }
 
-func NewSingleListenerWatcher[T any](ch <-chan T, f watchFunc[T]) *ParallelWatcher[T] {
+func NewParallelWatcher[T any](ch <-chan T, f watchFunc[T]) *ParallelWatcher[T] {
 	w := &ParallelWatcher[T]{ch: ch}
 	w.Register(f)
 
