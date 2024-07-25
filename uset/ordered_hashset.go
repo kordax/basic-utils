@@ -72,13 +72,12 @@ func (s *OrderedHashSet[T, K]) Get(key K) *T {
 	return &v
 }
 
-// Remove deletes a value from the set and returns true if the value was present.
-func (s *OrderedHashSet[T, K]) Remove(value T) bool {
+// Delete deletes a value from the set by unique key and returns true if the value was present.
+func (s *OrderedHashSet[T, K]) Delete(key K) bool {
 	if s.m == nil {
 		s.m = make(map[K]T)
 	}
 
-	key := value.Key()
 	if _, exists := s.m[key]; exists {
 		delete(s.m, key)
 		for i, v := range s.list {
@@ -90,6 +89,11 @@ func (s *OrderedHashSet[T, K]) Remove(value T) bool {
 		return true
 	}
 	return false
+}
+
+// Remove deletes a value from the set and returns true if the value was present.
+func (s *OrderedHashSet[T, K]) Remove(value T) bool {
+	return s.Delete(value.Key())
 }
 
 // Size returns the number of elements in the set.
