@@ -12,19 +12,19 @@ import "github.com/kordax/basic-utils/uconst"
 // This implementation is slower than a traditional HashSet or ComparableHashset, therefore it's recommended to use this
 // only in cases you need to retrieve the items in their original order.
 type OrderedHashSet[T uconst.UniqueKey[K], K comparable] struct {
-	m    map[K]dummy
+	m    map[K]T
 	list []T
 }
 
 // NewOrderedHashSet creates a new instance of OrderedHashSet.
 func NewOrderedHashSet[T uconst.UniqueKey[K], K comparable](values ...T) *OrderedHashSet[T, K] {
-	m := make(map[K]dummy)
+	m := make(map[K]T)
 	list := make([]T, 0, len(values))
 
 	for _, v := range values {
 		key := v.Key()
 		if _, exists := m[key]; !exists {
-			m[key] = def
+			m[key] = v
 			list = append(list, v)
 		}
 	}
@@ -35,7 +35,7 @@ func NewOrderedHashSet[T uconst.UniqueKey[K], K comparable](values ...T) *Ordere
 // Add inserts a value into the set and returns true if the value was not already present.
 func (s *OrderedHashSet[T, K]) Add(value T) bool {
 	if s.m == nil {
-		s.m = make(map[K]dummy)
+		s.m = make(map[K]T)
 	}
 
 	key := value.Key()
@@ -43,7 +43,7 @@ func (s *OrderedHashSet[T, K]) Add(value T) bool {
 		return false
 	}
 
-	s.m[key] = def
+	s.m[key] = value
 	s.list = append(s.list, value)
 	return true
 }
@@ -51,17 +51,31 @@ func (s *OrderedHashSet[T, K]) Add(value T) bool {
 // Contains checks if a value is present in the set.
 func (s *OrderedHashSet[T, K]) Contains(value T) bool {
 	if s.m == nil {
-		s.m = make(map[K]dummy)
+		s.m = make(map[K]T)
 	}
 
 	_, exists := s.m[value.Key()]
 	return exists
 }
 
+// Get retrieves the element by unique key
+func (s *OrderedHashSet[T, K]) Get(key K) *T {
+	if s.m == nil {
+		s.m = make(map[K]T)
+	}
+
+	v, exists := s.m[key]
+	if !exists {
+		return nil
+	}
+
+	return &v
+}
+
 // Remove deletes a value from the set and returns true if the value was present.
 func (s *OrderedHashSet[T, K]) Remove(value T) bool {
 	if s.m == nil {
-		s.m = make(map[K]dummy)
+		s.m = make(map[K]T)
 	}
 
 	key := value.Key()
@@ -85,7 +99,7 @@ func (s *OrderedHashSet[T, K]) Size() int {
 
 // Clear removes all elements from the set.
 func (s *OrderedHashSet[T, K]) Clear() {
-	s.m = make(map[K]dummy)
+	s.m = make(map[K]T)
 	s.list = []T{}
 }
 
