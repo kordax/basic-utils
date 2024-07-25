@@ -181,3 +181,24 @@ func TestOrderedHashSet_AsSlice(t *testing.T) {
 		assert.Equal(t, expected, set.OrderedList())
 	})
 }
+
+func TestOrderedHashSet_Get(t *testing.T) {
+	t.Parallel()
+
+	set := uset.NewOrderedHashSet[testElement, int]()
+	set.Add(testElement{key: 1})
+	set.Add(testElement{key: 2})
+
+	// Test getting existing elements
+	elem := set.Get(1)
+	assert.NotNil(t, elem)
+	assert.Equal(t, &testElement{key: 1}, elem)
+
+	elem = set.Get(2)
+	assert.NotNil(t, elem)
+	assert.Equal(t, &testElement{key: 2}, elem)
+
+	// Test getting non-existent element
+	elem = set.Get(3)
+	assert.Nil(t, elem)
+}
