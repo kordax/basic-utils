@@ -59,6 +59,34 @@ func TestOrderedHashSet_Remove(t *testing.T) {
 	assert.Equal(t, 1, set.Size())
 }
 
+func TestOrderedHashSet_Delete(t *testing.T) {
+	t.Parallel()
+
+	set := uset.NewOrderedHashSet[testElement, int]()
+	set.Add(testElement{key: 1})
+	set.Add(testElement{key: 2})
+	set.Add(testElement{key: 3})
+
+	// Test deleting existing elements
+	assert.True(t, set.Delete(2))
+	assert.Equal(t, 2, set.Size())
+	assert.False(t, set.Contains(testElement{key: 2}))
+
+	// Test deleting non-existent elements
+	assert.False(t, set.Delete(4))
+	assert.Equal(t, 2, set.Size())
+
+	// Test deleting the first element
+	assert.True(t, set.Delete(1))
+	assert.Equal(t, 1, set.Size())
+	assert.False(t, set.Contains(testElement{key: 1}))
+
+	// Test deleting the last remaining element
+	assert.True(t, set.Delete(3))
+	assert.Equal(t, 0, set.Size())
+	assert.False(t, set.Contains(testElement{key: 3}))
+}
+
 func TestOrderedHashSet_Clear(t *testing.T) {
 	t.Parallel()
 

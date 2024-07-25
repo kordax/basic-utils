@@ -24,6 +24,7 @@ type OrderedSet[T uconst.UniqueKey[K], K comparable] interface {
 	Add(value T) bool
 	Contains(value T) bool
 	Get(key K) *T // Retrieve value by key
+	Delete(key K) bool
 	Remove(value T) bool
 	Size() int
 	Clear()
