@@ -431,3 +431,21 @@ func TestRequireEnvHelpers(t *testing.T) {
 		assert.Equal(t, &expectedBool, result)
 	})
 }
+
+func TestCheckEnvBool(t *testing.T) {
+	defer t.Cleanup(func() {
+		_ = os.Unsetenv("TEST_BOOL")
+	})
+
+	t.Run("Bool is true", func(t *testing.T) {
+		require.NoError(t, os.Setenv("TEST_BOOL", "true"))
+		result := uos.CheckEnvBool("TEST_BOOL")
+		assert.True(t, result)
+	})
+
+	t.Run("Bool is false", func(t *testing.T) {
+		require.NoError(t, os.Setenv("TEST_BOOL", "false"))
+		result := uos.CheckEnvBool("TEST_BOOL")
+		assert.False(t, result)
+	})
+}
