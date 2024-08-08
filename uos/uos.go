@@ -300,6 +300,22 @@ func RequireEnvBool(key string) bool {
 	return RequireEnvAs[bool](key, MapStringToBool)
 }
 
+// CheckEnvBool helper is the same as RequireEnvBool, but doesn't panic as all RequireEnv or RequireEnvAs functions.
+// It returns true if env variable is set to 'true' (case-insensitive)  returns false otherwise.
+func CheckEnvBool(key string) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return false
+	}
+
+	result, err := MapStringToBool(value)
+	if err != nil {
+		return false
+	}
+
+	return *result
+}
+
 func getCGroupCPUs() (int, error) { // coverage-ignore
 	quota, err := readCgroupValue("/sys/fs/cgroup/cpu/cpu.cfs_quota_us")
 	if err != nil {
