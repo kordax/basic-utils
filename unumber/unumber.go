@@ -7,10 +7,14 @@
 package unumber
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
+
+	"github.com/kordax/basic-utils/uconst"
 )
 
 type ValueType int
@@ -169,6 +173,68 @@ func FromString(s string, isBig bool) (*Number, error) {
 			return num, nil
 		}
 	}
+}
+
+// Denominate converts an amount in USD to match the provided currency's precision by shifting the decimal point.
+//
+// Parameters:
+// - `amount`: The floating-point amount to be denominated.
+// - `denominator`: The number of decimal places to shift the amount by, ranging from 0 to 15.
+//
+// Returns:
+// - The denominated value as an integer type.
+// - An error if the denominator exceeds 15.
+//
+// Pitfalls:
+// - Denominator values greater than 15 are not supported and will result in an error.
+// - Be cautious of potential precision loss when working with very large or very small floating-point numbers.
+// - This method directly converts the result to the target integer type, which may result in truncation or rounding.
+func Denominate[T uconst.Float, R uconst.Integer](amount T, denominator int) (R, error) {
+	if denominator > 15 {
+		return 0, errors.New("denominator cannot be greater than 15")
+	}
+
+	return R(float64(amount) * math.Pow(10, float64(denominator))), nil
+}
+
+// ParseDenominated converts a denominated value back to its original floating-point representation
+// by shifting the decimal point.
+//
+// Parameters:
+// - `amount`: The denominated value to be parsed. This should be a numeric type.
+// - `denominator`: The number of decimal places to shift the amount back by, ranging from 0 to 15.
+//
+// Returns:
+// - The original floating-point value after adjusting for the denominator.
+// - An error if the denominator exceeds 15 or if the operation results in an overflow or invalid number.
+//
+// Pitfalls:
+//   - **Denominator Limits**: Denominator values greater than 15 are not supported and will result in an error.
+//   - **Overflow and NaN**: If the operation results in a value that is too large, too small, or undefined (NaN),
+//     an error will be returned. This can occur with extreme values of `amount` or `denominator`.
+//   - **Precision Loss**: While this function handles typical cases effectively, very large or small numbers may
+//     still be subject to floating-point precision issues inherent to the `float64` type. This is particularly
+//     important when working with numbers that have more than 15 significant digits.
+//
+// Usage:
+//   - This function is typically used to reverse the effects of a denomination operation, restoring the original
+//     floating-point value from its integer-denominated form.
+func ParseDenominated[T uconst.Numeric](amount T, denominator int) (float64, error) {
+	if denominator > 15 {
+		return 0, errors.New("denominator cannot be greater than 15")
+	}
+
+	denom := math.Pow(10, float64(denominator))
+	if math.IsInf(denom, 0) {
+		return 0, errors.New("overflow detected in denominator calculation")
+	}
+
+	result := float64(amount) / denom
+	if math.IsInf(result, 0) || math.IsNaN(result) {
+		return 0, errors.New("overflow detected in result")
+	}
+
+	return result, nil
 }
 
 func (n *Number) T() ValueType {
