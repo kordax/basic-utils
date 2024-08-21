@@ -165,17 +165,12 @@ func RequireEnv(key string) string {
 // Note: Since this function uses panic for error handling, it should be used in contexts
 // where such behavior is acceptable, or it should be recovered using defer and recover mechanisms.
 func RequireEnvAs[T any](key string, f MappingFunc[T]) T {
-	value := os.Getenv(key)
-	if value == "" {
-		panic(fmt.Errorf("expected environment variable '%s' was not found", key))
-	}
-
-	result, err := f(value)
+	as, err := GetEnvAs[T](key, f)
 	if err != nil {
-		panic(fmt.Errorf("failed to map environment variable '%s'", key))
+		panic(err)
 	}
 
-	return *result
+	return *as
 }
 
 // RequireEnvSlice retrieves an environment variable specified by `key` and returns it as a slice of strings.
@@ -314,6 +309,31 @@ func CheckEnvBool(key string) bool {
 	}
 
 	return *result
+}
+
+// GetEnvAs is the same as RequireEnvAs, but indicates whether result was found or not.
+func GetEnvAs[T any](key string, f MappingFunc[T]) (*T, error) {
+	value := os.Getenv(key)
+	if value == "" {
+		return nil, fmt.Errorf("expected environment variable '%s' was not found", key)
+	}
+
+	result, err := f(value)
+	if err != nil {
+		return nil, fmt.Errorf("failed to map environment variable '%s'", key)
+	}
+
+	return result, nil
+}
+
+// RequireEnvOrDefault is the same as RequireEnvAs, but returns default value in case
+func RequireEnvOrDefault[T any](key string, f MappingFunc[T], def T) (result T) {
+	defer func() {
+		if r := recover(); r != nil {
+			result = def
+		}
+	}()
+	return RequireEnvAs[T](key, f)
 }
 
 func getCGroupCPUs() (int, error) { // coverage-ignore
