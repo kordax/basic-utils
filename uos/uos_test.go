@@ -449,3 +449,102 @@ func TestCheckEnvBool(t *testing.T) {
 		assert.False(t, result)
 	})
 }
+
+func TestGetEnvAs(t *testing.T) {
+	require.NoError(t, os.Setenv("TEST_TIME", "2023-01-01T15:04:05Z"))
+	require.NoError(t, os.Setenv("TEST_BASE64", base64.StdEncoding.EncodeToString([]byte("hello"))))
+	require.NoError(t, os.Setenv("TEST_HEX", hex.EncodeToString([]byte("hello"))))
+	require.NoError(t, os.Setenv("TEST_URL", "https://www.example.com"))
+
+	defer func() {
+		_ = os.Unsetenv("TEST_TIME")
+		_ = os.Unsetenv("TEST_BASE64")
+		_ = os.Unsetenv("TEST_HEX")
+		_ = os.Unsetenv("TEST_URL")
+	}()
+
+	t.Run("Time", func(t *testing.T) {
+		expectedTime, _ := time.Parse(time.RFC3339, os.Getenv("TEST_TIME"))
+		result, err := uos.GetEnvAs("TEST_TIME", uos.MapStringToTime(time.RFC3339))
+		require.NoError(t, err)
+		assert.Equal(t, expectedTime, *result)
+	})
+
+	t.Run("Base64", func(t *testing.T) {
+		expectedText := "hello"
+		result, err := uos.GetEnvAs("TEST_BASE64", uos.MapStringToBase64)
+		require.NoError(t, err)
+		assert.Equal(t, expectedText, *result)
+	})
+
+	t.Run("Hex", func(t *testing.T) {
+		expectedText := []byte("hello")
+		result, err := uos.GetEnvAs("TEST_HEX", uos.MapStringToHex)
+		require.NoError(t, err)
+		assert.Equal(t, expectedText, *result)
+	})
+
+	t.Run("URL", func(t *testing.T) {
+		expectedURL, _ := url.Parse(os.Getenv("TEST_URL"))
+		result, err := uos.GetEnvAs("TEST_URL", uos.MapStringToURL)
+		require.NoError(t, err)
+		assert.Equal(t, *expectedURL, *result)
+	})
+
+	t.Run("MissingEnvVar", func(t *testing.T) {
+		result, err := uos.GetEnvAs("NON_EXISTENT_VAR", uos.MapStringToTime(time.RFC3339))
+		assert.Error(t, err)
+		assert.Nil(t, result)
+	})
+}
+
+func TestRequireEnvOrDefault(t *testing.T) {
+	require.NoError(t, os.Setenv("TEST_TIME", "2023-01-01T15:04:05Z"))
+	require.NoError(t, os.Setenv("TEST_BASE64", base64.StdEncoding.EncodeToString([]byte("hello"))))
+	require.NoError(t, os.Setenv("TEST_HEX", hex.EncodeToString([]byte("hello"))))
+	require.NoError(t, os.Setenv("TEST_URL", "https://www.example.com"))
+
+	defer func() {
+		_ = os.Unsetenv("TEST_TIME")
+		_ = os.Unsetenv("TEST_BASE64")
+		_ = os.Unsetenv("TEST_HEX")
+		_ = os.Unsetenv("TEST_URL")
+	}()
+
+	t.Run("Time", func(t *testing.T) {
+		expectedTime, _ := time.Parse(time.RFC3339, os.Getenv("TEST_TIME"))
+		result := uos.RequireEnvOrDefault("TEST_TIME", uos.MapStringToTime(time.RFC3339), time.Time{})
+		assert.Equal(t, expectedTime, result)
+	})
+
+	t.Run("Base64", func(t *testing.T) {
+		expectedText := "hello"
+		result := uos.RequireEnvOrDefault("TEST_BASE64", uos.MapStringToBase64, "")
+		assert.Equal(t, expectedText, result)
+	})
+
+	t.Run("Hex", func(t *testing.T) {
+		expectedText := []byte("hello")
+		result := uos.RequireEnvOrDefault("TEST_HEX", uos.MapStringToHex, []byte{})
+		assert.Equal(t, expectedText, result)
+	})
+
+	t.Run("URL", func(t *testing.T) {
+		expectedURL, _ := url.Parse(os.Getenv("TEST_URL"))
+		result := uos.RequireEnvOrDefault("TEST_URL", uos.MapStringToURL, url.URL{})
+		assert.Equal(t, *expectedURL, result)
+	})
+
+	t.Run("MissingEnvVar", func(t *testing.T) {
+		defaultValue := time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)
+		result := uos.RequireEnvOrDefault("NON_EXISTENT_VAR", uos.MapStringToTime(time.RFC3339), defaultValue)
+		assert.Equal(t, defaultValue, result)
+	})
+
+	t.Run("InvalidValue", func(t *testing.T) {
+		require.NoError(t, os.Setenv("TEST_INVALID", "invalid-time-format"))
+		defaultValue := time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)
+		result := uos.RequireEnvOrDefault("TEST_INVALID", uos.MapStringToTime(time.RFC3339), defaultValue)
+		assert.Equal(t, defaultValue, result)
+	})
+}
