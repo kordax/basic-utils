@@ -116,7 +116,7 @@ func TestContainsStruct(t *testing.T) {
 		{MyStruct{ID: 3, Name: "Bob"}, 2, &slice[2]},
 	}
 	for _, test := range existingElementTests {
-		index, value := uarray.ContainsStruct[int, MyStruct](test.element, slice)
+		index, value := uarray.ContainsStruct[int, MyStruct](slice, test.element)
 		if index != test.expectedIndex || !test.expectedValue.Equals(*value) {
 			t.Errorf("Expected index %d and value %v, but got index %d and value %v",
 				test.expectedIndex, test.expectedValue, index, value)
@@ -124,7 +124,7 @@ func TestContainsStruct(t *testing.T) {
 	}
 
 	// Test case for non-existing struct element
-	index, value := uarray.ContainsStruct[int, MyStruct](MyStruct{ID: 4, Name: "Alice"}, slice)
+	index, value := uarray.ContainsStruct[int, MyStruct](slice, MyStruct{ID: 4, Name: "Alice"})
 	if index != -1 || value != nil {
 		t.Errorf("Expected index -1 and nil value, but got index %d and value %v", index, value)
 	}
@@ -143,14 +143,14 @@ func TestContains(t *testing.T) {
 		{"orange", 2},
 	}
 	for _, test := range existingElementTests {
-		index := uarray.Contains(test.element, slice)
+		index := uarray.Contains(slice, test.element)
 		if index != test.expectedIndex {
 			t.Errorf("Expected index %d, but got %d for element %s", test.expectedIndex, index, test.element)
 		}
 	}
 
 	// Test case for non-existing element
-	index := uarray.Contains("grape", slice)
+	index := uarray.Contains(slice, "grape")
 	if index != -1 {
 		t.Errorf("Expected index -1, but got %d for non-existing element", index)
 	}
@@ -242,6 +242,73 @@ func TestAnyMatch(t *testing.T) {
 	}
 }
 
+func TestHas(t *testing.T) {
+	tests := []struct {
+		name     string
+		values   interface{}
+		val      interface{}
+		expected bool
+	}{
+		{
+			name:     "String slice - value exists",
+			values:   []string{"apple", "banana", "orange"},
+			val:      "banana",
+			expected: true,
+		},
+		{
+			name:     "String slice - value does not exist",
+			values:   []string{"apple", "banana", "orange"},
+			val:      "grape",
+			expected: false,
+		},
+		{
+			name:     "Int slice - value exists",
+			values:   []int{1, 2, 3, 4, 5},
+			val:      3,
+			expected: true,
+		},
+		{
+			name:     "Int slice - value does not exist",
+			values:   []int{1, 2, 3, 4, 5},
+			val:      6,
+			expected: false,
+		},
+		{
+			name:     "Empty slice",
+			values:   []string{},
+			val:      "apple",
+			expected: false,
+		},
+		{
+			name:     "Slice with duplicates",
+			values:   []int{1, 2, 2, 3},
+			val:      2,
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			switch v := tt.values.(type) {
+			case []string:
+				val := tt.val.(string)
+				result := uarray.Has(v, val)
+				require.NotNil(t, result, "Result should not be nil")
+				assert.Equal(t, tt.expected, result, "Has(%v, %v) = %v; want %v", v, val, result, tt.expected)
+			case []int:
+				val := tt.val.(int)
+				result := uarray.Has(v, val)
+				require.NotNil(t, result, "Result should not be nil")
+				assert.Equal(t, tt.expected, result, "Has(%v, %v) = %v; want %v", v, val, result, tt.expected)
+			default:
+				t.Fatalf("Unsupported type for values: %T", tt.values)
+			}
+		})
+	}
+}
+
 func TestFilter(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
 	filtered := uarray.Filter(values, func(v *int) bool {
@@ -277,9 +344,83 @@ func TestFilterAll(t *testing.T) {
 func TestFilterBySet(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
 	filter := []int{2, 4}
-	filtered := uarray.FilterBySet(values, filter)
+	filtered := uarray.FilterBySet(values, filter...)
 	if !reflect.DeepEqual(filtered, []int{2, 4}) {
 		t.Error("FilterBySet function failed")
+	}
+}
+
+func TestFilterOutBySet(t *testing.T) {
+	tests := []struct {
+		name     string
+		values   []int
+		filter   []int
+		expected []int
+	}{
+		{
+			name:     "Filter out some elements",
+			values:   []int{1, 2, 3, 4, 5},
+			filter:   []int{2, 4},
+			expected: []int{1, 3, 5},
+		},
+		{
+			name:     "Filter is empty",
+			values:   []int{1, 2, 3},
+			filter:   []int{},
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "Values is empty",
+			values:   []int{},
+			filter:   []int{1, 2},
+			expected: []int{},
+		},
+		{
+			name:     "All elements filtered out",
+			values:   []int{1, 2, 3},
+			filter:   []int{1, 2, 3},
+			expected: []int{},
+		},
+		{
+			name:     "No elements filtered out",
+			values:   []int{1, 2, 3},
+			filter:   []int{4, 5},
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "Values with duplicates",
+			values:   []int{1, 2, 2, 3, 4, 5},
+			filter:   []int{2, 4},
+			expected: []int{1, 3, 5},
+		},
+		{
+			name:     "Filter with duplicates",
+			values:   []int{1, 2, 3, 4, 5},
+			filter:   []int{2, 2, 4, 4},
+			expected: []int{1, 3, 5},
+		},
+		{
+			name:     "Both values and filter are empty",
+			values:   []int{},
+			filter:   []int{},
+			expected: []int{},
+		},
+		{
+			name:     "Non-overlapping values and filter",
+			values:   []int{6, 7, 8},
+			filter:   []int{1, 2, 3},
+			expected: []int{6, 7, 8},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := uarray.FilterOutBySet(tt.values, tt.filter...)
+			require.NotNil(t, result, "Result should not be nil")
+			assert.Equal(t, tt.expected, result, "Filtered result does not match expected output")
+		})
 	}
 }
 

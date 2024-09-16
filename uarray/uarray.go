@@ -54,7 +54,7 @@ func ContainsPredicate[T any](values []T, predicate func(v *T) bool) (int, *T) {
 
 // ContainsStruct checks if slice contains specified struct element.
 // Returns its index and value if found, -1 and nil otherwise.
-func ContainsStruct[K comparable, V Indexed[K]](val V, values []V) (int, *V) {
+func ContainsStruct[K comparable, V Indexed[K]](values []V, val V) (int, *V) {
 	for i, v := range values {
 		if equals(v.GetIndex(), val.GetIndex()) {
 			return i, &v
@@ -66,7 +66,7 @@ func ContainsStruct[K comparable, V Indexed[K]](val V, values []V) (int, *V) {
 
 // Contains checks if slice contains specified element.
 // Returns its index if found, -1 otherwise.
-func Contains[V comparable](val V, values []V) int {
+func Contains[V comparable](values []V, val V) int {
 	for i, v := range values {
 		if equals(v, val) {
 			return i
@@ -104,6 +104,14 @@ func AllMatch[T any](values []T, predicate func(v *T) bool) bool {
 func AnyMatch[T any](values []T, predicate func(v *T) bool) bool {
 	ind, _ := ContainsPredicate(values, predicate)
 	return ind != -1
+}
+
+// Has checks if slice has an element.
+// Returns true if there's a match, false otherwise.
+func Has[T comparable](values []T, val T) bool {
+	return AnyMatch(values, func(v *T) bool {
+		return *v == val
+	})
 }
 
 // Filter filters values slice and returns a copy with filtered elements matching a predicate.
@@ -144,7 +152,7 @@ func FilterAll[V any](values []V, filter func(v *V) bool) ([]V, []V) {
 
 // FilterBySet filters values slice and returns a copy with filtered elements matching values from filter.
 // Returns its index if found, -1 otherwise.
-func FilterBySet[V comparable](values []V, filter []V) []V {
+func FilterBySet[V comparable](values []V, filter ...V) []V {
 	if len(values) == 0 || len(filter) == 0 {
 		return []V{}
 	}
@@ -169,6 +177,27 @@ func FilterOut[V any](values []V, filter func(v *V) bool) []V {
 	return Filter(values, func(v *V) bool {
 		return !filter(v)
 	})
+}
+
+// FilterOutBySet filters out values slice and returns a copy without filtered elements matching values from filter.
+// Returns its index if found, -1 otherwise.
+func FilterOutBySet[V comparable](values []V, filter ...V) []V {
+	if len(values) == 0 || len(filter) == 0 {
+		return values
+	}
+
+	filterSet := make(map[V]struct{})
+	for _, v := range filter {
+		filterSet[v] = struct{}{}
+	}
+	result := make([]V, 0)
+	for _, v := range values {
+		if _, found := filterSet[v]; !found {
+			result = append(result, v)
+		}
+	}
+
+	return result
 }
 
 // SortFind sorts the given slice using the provided less function and then finds the first match
