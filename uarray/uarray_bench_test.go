@@ -52,3 +52,14 @@ func BenchmarkCopyWithoutIndexes(b *testing.B) {
 		CopyWithoutIndexes(src, indexes)
 	}
 }
+
+func BenchmarkMapAndGroupToMapBy(b *testing.B) {
+	sampleSlice := []string{"apple", "banana", "cherry", "avocado", "blueberry", "grape", "melon"}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = MapAndGroupToMapBy(sampleSlice, func(v *string) (int, *string) {
+			return len(*v), v
+		})
+	}
+}
