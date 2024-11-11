@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/kordax/basic-utils/uarray"
@@ -634,6 +635,31 @@ func TestGroupToMapBy(t *testing.T) {
 	if !reflect.DeepEqual(result, expected) {
 		t.Error("GroupToMapBy function failed")
 	}
+}
+
+func TestMapAndGroupToMapBy(t *testing.T) {
+	values := []string{"apple", "banana", "cherry", "avocado"}
+	expected := map[int][]string{
+		len("APPLE"):   {"APPLE"},
+		len("BANANA"):  {"BANANA", "CHERRY"},
+		len("AVOCADO"): {"AVOCADO"},
+	}
+
+	result := uarray.MapAndGroupToMapBy(values, func(v *string) (int, string) {
+		return len(*v), strings.ToUpper(*v)
+	})
+	assert.Equal(t, expected, result, "MapAndGroupToMapBy function failed for strings mapped to uppercase")
+
+	intValues := []int{1, 2, 3, 4, 5}
+	expectedInt := map[bool][]int{
+		true:  {4, 16},    // even numbers squared
+		false: {1, 9, 25}, // odd numbers squared
+	}
+	intResult := uarray.MapAndGroupToMapBy(intValues, func(v *int) (bool, int) {
+		return *v%2 == 0, (*v) * (*v)
+	})
+
+	assert.Equal(t, expectedInt, intResult, "MapAndGroupToMapBy function failed for integers squared")
 }
 
 func TestCopyWithoutIndex(t *testing.T) {
