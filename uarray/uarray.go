@@ -363,6 +363,17 @@ func GroupToMapBy[V any, G comparable](values []V, group func(v *V) G) map[G][]V
 	return result
 }
 
+// MapAndGroupToMapBy same as GroupToMapBy, but allows elements to be mapped to a different type.
+func MapAndGroupToMapBy[V any, G comparable, R any](values []V, group func(v *V) (G, R)) map[G][]R {
+	result := make(map[G][]R)
+	for _, v := range values {
+		g, r := group(&v)
+		result[g] = append(result[g], r)
+	}
+
+	return result
+}
+
 // CopyWithoutIndex copies a slice while ignoring an element at specific index
 func CopyWithoutIndex[T any](src []T, index int) []T {
 	cpy := make([]T, 0)
