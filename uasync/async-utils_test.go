@@ -13,17 +13,18 @@ import (
 	"time"
 
 	"github.com/kordax/basic-utils/uasync"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExecute(t *testing.T) {
 	t.Run("success within timeout", func(t *testing.T) {
-		fn := func() (*int, error) {
+		fn := func(ctx context.Context) (*int, error) {
 			val := 5
 			return &val, nil
 		}
-		cancelFunc := context.CancelFunc(func() {})
+		ctx := context.Background()
 
-		result, err := uasync.Execute(fn, cancelFunc, 1*time.Second)
+		result, err := uasync.Execute(ctx, fn)
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
@@ -33,29 +34,25 @@ func TestExecute(t *testing.T) {
 	})
 
 	t.Run("timeout before completion", func(t *testing.T) {
-		fn := func() (*int, error) {
+		fn := func(ctx context.Context) (*int, error) {
 			time.Sleep(2 * time.Second)
 			val := 5
 			return &val, nil
 		}
-		cancelFunc := context.CancelFunc(func() {})
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+		defer cancel()
 
-		_, err := uasync.Execute(fn, cancelFunc, 1*time.Second)
-		if err == nil {
-			t.Fatal("Expected timeout error, got none")
-		}
-		if !uasync.IsTimeoutError(err) {
-			t.Fatalf("Expected TimeoutError, got: %v", err)
-		}
+		_, err := uasync.Execute(ctx, fn)
+		require.Error(t, err)
 	})
 
 	t.Run("function returns error", func(t *testing.T) {
-		fn := func() (*int, error) {
+		fn := func(ctx context.Context) (*int, error) {
 			return nil, errors.New("sample error")
 		}
-		cancelFunc := context.CancelFunc(func() {})
+		ctx := context.Background()
 
-		_, err := uasync.Execute(fn, cancelFunc, 1*time.Second)
+		_, err := uasync.Execute(ctx, fn)
 		if err == nil {
 			t.Fatal("Expected an error, got none")
 		}
