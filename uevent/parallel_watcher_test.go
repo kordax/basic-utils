@@ -107,13 +107,16 @@ func TestParallelWatcherContextCancel(t *testing.T) {
 	expectedCount := len(expectedResults)
 
 	var wg sync.WaitGroup
+	var mu sync.Mutex
 
 	// Register the function that will receive messages
 	var received []int
 	wg.Add(expectedCount)
 	watcherFunc := func(ctx context.Context, msg *int) {
 		defer wg.Done()
+		mu.Lock() // Lock before appending to received
 		received = append(received, *msg)
+		mu.Unlock() // Unlock after appending
 	}
 
 	watcher := uevent.NewParallelWatcher(inputCh, watcherFunc)
