@@ -7,6 +7,7 @@
 package uasync
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -14,10 +15,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFutureSimpleCompletion(t *testing.T) {
-	f := NewFuture[int]()
+	f := NewFuture[int](context.Background())
 	value := 42
 	f.Complete(&value)
 
@@ -31,7 +33,7 @@ func TestFutureSimpleCompletion(t *testing.T) {
 }
 
 func TestFutureSimpleFailure(t *testing.T) {
-	f := NewFuture[int]()
+	f := NewFuture[int](context.Background())
 	expectedErr := errors.New("an error")
 	f.Fail(expectedErr)
 
@@ -42,26 +44,26 @@ func TestFutureSimpleFailure(t *testing.T) {
 }
 
 func TestFutureTimeoutBeforeCompletion(t *testing.T) {
-	f := NewFuture[int]()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+	f := NewFuture[int](ctx)
 
 	go func() {
-		time.Sleep(3 * time.Second)
+		time.Sleep(15 * time.Second)
 		val := 100
 		f.Complete(&val)
 	}()
 
-	_, err := f.TimeWait(100 * time.Millisecond)
-	if err == nil {
-		t.Fatal("Expected timeout error, got none")
-	}
+	_, err := f.Wait()
+	require.Error(t, err)
 }
 
 func TestFutureTimeoutAfterCompletion(t *testing.T) {
-	f := NewFuture[int]()
+	f := NewFuture[int](context.Background())
 	val := 123
 	f.Complete(&val)
 
-	result, err := f.TimeWait(100 * time.Millisecond)
+	result, err := f.Wait()
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
@@ -71,7 +73,7 @@ func TestFutureTimeoutAfterCompletion(t *testing.T) {
 }
 
 func TestFutureConcurrentCompletionAndFailure(t *testing.T) {
-	f := NewFuture[int]()
+	f := NewFuture[int](context.Background())
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 
@@ -96,7 +98,7 @@ func TestFutureConcurrentCompletionAndFailure(t *testing.T) {
 }
 
 func TestFutureMultipleCompletions(t *testing.T) {
-	f := NewFuture[int]()
+	f := NewFuture[int](context.Background())
 	val1 := 1
 	val2 := 2
 	f.Complete(&val1)
@@ -114,7 +116,7 @@ func TestFutureMultipleCompletions(t *testing.T) {
 }
 
 func TestFutureConcurrency(t *testing.T) {
-	f := NewFuture[int]()
+	f := NewFuture[int](context.Background())
 	expected := 0
 
 	// Spawn 1000 goroutines trying to complete/fail the future at the same time
@@ -161,14 +163,14 @@ func TestFutureConcurrency(t *testing.T) {
 }
 
 func TestDeadlockRisk(t *testing.T) {
-	f := NewFuture[int]()
+	f := NewFuture[int](context.Background())
 
 	// Channel to signal when the lock is obtained in the second goroutine
 	lockObtained := make(chan struct{})
 
 	// Goroutine that calls TimeWait with a long timeout
 	go func() {
-		_, _ = f.TimeWait(15 * time.Second)
+		_, _ = f.Wait()
 	}()
 
 	// Small sleep to ensure the above goroutine starts first
@@ -191,7 +193,7 @@ func TestDeadlockRisk(t *testing.T) {
 }
 
 func TestFutureCancelBeforeCompletion(t *testing.T) {
-	f := NewFuture[int]()
+	f := NewFuture[int](context.Background())
 
 	// Launch a goroutine that tries to complete the future after a delay.
 	go func() {
