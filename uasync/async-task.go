@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/kordax/basic-utils/uarray"
 )
@@ -20,19 +19,19 @@ import (
 // It provides mechanisms to start, wait for completion, and cancel the task.
 // Additionally, it allows for retrying the task a specified number of times in case of failure.
 type AsyncTask[R any] struct {
-	fn         func() (*R, error) // The function that represents the async task.
-	cancelFunc context.CancelFunc // Function to cancel the task.
-	retries    int                // Number of times to retry the task on failure.
+	fn      func(ctx context.Context) (*R, error) // The function that represents the async task.
+	retries int                                   // Number of times to retry the task on failure.
 
 	f    Future[R]               // A future object to represent the result or error of the task.
 	done *uarray.Pair[*R, error] // A pair containing the result and error of the task.
 	mtx  sync.RWMutex            // A mutex for thread-safe operations on the struct.
+
+	ctx context.Context
 }
 
 // NewAsyncTask creates a new instance of AsyncTask.
-func NewAsyncTask[R any](fn func() (*R, error), cancelFunc context.CancelFunc, retries int) *AsyncTask[R] {
-	f := NewFuture[R]()
-	return &AsyncTask[R]{fn: fn, cancelFunc: cancelFunc, retries: retries, f: f}
+func NewAsyncTask[R any](ctx context.Context, fn func(ctx context.Context) (*R, error), retries int) *AsyncTask[R] {
+	return &AsyncTask[R]{ctx: ctx, fn: fn, retries: retries, f: NewFuture[R](ctx)}
 }
 
 // ExecuteAsync initiates the execution of the task in a separate goroutine.
@@ -40,25 +39,47 @@ func NewAsyncTask[R any](fn func() (*R, error), cancelFunc context.CancelFunc, r
 // Once the task completes or fails after all retries, the result or error is stored internally.
 func (t *AsyncTask[R]) ExecuteAsync() {
 	go func() {
-		r, err := tryTask(t.fn, 0, t.retries)
-		if err != nil {
-			t.f.Fail(err)
-			t.mtx.Lock()
-			t.done = uarray.NewPair[*R, error](nil, err)
-			t.mtx.Unlock()
-			return
-		}
+		resultChan := make(chan *R)
+		errChan := make(chan error)
 
-		t.f.Complete(r)
-		t.mtx.Lock()
-		t.done = uarray.NewPair[*R, error](r, nil)
-		t.mtx.Unlock()
+		r, err := tryTask(t.ctx, t.fn, 0, t.retries)
+
+		go func() {
+			select {
+			case <-t.ctx.Done():
+				// If context is canceled, set the task as canceled
+				t.cancel()
+				t.mtx.Lock()
+				t.done = uarray.NewPair[*R, error](nil, t.ctx.Err())
+				t.mtx.Unlock()
+
+			case r = <-resultChan:
+				// If the task completes successfully
+				t.f.Complete(r)
+				t.mtx.Lock()
+				t.done = uarray.NewPair[*R, error](r, nil)
+				t.mtx.Unlock()
+
+			case err = <-errChan:
+				// If the task fails after all retries
+				t.f.Fail(err)
+				t.mtx.Lock()
+				t.done = uarray.NewPair[*R, error](nil, err)
+				t.mtx.Unlock()
+			}
+		}()
+
+		if err != nil {
+			errChan <- err
+		} else {
+			resultChan <- r
+		}
 	}()
 }
 
 // Wait allows the caller to wait for the task to complete or fail.
 // If the task has already completed or failed, it returns the result or error immediately.
-func (t *AsyncTask[R]) Wait(timeout time.Duration) (*R, error) {
+func (t *AsyncTask[R]) Wait() (*R, error) {
 	t.mtx.RLock()
 	if t.done != nil { // Check if the task is already done.
 		t.mtx.RUnlock()
@@ -66,20 +87,19 @@ func (t *AsyncTask[R]) Wait(timeout time.Duration) (*R, error) {
 	}
 	t.mtx.RUnlock()
 
-	r, err := t.f.TimeWait(timeout)
+	r, err := t.f.Wait()
 	t.mtx.Lock()
-	t.done = uarray.NewPair(r, err)
-	t.mtx.Unlock()
+	defer t.mtx.Unlock()
+	if t.done == nil { // Check if t.done is still nil to avoid overwriting by other calls to Wait()
+		t.done = uarray.NewPair(r, err)
+	}
 
 	return r, err
 }
 
 // Cancel attempts to cancel the execution of the task.
 // It invokes the provided cancellation function and marks the task as canceled.
-func (t *AsyncTask[R]) Cancel() {
-	if t.cancelFunc != nil {
-		t.cancelFunc()
-	}
+func (t *AsyncTask[R]) cancel() {
 	t.f.Cancel()
 	t.mtx.Lock()
 	t.done = uarray.NewPair[*R, error](nil, errors.New("cancelled")) // Set the done pair to represent the cancellation.
@@ -87,11 +107,11 @@ func (t *AsyncTask[R]) Cancel() {
 }
 
 // tryTask tries to execute a task function up to a maximum number of times.
-func tryTask[R any](fn func() (*R, error), try int, max int) (*R, error) {
-	r, err := fn() // Execute the task function.
+func tryTask[R any](ctx context.Context, fn func(ctx context.Context) (*R, error), try int, max int) (*R, error) {
+	r, err := fn(ctx) // Execute the task function.
 	if err != nil {
 		if try < max {
-			return tryTask[R](fn, try+1, max)
+			return tryTask[R](ctx, fn, try+1, max)
 		} else {
 			return nil, fmt.Errorf("attempt %d has failed: %w", try, err)
 		}
