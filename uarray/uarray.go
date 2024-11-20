@@ -555,6 +555,24 @@ func RangeWithStep(from, to, step int) []int {
 	return result
 }
 
+// BestMatchBy iterates over the slice and selects the element that satisfies the predicate function as the best match.
+// The predicate function compares the current best match with the candidate and determines if the candidate is better.
+// Returns a pointer to the selected element or nil if the slice is empty.
+func BestMatchBy[T any](values []T, predicate func(currentBest, candidate *T) bool) *T {
+	if len(values) == 0 {
+		return nil
+	}
+
+	var bestMatch *T = &values[0]
+	for i := 1; i < len(values); i++ {
+		if predicate(bestMatch, &values[i]) {
+			bestMatch = &values[i]
+		}
+	}
+
+	return bestMatch
+}
+
 func equals[T comparable](t1, t2 T) bool {
 	return t1 == t2
 }
