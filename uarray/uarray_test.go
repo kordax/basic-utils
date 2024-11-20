@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/kordax/basic-utils/uarray"
+	"github.com/kordax/basic-utils/umath"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -805,4 +806,96 @@ func TestRangeWithStep_UnalignedRange(t *testing.T) {
 	expected := []int{1, 3, 5, 7, 9, 11}
 	result := uarray.RangeWithStep(1, 10, 2)
 	assert.Equal(t, expected, result)
+}
+
+func TestBestMatchBy(t *testing.T) {
+	t.Run("FindLargestInteger", func(t *testing.T) {
+		bestOne := 45
+		values := []int{10, 20, bestOne, 25, 15}
+		best := uarray.BestMatchBy(values, func(current, candidate *int) bool {
+			return *candidate > *current
+		})
+		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for non-empty slice")
+		assert.Equal(t, bestOne, *best, "BestMatchBy should return the largest integer")
+	})
+
+	t.Run("FindSmallestInteger", func(t *testing.T) {
+		bestOne := 10
+		values := []int{25, 20, 45, bestOne, 15}
+		best := uarray.BestMatchBy(values, func(current, candidate *int) bool {
+			return *candidate < *current
+		})
+		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for non-empty slice")
+		assert.Equal(t, bestOne, *best, "BestMatchBy should return the smallest integer")
+	})
+
+	t.Run("FindLongestString", func(t *testing.T) {
+		values := []string{"apple", "banana", "cherry", "watermelon"}
+		best := uarray.BestMatchBy(values, func(current, candidate *string) bool {
+			return len(*candidate) > len(*current)
+		})
+		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for non-empty slice")
+		assert.Equal(t, "watermelon", *best, "BestMatchBy should return the longest string")
+	})
+
+	t.Run("FindShortestString", func(t *testing.T) {
+		values := []string{"apple", "banana", "cherry", "fig"}
+		best := uarray.BestMatchBy(values, func(current, candidate *string) bool {
+			return len(*candidate) < len(*current)
+		})
+		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for non-empty slice")
+		assert.Equal(t, "fig", *best, "BestMatchBy should return the shortest string")
+	})
+
+	t.Run("FindHighestValueInStruct", func(t *testing.T) {
+		type TestStruct struct {
+			ID    int
+			Value int
+		}
+		values := []TestStruct{
+			{ID: 1, Value: 100},
+			{ID: 2, Value: 200},
+			{ID: 3, Value: 150},
+		}
+		best := uarray.BestMatchBy(values, func(current, candidate *TestStruct) bool {
+			return candidate.Value > current.Value
+		})
+		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for non-empty slice")
+		assert.Equal(t, 200, best.Value, "BestMatchBy should return the struct with the highest Value field")
+	})
+
+	t.Run("EmptySlice", func(t *testing.T) {
+		values := []int{}
+		best := uarray.BestMatchBy(values, func(current, candidate *int) bool {
+			return true // Arbitrary predicate
+		})
+		assert.Nil(t, best, "BestMatchBy should return nil for an empty slice")
+	})
+
+	t.Run("SingleElement", func(t *testing.T) {
+		values := []int{42}
+		best := uarray.BestMatchBy(values, func(current, candidate *int) bool {
+			return true // Always true
+		})
+		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for a single-element slice")
+		assert.Equal(t, 42, *best, "BestMatchBy should return the single element itself")
+	})
+
+	t.Run("IdenticalElements", func(t *testing.T) {
+		values := []int{5, 5, 5, 5}
+		best := uarray.BestMatchBy(values, func(current, candidate *int) bool {
+			return *candidate > *current
+		})
+		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for a slice with identical elements")
+		assert.Equal(t, 5, *best, "BestMatchBy should return one of the identical elements")
+	})
+
+	t.Run("FindLargestAbsoluteValue", func(t *testing.T) {
+		values := []int{-10, -20, 15, 5, -30}
+		best := uarray.BestMatchBy(values, func(current, candidate *int) bool {
+			return umath.AbsVal(*candidate) > umath.AbsVal(*current)
+		})
+		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for non-empty slice")
+		assert.Equal(t, -30, *best, "BestMatchBy should return the number with the largest absolute value")
+	})
 }
