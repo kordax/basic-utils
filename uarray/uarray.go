@@ -573,6 +573,45 @@ func BestMatchBy[T any](values []T, predicate func(currentBest, candidate *T) bo
 	return bestMatch
 }
 
+// Split divides a slice into multiple smaller slices (chunks) of a specified size and returns a slice of these chunks.
+//
+// If chunkSize is less than or equal to zero, the function returns a slice containing the original slice as its only element.
+// If the length of the input slice isn't perfectly divisible by chunkSize, the last chunk will contain the remaining elements.
+//
+// Example:
+//
+//	input:    []int{1, 2, 3, 4, 5}, chunkSize: 2
+//	output:   [][]int{{1, 2}, {3, 4}, {5}}
+//
+// Type Parameters:
+//
+//	T - The type of elements in the slice.
+//
+// Parameters:
+//
+//	slice - The input slice to be split.
+//	chunkSize - The desired size of each chunk.
+//
+// Returns:
+//
+//	A two-dimensional slice where each inner slice is a chunk of the original slice.
+func Split[T any](slice []T, chunkSize int) [][]T {
+	var chunks [][]T
+	if chunkSize <= 0 {
+		return append(chunks, slice)
+	}
+
+	for i := 0; i < len(slice); i += chunkSize {
+		end := i + chunkSize
+		if end > len(slice) {
+			end = len(slice)
+		}
+		chunks = append(chunks, slice[i:end])
+	}
+
+	return chunks
+}
+
 func equals[T comparable](t1, t2 T) bool {
 	return t1 == t2
 }

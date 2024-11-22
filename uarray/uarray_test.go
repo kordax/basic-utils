@@ -899,3 +899,94 @@ func TestBestMatchBy(t *testing.T) {
 		assert.Equal(t, -30, *best, "BestMatchBy should return the number with the largest absolute value")
 	})
 }
+
+func TestSplit_EmptySlice(t *testing.T) {
+	var slice []int
+	chunkSize := 3
+	result := uarray.Split(slice, chunkSize)
+	assert.Equal(t, 0, len(result), "Expected empty result for empty slice")
+}
+
+func TestSplit_NilSlice(t *testing.T) {
+	var slice []int = nil
+	chunkSize := 3
+	result := uarray.Split(slice, chunkSize)
+	assert.Equal(t, 0, len(result), "Expected empty result for nil slice")
+}
+
+func TestSplit_ChunkSizeZero(t *testing.T) {
+	slice := []int{1, 2, 3}
+	chunkSize := 0
+	result := uarray.Split(slice, chunkSize)
+	assert.Equal(t, [][]int{{1, 2, 3}}, result, "Expected original slice when chunkSize is zero")
+}
+
+func TestSplit_ChunkSizeNegative(t *testing.T) {
+	slice := []int{1, 2, 3}
+	chunkSize := -1
+	result := uarray.Split(slice, chunkSize)
+	assert.Equal(t, [][]int{{1, 2, 3}}, result, "Expected original slice when chunkSize is negative")
+}
+
+func TestSplit_ChunkSizeOne(t *testing.T) {
+	slice := []int{1, 2, 3}
+	chunkSize := 1
+	result := uarray.Split(slice, chunkSize)
+	expected := [][]int{{1}, {2}, {3}}
+	assert.Equal(t, expected, result, "Expected each element in its own chunk when chunkSize is one")
+}
+
+func TestSplit_ChunkSizeGreaterThanLength(t *testing.T) {
+	slice := []int{1, 2, 3}
+	chunkSize := 5
+	result := uarray.Split(slice, chunkSize)
+	assert.Equal(t, [][]int{{1, 2, 3}}, result, "Expected original slice in one chunk when chunkSize exceeds slice length")
+}
+
+func TestSplit_ExactDivision(t *testing.T) {
+	slice := []int{1, 2, 3, 4}
+	chunkSize := 2
+	result := uarray.Split(slice, chunkSize)
+	expected := [][]int{{1, 2}, {3, 4}}
+	assert.Equal(t, expected, result, "Expected chunks of exact size when slice length is divisible by chunkSize")
+}
+
+func TestSplit_NonExactDivision(t *testing.T) {
+	slice := []int{1, 2, 3, 4, 5}
+	chunkSize := 2
+	result := uarray.Split(slice, chunkSize)
+	expected := [][]int{{1, 2}, {3, 4}, {5}}
+	assert.Equal(t, expected, result, "Expected last chunk to contain remaining elements when slice length isn't divisible by chunkSize")
+}
+
+func TestSplit_StringSlice(t *testing.T) {
+	slice := []string{"a", "b", "c", "d"}
+	chunkSize := 2
+	result := uarray.Split(slice, chunkSize)
+	expected := [][]string{{"a", "b"}, {"c", "d"}}
+	assert.Equal(t, expected, result, "Expected correct chunks for string slice")
+}
+
+func TestSplit_StructSlice(t *testing.T) {
+	type Item struct{ Value int }
+	slice := []Item{{1}, {2}, {3}}
+	chunkSize := 2
+	result := uarray.Split(slice, chunkSize)
+	expected := [][]Item{{Item{1}, Item{2}}, {Item{3}}}
+	assert.Equal(t, expected, result, "Expected correct chunks for slice of structs")
+}
+
+func TestSplit_LargeChunkSize(t *testing.T) {
+	slice := []int{1, 2, 3}
+	chunkSize := 1000
+	result := uarray.Split(slice, chunkSize)
+	assert.Equal(t, [][]int{{1, 2, 3}}, result, "Expected original slice in one chunk when chunkSize is very large")
+}
+
+func TestSplit_NilSlice_ChunkSizeZero(t *testing.T) {
+	var slice []int = nil
+	chunkSize := 0
+	result := uarray.Split(slice, chunkSize)
+	assert.Equal(t, 1, len(result), "Expected result length of 1 for nil slice and chunkSize zero")
+	assert.Nil(t, result[0], "Expected first element to be nil")
+}
