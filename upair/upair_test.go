@@ -27,4 +27,7 @@ func TestNewCPair(t *testing.T) {
 	require.NotNil(t, pair, "NewCPair should not return nil")
 	assert.Equal(t, 236, pair.GetLeft(), "GetLeft should return the correct left value")
 	assert.Equal(t, "ctest", pair.GetRight(), "GetRight should return the correct right value")
+
+	pair2 := NewCPair(pair.Left, pair.Right)
+	assert.True(t, pair.Equals(pair2), "pair.Equals(%v) should return %v", pair, pair2)
 }
