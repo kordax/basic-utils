@@ -37,10 +37,15 @@ func NewCPair[L, R comparable](l L, r R) *CPair[L, R] {
 }
 
 func (p CPair[L, R]) Equals(other uconst.Comparable) bool {
-	if o, ok := other.(CPair[L, R]); ok {
-		return p.Left == o.Left &&
-			p.Right == o.Right
+	switch o := other.(type) {
+	case CPair[L, R]:
+		return p.Left == o.Left && p.Right == o.Right
+	case *CPair[L, R]:
+		if o == nil {
+			return false
+		}
+		return p.Left == o.Left && p.Right == o.Right
+	default:
+		return false
 	}
-
-	return false
 }

@@ -32,8 +32,17 @@ type CompositeKey interface {
 }
 
 func (k IntKey) Equals(other uconst.Comparable) bool {
-	otherKey, ok := other.(IntKey)
-	return ok && k == otherKey
+	switch o := other.(type) {
+	case IntKey:
+		return k == o
+	case *IntKey:
+		if o == nil {
+			return false
+		}
+		return k == *o
+	default:
+		return false
+	}
 }
 
 func (k IntKey) Key() int64 {
@@ -49,8 +58,17 @@ func (k IntKey) String() string {
 }
 
 func (k StringKey) Equals(other uconst.Comparable) bool {
-	otherKey, ok := other.(StringKey)
-	return ok && k == otherKey
+	switch o := other.(type) {
+	case StringKey:
+		return k == o
+	case *StringKey:
+		if o == nil {
+			return false
+		}
+		return k == *o
+	default:
+		return false
+	}
 }
 
 func (k StringKey) Key() int64 {
@@ -71,8 +89,17 @@ func (k StringKey) String() string {
 }
 
 func (k UIntKey) Equals(other uconst.Comparable) bool {
-	otherKey, ok := other.(UIntKey)
-	return ok && k == otherKey
+	switch o := other.(type) {
+	case UIntKey:
+		return k == o
+	case *UIntKey:
+		if o == nil {
+			return false
+		}
+		return k == *o
+	default:
+		return false
+	}
 }
 
 func (k UIntKey) Key() int64 {
@@ -130,8 +157,17 @@ func (k ComparableKey[T]) String() string {
 }
 
 func (k ComparableKey[T]) Equals(other uconst.Comparable) bool {
-	otherKey, ok := other.(ComparableKey[T])
-	return ok && k == otherKey
+	switch o := other.(type) {
+	case ComparableKey[T]:
+		return k == o
+	case *ComparableKey[T]:
+		if o == nil {
+			return false
+		}
+		return k == *o
+	default:
+		return false
+	}
 }
 
 type ComparableSlice[T uconst.Comparable] struct {
@@ -141,13 +177,15 @@ type ComparableSlice[T uconst.Comparable] struct {
 func (c ComparableSlice[T]) Equals(other uconst.Comparable) bool {
 	switch o := other.(type) {
 	case ComparableSlice[T]:
+		return c.eq(&o)
+	case *ComparableSlice[T]:
 		return c.eq(o)
 	default:
 		return false
 	}
 }
 
-func (c ComparableSlice[T]) eq(other ComparableSlice[T]) bool {
+func (c ComparableSlice[T]) eq(other *ComparableSlice[T]) bool {
 	if len(c.Data) != len(other.Data) {
 		return false
 	}
@@ -174,12 +212,21 @@ func NewUIntCompositeKey(keys ...uint64) UIntCompositeKey {
 }
 
 func (k UIntCompositeKey) Equals(other uconst.Comparable) bool {
+	var otherKeys []UIntKey
+
 	switch o := other.(type) {
 	case UIntCompositeKey:
-		return uarray.EqualsWithOrder(k.keys, o.keys)
+		otherKeys = o.keys
+	case *UIntCompositeKey:
+		if o == nil {
+			return false
+		}
+		otherKeys = o.keys
 	default:
 		return false
 	}
+
+	return uarray.EqualsWithOrder(k.keys, otherKeys)
 }
 
 func (k UIntCompositeKey) Keys() []int64 {
@@ -214,12 +261,21 @@ func NewIntCompositeKey(keys ...int64) IntCompositeKey {
 }
 
 func (k IntCompositeKey) Equals(other uconst.Comparable) bool {
+	var otherKeys []IntKey
+
 	switch o := other.(type) {
 	case IntCompositeKey:
-		return uarray.EqualsWithOrder(k.keys, o.keys)
+		otherKeys = o.keys
+	case *IntCompositeKey:
+		if o == nil {
+			return false
+		}
+		otherKeys = o.keys
 	default:
 		return false
 	}
+
+	return uarray.EqualsWithOrder(k.keys, otherKeys)
 }
 
 func (k IntCompositeKey) Keys() []uconst.Unique {
@@ -254,12 +310,21 @@ func NewStrCompositeKey(keys ...string) StrCompositeKey {
 }
 
 func (k StrCompositeKey) Equals(other uconst.Comparable) bool {
+	var otherKeys []StringKey
+
 	switch o := other.(type) {
 	case StrCompositeKey:
-		return uarray.EqualsWithOrder(k.keys, o.keys)
+		otherKeys = o.keys
+	case *StrCompositeKey:
+		if o == nil {
+			return false
+		}
+		otherKeys = o.keys
 	default:
 		return false
 	}
+
+	return uarray.EqualsWithOrder(k.keys, otherKeys)
 }
 
 func (k StrCompositeKey) Keys() []uconst.Unique {
@@ -294,12 +359,21 @@ func NewGenericCompositeKey(keys ...any) GenericCompositeKey {
 }
 
 func (k GenericCompositeKey) Equals(other uconst.Comparable) bool {
+	var otherKeys []ComparableKey[any]
+
 	switch o := other.(type) {
 	case GenericCompositeKey:
-		return uarray.EqualsWithOrder(k.keys, o.keys)
+		otherKeys = o.keys
+	case *GenericCompositeKey:
+		if o == nil {
+			return false
+		}
+		otherKeys = o.keys
 	default:
 		return false
 	}
+
+	return uarray.EqualsWithOrder(k.keys, otherKeys)
 }
 
 func (k GenericCompositeKey) Keys() []uconst.Unique {
@@ -487,18 +561,27 @@ func NewFarmHashCompositeKey(keys ...any) FarmHash64CompositeKey {
 }
 
 func (k FarmHash64CompositeKey) Equals(other uconst.Comparable) bool {
+	var derefOther []FarmHash64Entity
 	switch o := other.(type) {
 	case FarmHash64CompositeKey:
-		derefThis := uarray.Map(k.keys, func(v **FarmHash64Entity) FarmHash64Entity {
+		derefOther = uarray.Map(o.keys, func(v **FarmHash64Entity) FarmHash64Entity {
 			return **v
 		})
-		derefOther := uarray.Map(o.keys, func(v **FarmHash64Entity) FarmHash64Entity {
+	case *FarmHash64CompositeKey:
+		if o == nil {
+			return false
+		}
+		derefOther = uarray.Map(o.keys, func(v **FarmHash64Entity) FarmHash64Entity {
 			return **v
 		})
-		return uarray.EqualsWithOrder(derefThis, derefOther)
 	default:
 		return false
 	}
+
+	derefThis := uarray.Map(k.keys, func(v **FarmHash64Entity) FarmHash64Entity {
+		return **v
+	})
+	return uarray.EqualsWithOrder(derefThis, derefOther)
 }
 
 func (k FarmHash64CompositeKey) Keys() []uconst.Unique {
