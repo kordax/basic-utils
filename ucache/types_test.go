@@ -10,6 +10,7 @@ import (
 	"github.com/kordax/basic-utils/ucache"
 	"github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/uopt"
+	"github.com/kordax/basic-utils/uref"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -490,4 +491,94 @@ func TestFarmHash64CompositeKey_Keys(t *testing.T) {
 
 	assert.Equal(t, key1.Key(), keys[0].Key())
 	assert.Equal(t, key2.Key(), keys[1].Key())
+}
+
+func TestIntKey_Equals_2(t *testing.T) {
+	var key1 ucache.IntKey = 123
+	var key2 ucache.IntKey = 123
+	key3 := ucache.IntKey(456)
+	keyPtr := uref.Ref(ucache.IntKey(123))
+	var nilKeyPtr *ucache.IntKey = nil
+
+	assert.True(t, key1.Equals(key2), "Expected keys to be equal (value to value)")
+	assert.True(t, key1.Equals(keyPtr), "Expected keys to be equal (value to pointer)")
+	assert.True(t, keyPtr.Equals(key1), "Expected keys to be equal (pointer to value)")
+	assert.True(t, keyPtr.Equals(keyPtr), "Expected keys to be equal (pointer to pointer)")
+	assert.False(t, key1.Equals(key3), "Expected keys not to be equal (different values)")
+	assert.False(t, key1.Equals(nilKeyPtr), "Expected keys not to be equal (value to nil pointer)")
+}
+
+func TestStringKey_Equals_2(t *testing.T) {
+	key1 := ucache.StringKey("test")
+	key2 := ucache.StringKey("test")
+	key3 := ucache.StringKey("different")
+	keyPtr := uref.Ref(ucache.StringKey("test"))
+	var nilKeyPtr *ucache.StringKey = nil
+
+	assert.True(t, key1.Equals(key2), "Expected keys to be equal (value to value)")
+	assert.True(t, key1.Equals(keyPtr), "Expected keys to be equal (value to pointer)")
+	assert.True(t, keyPtr.Equals(key1), "Expected keys to be equal (pointer to value)")
+	assert.True(t, keyPtr.Equals(keyPtr), "Expected keys to be equal (pointer to pointer)")
+	assert.False(t, key1.Equals(key3), "Expected keys not to be equal (different values)")
+	assert.False(t, key1.Equals(nilKeyPtr), "Expected keys not to be equal (value to nil pointer)")
+}
+
+func TestUIntKey_Equals_2(t *testing.T) {
+	key1 := ucache.UIntKey(100)
+	key2 := ucache.UIntKey(100)
+	key3 := ucache.UIntKey(200)
+	keyPtr := uref.Ref(ucache.UIntKey(100))
+	var nilKeyPtr *ucache.UIntKey = nil
+
+	assert.True(t, key1.Equals(key2), "Expected keys to be equal (value to value)")
+	assert.True(t, key1.Equals(keyPtr), "Expected keys to be equal (value to pointer)")
+	assert.True(t, keyPtr.Equals(key1), "Expected keys to be equal (pointer to value)")
+	assert.True(t, keyPtr.Equals(keyPtr), "Expected keys to be equal (pointer to pointer)")
+	assert.False(t, key1.Equals(key3), "Expected keys not to be equal (different values)")
+	assert.False(t, key1.Equals(nilKeyPtr), "Expected keys not to be equal (value to nil pointer)")
+}
+
+func TestIntCompositeKey_Equals_PointerCases(t *testing.T) {
+	key1 := ucache.NewIntCompositeKey(1, 2, 3)
+	key2 := ucache.NewIntCompositeKey(1, 2, 3)
+	key3 := ucache.NewIntCompositeKey(4, 5, 6)
+	keyPtr := &key1
+	var nilKeyPtr *ucache.IntCompositeKey = nil
+
+	assert.True(t, key1.Equals(key2), "Expected keys to be equal (value to value)")
+	assert.True(t, key1.Equals(keyPtr), "Expected keys to be equal (value to pointer)")
+	assert.True(t, keyPtr.Equals(key1), "Expected keys to be equal (pointer to value)")
+	assert.True(t, keyPtr.Equals(keyPtr), "Expected keys to be equal (pointer to pointer)")
+	assert.False(t, key1.Equals(key3), "Expected keys not to be equal (different values)")
+	assert.False(t, key1.Equals(nilKeyPtr), "Expected keys not to be equal (value to nil pointer)")
+}
+
+func TestUIntCompositeKey_Equals_PointerCases(t *testing.T) {
+	key1 := ucache.NewUIntCompositeKey(1, 2, 3)
+	key2 := ucache.NewUIntCompositeKey(1, 2, 3)
+	key3 := ucache.NewUIntCompositeKey(4, 5, 6)
+	keyPtr := &key1
+	var nilKeyPtr *ucache.UIntCompositeKey = nil
+
+	assert.True(t, key1.Equals(key2), "Expected keys to be equal (value to value)")
+	assert.True(t, key1.Equals(keyPtr), "Expected keys to be equal (value to pointer)")
+	assert.True(t, keyPtr.Equals(key1), "Expected keys to be equal (pointer to value)")
+	assert.True(t, keyPtr.Equals(keyPtr), "Expected keys to be equal (pointer to pointer)")
+	assert.False(t, key1.Equals(key3), "Expected keys not to be equal (different values)")
+	assert.False(t, key1.Equals(nilKeyPtr), "Expected keys not to be equal (value to nil pointer)")
+}
+
+func TestStrCompositeKey_Equals_PointerCases(t *testing.T) {
+	key1 := ucache.NewStrCompositeKey("a", "b", "c")
+	key2 := ucache.NewStrCompositeKey("a", "b", "c")
+	key3 := ucache.NewStrCompositeKey("d", "e", "f")
+	keyPtr := &key1
+	var nilKeyPtr *ucache.StrCompositeKey = nil
+
+	assert.True(t, key1.Equals(key2), "Expected keys to be equal (value to value)")
+	assert.True(t, key1.Equals(keyPtr), "Expected keys to be equal (value to pointer)")
+	assert.True(t, keyPtr.Equals(key1), "Expected keys to be equal (pointer to value)")
+	assert.True(t, keyPtr.Equals(keyPtr), "Expected keys to be equal (pointer to pointer)")
+	assert.False(t, key1.Equals(key3), "Expected keys not to be equal (different values)")
+	assert.False(t, key1.Equals(nilKeyPtr), "Expected keys not to be equal (value to nil pointer)")
 }
