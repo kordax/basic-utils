@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/kordax/basic-utils/uconst"
-	"github.com/kordax/basic-utils/umap"
 	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/maps"
 )
 
 var dummy struct{}
@@ -350,7 +350,7 @@ func GroupBy[V any, G comparable](values []V, group func(v *V) G, aggregator fun
 		}
 	}
 
-	return umap.Values(result)
+	return maps.Values(result)
 }
 
 // GroupToMapBy groups elements with group method func
@@ -646,7 +646,7 @@ func AsString[T uconst.Stringable](delimiter string, values ...T) string {
 		}
 		parts = append(parts, s)
 	}
-	
+
 	return strings.Join(parts, delimiter)
 }
 

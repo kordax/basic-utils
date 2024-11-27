@@ -6,8 +6,11 @@
 
 package umap
 
+import "iter"
+
 // ReflectiveMultiMap is a concurrent-safe data structure that implements a multi-value map.
-// It associates keys of type K with multiple values of type V. The structure employs a
+// It associates keys of type K with multiple values of type V. and values under the same key
+// // can have duplicates if they produce the same hash code. The structure employs a
 // hash.Hash instance specified during creation to handle hash calculations for efficient storage
 // and retrieval. This implementation ensures thread-safety using a sync.Mutex for concurrent access.
 //
@@ -22,12 +25,12 @@ package umap
 // can have duplicates if they produce the same hash code. It is optimized for concurrent access
 // and efficient storage/retrieval operations, suitable for scenarios requiring a multi-value map
 // with concurrency support.
-type ReflectiveMultiMap[K any, V any] struct {
-	store map[any]map[any][]V
+type ReflectiveMultiMap[K comparable, V any] struct {
+	store map[K]map[any][]V
 }
 
 func NewReflectiveMultiMap[K comparable, V any]() *ReflectiveMultiMap[K, V] {
-	return &ReflectiveMultiMap[K, V]{store: make(map[any]map[any][]V)}
+	return &ReflectiveMultiMap[K, V]{store: make(map[K]map[any][]V)}
 }
 
 func (m *ReflectiveMultiMap[K, V]) Get(key K) ([]V, bool) {
@@ -119,4 +122,16 @@ func (m *ReflectiveMultiMap[K, V]) Clear(key K) bool {
 	}
 
 	return exists
+}
+
+func (m *ReflectiveMultiMap[K, V]) Iterator() iter.Seq2[K, []V] {
+	return func(yield func(K, []V) bool) {
+		for i, inm := range m.store {
+			for _, v := range inm {
+				if !yield(i, v) {
+					return
+				}
+			}
+		}
+	}
 }
