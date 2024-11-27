@@ -9,8 +9,9 @@ package uarray
 import (
 	"slices"
 	"sort"
+	"strings"
 
-	basicutils "github.com/kordax/basic-utils/uconst"
+	"github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/umap"
 	"golang.org/x/exp/constraints"
 )
@@ -516,7 +517,7 @@ func Merge[K comparable, T any](t1 []T, t2 []T, key func(t *T) K) []T {
 // The type T must be an integer type (e.g., int, int64, uint, etc.).
 // The returned slice includes 'from', but is exclusive to 'to'.
 // Example usage: FromRange(1, 5) returns []int{1, 2, 3, 4}.
-func Range[T basicutils.Integer](from, to T) []T {
+func Range[T uconst.Integer](from, to T) []T {
 	result := make([]T, to-from)
 	for i := from; i < to; i++ {
 		result[i-from] = i
@@ -610,6 +611,43 @@ func Split[T any](slice []T, chunkSize int) [][]T {
 	}
 
 	return chunks
+}
+
+// AsString converts any supported numeric value to a string and joins them with the specified delimiter.
+func AsString[T uconst.Stringable](delimiter string, values ...T) string {
+	var parts []string
+	for _, v := range values {
+		var s string
+		switch val := any(v).(type) {
+		case int:
+			s = IntToString(&val)
+		case int8:
+			s = Int8ToString(&val)
+		case int16:
+			s = Int16ToString(&val)
+		case int32:
+			s = Int32ToString(&val)
+		case int64:
+			s = Int64ToString(&val)
+		case uint8:
+			s = Uint8ToString(&val)
+		case uint16:
+			s = Uint16ToString(&val)
+		case uint32:
+			s = Uint32ToString(&val)
+		case uint64:
+			s = Uint64ToString(&val)
+		case float32:
+			s = Float32ToString(&val)
+		case float64:
+			s = Float64ToString(&val)
+		case bool:
+			s = BoolToString(&val)
+		}
+		parts = append(parts, s)
+	}
+	
+	return strings.Join(parts, delimiter)
 }
 
 func equals[T comparable](t1, t2 T) bool {

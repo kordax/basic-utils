@@ -990,3 +990,139 @@ func TestSplit_NilSlice_ChunkSizeZero(t *testing.T) {
 	assert.Equal(t, 1, len(result), "Expected result length of 1 for nil slice and chunkSize zero")
 	assert.Nil(t, result[0], "Expected first element to be nil")
 }
+
+func TestAsString(t *testing.T) {
+	tests := []struct {
+		name      string
+		delimiter string
+		input     interface{}
+		expected  string
+	}{
+		{
+			name:      "Empty int slice",
+			delimiter: ",",
+			input:     []int{},
+			expected:  "",
+		},
+		{
+			name:      "Single int",
+			delimiter: ",",
+			input:     []int{42},
+			expected:  "42",
+		},
+		{
+			name:      "Multiple ints",
+			delimiter: ",",
+			input:     []int{1, 2, 3},
+			expected:  "1,2,3",
+		},
+		{
+			name:      "Multiple int8s",
+			delimiter: ";",
+			input:     []int8{10, 20, 30},
+			expected:  "10;20;30",
+		},
+		{
+			name:      "Multiple int16s with different delimiter",
+			delimiter: "|",
+			input:     []int16{100, 200, 300},
+			expected:  "100|200|300",
+		},
+		{
+			name:      "Multiple int32s",
+			delimiter: ",",
+			input:     []int32{1000, 2000, 3000},
+			expected:  "1000,2000,3000",
+		},
+		{
+			name:      "Multiple int64s",
+			delimiter: ",",
+			input:     []int64{10000, 20000, 30000},
+			expected:  "10000,20000,30000",
+		},
+		{
+			name:      "Multiple uint8s",
+			delimiter: ",",
+			input:     []uint8{255, 128, 64},
+			expected:  "255,128,64",
+		},
+		{
+			name:      "Multiple uint16s",
+			delimiter: ",",
+			input:     []uint16{65535, 32768, 16384},
+			expected:  "65535,32768,16384",
+		},
+		{
+			name:      "Multiple uint32s",
+			delimiter: ",",
+			input:     []uint32{4294967295, 2147483648, 1073741824},
+			expected:  "4294967295,2147483648,1073741824",
+		},
+		{
+			name:      "Multiple uint64s",
+			delimiter: ",",
+			input:     []uint64{18446744073709551615, 9223372036854775808, 4611686018427387904},
+			expected:  "18446744073709551615,9223372036854775808,4611686018427387904",
+		},
+		{
+			name:      "Multiple float32s",
+			delimiter: ",",
+			input:     []float32{3.14, 2.71, 1.61},
+			expected:  "3.14,2.71,1.61",
+		},
+		{
+			name:      "Multiple float64s",
+			delimiter: ",",
+			input:     []float64{6.28, 5.55, 4.44},
+			expected:  "6.28,5.55,4.44",
+		},
+		{
+			name:      "Multiple bools",
+			delimiter: ",",
+			input:     []bool{true, false, true},
+			expected:  "true,false,true",
+		},
+		{
+			name:      "Mixed types with different delimiters",
+			delimiter: "-",
+			input:     []int{1, 2, 3},
+			expected:  "1-2-3",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt // capture range variable
+		t.Run(tt.name, func(t *testing.T) {
+			var result string
+			switch input := tt.input.(type) {
+			case []int:
+				result = uarray.AsString(tt.delimiter, input...)
+			case []int8:
+				result = uarray.AsString(tt.delimiter, input...)
+			case []int16:
+				result = uarray.AsString(tt.delimiter, input...)
+			case []int32:
+				result = uarray.AsString(tt.delimiter, input...)
+			case []int64:
+				result = uarray.AsString(tt.delimiter, input...)
+			case []uint8:
+				result = uarray.AsString(tt.delimiter, input...)
+			case []uint16:
+				result = uarray.AsString(tt.delimiter, input...)
+			case []uint32:
+				result = uarray.AsString(tt.delimiter, input...)
+			case []uint64:
+				result = uarray.AsString(tt.delimiter, input...)
+			case []float32:
+				result = uarray.AsString(tt.delimiter, input...)
+			case []float64:
+				result = uarray.AsString(tt.delimiter, input...)
+			case []bool:
+				result = uarray.AsString(tt.delimiter, input...)
+			default:
+				t.Fatalf("Unsupported input type: %T", tt.input)
+			}
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

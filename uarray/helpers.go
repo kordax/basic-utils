@@ -51,19 +51,49 @@ func Float64ToFloat32(v *float64) float32 {
 	return float32(*v)
 }
 
-// Int64ToInt32 converts an int64 to int32
-func Int64ToInt32(v *int64) int32 {
-	return int32(*v)
-}
-
 // IntToString converts an int to string
 func IntToString(v *int) string {
 	return strconv.Itoa(*v)
 }
 
+// Int8ToString converts an int64 to string
+func Int8ToString(v *int8) string {
+	return strconv.FormatInt(int64(*v), 10)
+}
+
+// Int16ToString converts an int64 to string
+func Int16ToString(v *int16) string {
+	return strconv.FormatInt(int64(*v), 10)
+}
+
+// Int32ToString converts an int64 to string
+func Int32ToString(v *int32) string {
+	return strconv.FormatInt(int64(*v), 10)
+}
+
 // Int64ToString converts an int64 to string
 func Int64ToString(v *int64) string {
 	return strconv.FormatInt(*v, 10)
+}
+
+// Uint8ToString converts a uint8 to string
+func Uint8ToString(v *uint8) string {
+	return strconv.FormatUint(uint64(*v), 10)
+}
+
+// Uint16ToString converts a uint16 to string
+func Uint16ToString(v *uint16) string {
+	return strconv.FormatUint(uint64(*v), 10)
+}
+
+// Uint32ToString converts a uint32 to string
+func Uint32ToString(v *uint32) string {
+	return strconv.FormatUint(uint64(*v), 10)
+}
+
+// Uint64ToString converts a uint64 to string
+func Uint64ToString(v *uint64) string {
+	return strconv.FormatUint(*v, 10)
 }
 
 // Float32ToString converts a float32 to string

@@ -6,7 +6,9 @@
 
 package ustr
 
-import "strings"
+import (
+	"strings"
+)
 
 // Def behaves as Or(val, "")), so it returns default empty string if value is not present,
 func Def(val *string) string {
