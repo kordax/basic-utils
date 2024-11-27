@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var _ umap.MultiMap[string, int] = (*umap.HashMultiMap[string, int])(nil)
+
 func TestHashMultiMap_Get(t *testing.T) {
 	mm := umap.NewHashMultiMap[string, int]()
 	_, exists := mm.Get("key")
@@ -70,4 +72,31 @@ func TestHashMultiMap_Clear(t *testing.T) {
 
 	_, exists := mm.Get("key")
 	assert.False(t, exists, "Expected no values after clear")
+}
+
+func TestHashMultiMap_Iterator(t *testing.T) {
+	mm := umap.NewHashMultiMap[string, int]()
+	mm.Append("key1", 1, 2, 3)
+	mm.Append("key2", 4, 5)
+	mm.Append("key3", 6)
+
+	collected := make(map[string][]int)
+	mm.Iterator()(func(key string, values []int) bool {
+		collected[key] = append(collected[key], values...)
+		return true
+	})
+
+	require.Len(t, collected, 3, "Expected three keys in the map")
+	assert.ElementsMatch(t, []int{1, 2, 3}, collected["key1"], "Values for key1 should match")
+	assert.ElementsMatch(t, []int{4, 5}, collected["key2"], "Values for key2 should match")
+	assert.ElementsMatch(t, []int{6}, collected["key3"], "Values for key3 should match")
+
+	collected = make(map[string][]int)
+	for k, v := range mm.Iterator() {
+		collected[k] = v
+	}
+	require.Len(t, collected, 3, "Expected three keys in the map")
+	assert.ElementsMatch(t, []int{1, 2, 3}, collected["key1"], "Values for key1 should match")
+	assert.ElementsMatch(t, []int{4, 5}, collected["key2"], "Values for key2 should match")
+	assert.ElementsMatch(t, []int{6}, collected["key3"], "Values for key3 should match")
 }

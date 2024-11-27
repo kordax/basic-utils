@@ -7,6 +7,7 @@
 package umap
 
 import (
+	"iter"
 	"slices"
 )
 
@@ -25,13 +26,13 @@ import (
 // !IMPORTANT: This map is not safe for concurrent operations. Use ConcurrentMultiMap for concurrent operations.
 // This map does not preserve the order of insertion and allows storing multiple
 // identical items under the same key.
-type HashMultiMap[K any, V any] struct {
-	store map[any][]V
+type HashMultiMap[K comparable, V any] struct {
+	store map[K][]V
 }
 
-func NewHashMultiMap[K any, V any]() *HashMultiMap[K, V] {
+func NewHashMultiMap[K comparable, V any]() *HashMultiMap[K, V] {
 	return &HashMultiMap[K, V]{
-		store: make(map[any][]V),
+		store: make(map[K][]V),
 	}
 }
 
@@ -77,6 +78,16 @@ func (m *HashMultiMap[K, V]) Clear(key K) bool {
 	}
 
 	return false
+}
+
+func (m *HashMultiMap[K, V]) Iterator() iter.Seq2[K, []V] {
+	return func(yield func(K, []V) bool) {
+		for i, v := range m.store {
+			if !yield(i, v) {
+				return
+			}
+		}
+	}
 }
 
 func withoutIndexes[T any](src []T, indexes []int) []T {

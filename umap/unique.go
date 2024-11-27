@@ -6,6 +6,12 @@
 
 package umap
 
+import (
+	"iter"
+
+	"golang.org/x/exp/maps"
+)
+
 type void struct{}
 
 var dummy void
@@ -29,13 +35,13 @@ var dummy void
 // identical items under the same key. It is optimized for scenarios where quick
 // lookup, insertion, and deletion of items are required, and where each item can be
 // uniquely identified by a hash code.
-type UniqueMultiMap[K any, V any] struct {
-	store map[any]map[any]void
+type UniqueMultiMap[K comparable, V comparable] struct {
+	store map[K]map[V]void
 }
 
-func NewUniqueMultiMap[K any, V any]() *UniqueMultiMap[K, V] {
+func NewUniqueMultiMap[K comparable, V comparable]() *UniqueMultiMap[K, V] {
 	return &UniqueMultiMap[K, V]{
-		store: make(map[any]map[any]void),
+		store: make(map[K]map[V]void),
 	}
 }
 
@@ -47,7 +53,7 @@ func (m *UniqueMultiMap[K, V]) Get(key K) ([]V, bool) {
 
 	values := make([]V, 0, len(hashMap))
 	for value := range hashMap {
-		values = append(values, value.(V))
+		values = append(values, value)
 	}
 
 	return values, true
@@ -55,7 +61,7 @@ func (m *UniqueMultiMap[K, V]) Get(key K) ([]V, bool) {
 
 func (m *UniqueMultiMap[K, V]) Set(key K, values ...V) int {
 	addedCount := 0
-	m.store[key] = make(map[any]void)
+	m.store[key] = make(map[V]void)
 	ref := m.store[key]
 	for _, value := range values {
 		if _, exists := ref[value]; !exists {
@@ -70,7 +76,7 @@ func (m *UniqueMultiMap[K, V]) Set(key K, values ...V) int {
 func (m *UniqueMultiMap[K, V]) Append(key K, values ...V) int {
 	hashMap, exists := m.store[key]
 	if !exists {
-		hashMap = make(map[any]void)
+		hashMap = make(map[V]void)
 		m.store[key] = hashMap
 	}
 
@@ -93,7 +99,7 @@ func (m *UniqueMultiMap[K, V]) Remove(key K, predicate func(v V) bool) int {
 
 	removalCount := 0
 	for value := range hashMap {
-		if predicate(value.(V)) {
+		if predicate(value) {
 			delete(hashMap, value)
 			removalCount++
 		}
@@ -110,4 +116,14 @@ func (m *UniqueMultiMap[K, V]) Clear(key K) bool {
 	}
 
 	return false
+}
+
+func (m *UniqueMultiMap[K, V]) Iterator() iter.Seq2[K, []V] {
+	return func(yield func(K, []V) bool) {
+		for i, inm := range m.store {
+			if !yield(i, maps.Keys(inm)) {
+				return
+			}
+		}
+	}
 }
