@@ -35,6 +35,30 @@ func TestHashMapCache_CompositeKey(t *testing.T) {
 	assert.EqualValues(t, val2, *result2)
 }
 
+func TestHashMapCache_SetNil(t *testing.T) {
+	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, *int](uopt.Null[time.Duration]())
+	key := ucache.StringKey("category")
+	key2 := ucache.StringKey("category2")
+	key3 := ucache.StringKey("category3")
+	val := 10
+	val2 := 236261
+	var val3 *int = nil
+
+	c.Set(key, &val)
+	c.Set(key2, &val2)
+	c.Set(key3, val3)
+
+	result, ok := c.Get(key)
+	require.True(t, ok, "value was expected to be cached")
+	result2, ok := c.Get(key2)
+	require.True(t, ok, "value was expected to be cached")
+	result3, ok := c.Get(key3)
+	require.True(t, ok, "value was expected to be cached")
+	assert.EqualValues(t, val, **result)
+	assert.EqualValues(t, val2, **result2)
+	assert.EqualValues(t, val3, *result3)
+}
+
 func TestHashMapCache_PutQuietly(t *testing.T) {
 	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 	key := ucache.StringKey("kp_1")
