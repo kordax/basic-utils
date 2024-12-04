@@ -7,15 +7,43 @@ import (
 	"github.com/kordax/basic-utils/uconst"
 )
 
+// String converts the input string to a value of type R.
+// It returns the converted value and an error if the conversion fails.
+//
+// The type R must satisfy the uconst.BasicType constraint.
+//
+// Example usage:
+//
+//	value, err := ucast.String[int]("123")
+//	if err != nil {
+//	    // handle error
+//	}
 func String[R uconst.BasicType](str string) (R, error) {
 	var zero R
 	return StringOrDef(str, zero)
 }
 
+// Type converts the input value v of type V to its string representation.
+//
+// The type V must satisfy the uconst.BasicType constraint.
+//
+// Example usage:
+//
+//	str := ucast.Type       // "123"
+//	str := ucast.Type[float64](3.14)  // "3.14"
 func Type[V uconst.BasicType](v V) string {
 	return toString[V](v)
 }
 
+// StringOrDef attempts to convert the input string to a value of type R.
+// If the conversion fails, it returns the default value def and an error.
+//
+// The type R must satisfy the uconst.BasicType constraint.
+//
+// Example usage:
+//
+//	value, err := ucast.StringOrDef[int]("invalid", 42)
+//	// value == 42, err != nil
 func StringOrDef[R uconst.BasicType](str string, def R) (R, error) {
 	result, err := fromString[R](str)
 	if err != nil {
@@ -146,7 +174,7 @@ func toString[V uconst.BasicType](v V) string {
 func fromString[U uconst.BasicType](s string) (U, error) {
 	var zero U
 	var uType = reflect.TypeOf(zero)
-	
+
 	isPtr := uType.Kind() == reflect.Ptr
 	if isPtr {
 		uType = uType.Elem()

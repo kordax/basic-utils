@@ -11,6 +11,7 @@ import (
 
 	"github.com/kordax/basic-utils/uarray"
 	"github.com/kordax/basic-utils/umap"
+	"github.com/stretchr/testify/assert"
 )
 
 type MyStruct struct {
@@ -232,4 +233,118 @@ func TestValues(t *testing.T) {
 	if len(values2) != 0 {
 		t.Errorf("Test case 2 failed: Expected empty values slice, but got %v", values2)
 	}
+}
+
+func TestIfPresent(t *testing.T) {
+	t.Run("KeyExists", func(t *testing.T) {
+		m := map[string]int{
+			"apple":  1,
+			"banana": 2,
+		}
+		called := false
+		umap.IfPresent(m, "apple", func(value int) {
+			called = true
+			assert.Equal(t, 1, value)
+		})
+		assert.True(t, called, "Action should have been called")
+	})
+
+	t.Run("KeyDoesNotExist", func(t *testing.T) {
+		m := map[string]int{
+			"apple":  1,
+			"banana": 2,
+		}
+		called := false
+		umap.IfPresent(m, "orange", func(value int) {
+			called = true
+		})
+		assert.False(t, called, "Action should not have been called")
+	})
+
+	t.Run("NilMap", func(t *testing.T) {
+		var m map[string]int
+		called := false
+		umap.IfPresent(m, "apple", func(value int) {
+			called = true
+		})
+		assert.False(t, called, "Action should not have been called on nil map")
+	})
+
+	t.Run("DifferentTypes", func(t *testing.T) {
+		m := map[int]string{
+			1: "one",
+			2: "two",
+		}
+		called := false
+		umap.IfPresent(m, 1, func(value string) {
+			called = true
+			assert.Equal(t, "one", value)
+		})
+		assert.True(t, called, "Action should have been called")
+	})
+
+	t.Run("ComplexValue", func(t *testing.T) {
+		type MyStruct struct {
+			Field string
+		}
+		m := map[string]MyStruct{
+			"key": {Field: "value"},
+		}
+		called := false
+		umap.IfPresent(m, "key", func(value MyStruct) {
+			called = true
+			assert.Equal(t, "value", value.Field)
+		})
+		assert.True(t, called, "Action should have been called")
+	})
+}
+
+func TestGetValueOrDefault(t *testing.T) {
+	t.Run("KeyExists", func(t *testing.T) {
+		m := map[string]int{
+			"apple":  1,
+			"banana": 2,
+		}
+		value := umap.GetOrDef(m, "banana", 0)
+		assert.Equal(t, 2, value)
+	})
+
+	t.Run("KeyDoesNotExist", func(t *testing.T) {
+		m := map[string]int{
+			"apple":  1,
+			"banana": 2,
+		}
+		value := umap.GetOrDef(m, "orange", 0)
+		assert.Equal(t, 0, value)
+	})
+
+	t.Run("NilMap", func(t *testing.T) {
+		var m map[string]int
+		value := umap.GetOrDef(m, "apple", 42)
+		assert.Equal(t, 42, value)
+	})
+
+	t.Run("DifferentTypes", func(t *testing.T) {
+		m := map[int]string{
+			1: "one",
+			2: "two",
+		}
+		value := umap.GetOrDef(m, 2, "default")
+		assert.Equal(t, "two", value)
+	})
+
+	t.Run("ComplexValue", func(t *testing.T) {
+		type MyStruct struct {
+			Field string
+		}
+		defaultValue := MyStruct{Field: "default"}
+		m := map[string]MyStruct{
+			"key1": {Field: "value1"},
+		}
+		value := umap.GetOrDef(m, "key1", defaultValue)
+		assert.Equal(t, MyStruct{Field: "value1"}, value)
+
+		value = umap.GetOrDef(m, "key2", defaultValue)
+		assert.Equal(t, defaultValue, value)
+	})
 }
