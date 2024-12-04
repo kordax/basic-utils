@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/kordax/basic-utils/uarray"
+	"github.com/kordax/basic-utils/ucast"
 	"github.com/kordax/basic-utils/umath"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1125,4 +1126,81 @@ func TestAsString(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestMapInt8ToString(t *testing.T) {
+	values := []int8{10, -20, 30}
+	expected := []string{"10", "-20", "30"}
+	result := uarray.Map(values, ucast.Int8ToString)
+	require.Equal(t, expected, result)
+}
+
+func TestMapInt16ToString(t *testing.T) {
+	values := []int16{-1000, 0, 1000}
+	expected := []string{"-1000", "0", "1000"}
+	result := uarray.Map(values, ucast.Int16ToString)
+	require.Equal(t, expected, result)
+}
+
+func TestMapInt32ToString(t *testing.T) {
+	values := []int32{-100000, 0, 100000}
+	expected := []string{"-100000", "0", "100000"}
+	result := uarray.Map(values, ucast.Int32ToString)
+	require.Equal(t, expected, result)
+}
+
+func TestMapUint8ToString(t *testing.T) {
+	values := []uint8{0, 128, 255}
+	expected := []string{"0", "128", "255"}
+	result := uarray.Map(values, ucast.Uint8ToString)
+	require.Equal(t, expected, result)
+}
+
+func TestMapUint16ToString(t *testing.T) {
+	values := []uint16{0, 32768, 65535}
+	expected := []string{"0", "32768", "65535"}
+	result := uarray.Map(values, ucast.Uint16ToString)
+	require.Equal(t, expected, result)
+}
+
+func TestMapUint32ToString(t *testing.T) {
+	values := []uint32{0, 2147483648, 4294967295}
+	expected := []string{"0", "2147483648", "4294967295"}
+	result := uarray.Map(values, ucast.Uint32ToString)
+	require.Equal(t, expected, result)
+}
+
+func TestMapUint64ToString(t *testing.T) {
+	values := []uint64{0, 9223372036854775808, 18446744073709551615}
+	expected := []string{"0", "9223372036854775808", "18446744073709551615"}
+	result := uarray.Map(values, ucast.Uint64ToString)
+	require.Equal(t, expected, result)
+}
+
+func TestMapFloat64ToFloat32(t *testing.T) {
+	values := []float64{1.5, 2.5, 3.5}
+	expected := []float32{1.5, 2.5, 3.5}
+	result := uarray.Map(values, ucast.Float64ToFloat32)
+	assert.InDeltaSlice(t, expected, result, 0.0001)
+}
+
+func TestMapInt64ToString(t *testing.T) {
+	values := []int64{123, 456, 789}
+	expected := []string{"123", "456", "789"}
+	result := uarray.Map(values, ucast.Int64ToString)
+	assert.Equal(t, expected, result)
+}
+
+func TestMapFloat32ToString(t *testing.T) {
+	values := []float32{1.1, 2.2, 3.3}
+	expected := []string{"1.1", "2.2", "3.3"}
+	result := uarray.Map(values, ucast.Float32ToString)
+	assert.Equal(t, expected, result)
+}
+
+func TestMapBoolToString(t *testing.T) {
+	values := []bool{true, false, true}
+	expected := []string{"true", "false", "true"}
+	result := uarray.Map(values, ucast.BoolToString)
+	assert.Equal(t, expected, result)
 }

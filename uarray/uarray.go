@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/kordax/basic-utils/ucast"
 	"github.com/kordax/basic-utils/uconst"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/maps"
@@ -620,29 +621,29 @@ func AsString[T uconst.Stringable](delimiter string, values ...T) string {
 		var s string
 		switch val := any(v).(type) {
 		case int:
-			s = IntToString(&val)
+			s = ucast.IntToString(&val)
 		case int8:
-			s = Int8ToString(&val)
+			s = ucast.Int8ToString(&val)
 		case int16:
-			s = Int16ToString(&val)
+			s = ucast.Int16ToString(&val)
 		case int32:
-			s = Int32ToString(&val)
+			s = ucast.Int32ToString(&val)
 		case int64:
-			s = Int64ToString(&val)
+			s = ucast.Int64ToString(&val)
 		case uint8:
-			s = Uint8ToString(&val)
+			s = ucast.Uint8ToString(&val)
 		case uint16:
-			s = Uint16ToString(&val)
+			s = ucast.Uint16ToString(&val)
 		case uint32:
-			s = Uint32ToString(&val)
+			s = ucast.Uint32ToString(&val)
 		case uint64:
-			s = Uint64ToString(&val)
+			s = ucast.Uint64ToString(&val)
 		case float32:
-			s = Float32ToString(&val)
+			s = ucast.Float32ToString(&val)
 		case float64:
-			s = Float64ToString(&val)
+			s = ucast.Float64ToString(&val)
 		case bool:
-			s = BoolToString(&val)
+			s = ucast.BoolToString(&val)
 		}
 		parts = append(parts, s)
 	}
