@@ -100,3 +100,91 @@ func Values[K comparable, T any](m map[K]T) []T {
 
 	return result
 }
+
+// IfPresent checks if the specified key exists in the map `m`.
+// If the key is present, it executes the provided `action` function with the associated value.
+//
+// This function helps avoid boilerplate code when working with maps,
+// especially when you need to perform an action only if a key is present.
+//
+// Type Parameters:
+//   - K: The type of the keys in the map. It must be a comparable type.
+//   - V: The type of the values in the map.
+//
+// Parameters:
+//   - m map[K]V: The map to check for the presence of the key.
+//   - key K: The key to look for in the map.
+//   - action func(value V): The function to execute if the key is present.
+//     It receives the value associated with the key.
+//
+// Example Usage:
+//
+//	package main
+//
+//	import (
+//	    "fmt"
+//	    "your_module/ucast"
+//	)
+//
+//	func main() {
+//	    m := map[string]int{
+//	        "apple":  1,
+//	        "banana": 2,
+//	    }
+//
+//	    ucast.IfPresent(m, "apple", func(value int) {
+//	        fmt.Println("Value:", value)
+//	    })
+//
+//	    // Output:
+//	    // Value: 1
+//	}
+func IfPresent[K comparable, V any](m map[K]V, key K, action func(value V)) {
+	if v, ok := m[key]; ok {
+		action(v)
+	}
+}
+
+// GetOrDef retrieves the value associated with the specified key from the map `m`.
+// If the key is not present, it returns the provided `defaultValue`.
+//
+// This function simplifies accessing map values by providing a default value when a key is absent,
+// reducing the need for explicit checks in your code.
+//
+// Type Parameters:
+//   - K: The type of the keys in the map. It must be a comparable type.
+//   - V: The type of the values in the map.
+//
+// Parameters:
+//   - m map[K]V: The map from which to retrieve the value.
+//   - key K: The key whose associated value is to be returned.
+//   - defaultValue V: The value to return if the key is not present in the map.
+//
+// Returns:
+//   - V: The value associated with the key, or `defaultValue` if the key is not found.
+//
+// Example Usage:
+//
+//	package main
+//
+//	import (
+//	    "fmt"
+//	    "your_module/ucast"
+//	)
+//
+//	func main() {
+//	    m := map[string]int{
+//	        "apple":  1,
+//	        "banana": 2,
+//	    }
+//
+//	    value := ucast.GetOrDef(m, "orange", 0)
+//	    fmt.Println("Value:", value) // Output: Value: 0
+//	}
+func GetOrDef[K comparable, V any](m map[K]V, key K, def V) V {
+	if v, ok := m[key]; ok {
+		return v
+	}
+
+	return def
+}
