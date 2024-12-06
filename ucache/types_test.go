@@ -399,6 +399,44 @@ func TestFarmHash64Entity(t *testing.T) {
 	assert.Equal(t, value2, *found2)
 }
 
+func TestFarmHash64EntityConsistency(t *testing.T) {
+	obj := "test object"
+	entity1 := ucache.Hashed(obj)
+	entity2 := ucache.Hashed(obj)
+
+	hash1 := entity1.Key()
+	hash2 := entity2.Key()
+
+	require.True(t, entity1.Equals(entity2), "Entities with the same object should be equal")
+	assert.Equal(t, hash1, hash2, "Hash values should be identical for the same object")
+}
+
+func TestFarmHash64EntityInequality(t *testing.T) {
+	obj1 := "test object 1"
+	obj2 := "test object 2"
+	entity1 := ucache.Hashed(obj1)
+	entity2 := ucache.Hashed(obj2)
+
+	// It's highly unlikely that different objects produce the same hash
+	assert.NotEqual(t, entity1.Key(), entity2.Key(), "Different objects should have different hash values")
+	require.False(t, entity1.Equals(entity2), "Entities with different objects should not be equal")
+}
+
+func TestFarmHash64EntityEdgeCases(t *testing.T) {
+	entityNil1 := ucache.Hashed(nil)
+	entityNil2 := ucache.Hashed(nil)
+
+	require.True(t, entityNil1.Equals(entityNil2), "Entities with nil objects should be equal")
+	assert.Equal(t, entityNil1.Key(), entityNil2.Key(), "Hash values should be identical for nil objects")
+
+	obj := "pointer test"
+	entityPtr1 := ucache.Hashed(&obj)
+	entityPtr2 := ucache.Hashed(&obj)
+
+	require.True(t, entityPtr1.Equals(entityPtr2), "Entities with the same pointer should be equal")
+	assert.Equal(t, entityPtr1.Key(), entityPtr2.Key(), "Hash values should be identical for the same pointer")
+}
+
 func TestFarmHash64EntityCollisions(t *testing.T) {
 	cache := ucache.NewInMemoryHashMapCache[*ucache.FarmHash64Entity, ucache.StringValue](uopt.NullDuration())
 
@@ -423,6 +461,7 @@ func TestFarmHash64EntityCollisions(t *testing.T) {
 		unexportedField     string
 	}
 
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	val1 := 42
 	nestedVal := nested{
 		ExportedNestedStringField: "nested",
@@ -433,7 +472,7 @@ func TestFarmHash64EntityCollisions(t *testing.T) {
 		key := custom{
 			ExportedStringField: fmt.Sprintf("value%d", i),
 			ExportedIntField:    i,
-			ExportedFloatField:  rand.Float64(),
+			ExportedFloatField:  r.Float64(),
 			ExportedBoolField:   i%2 == 0,
 			ExportedPointer:     &val1,
 			ExportedMapField:    map[string]int{fmt.Sprintf("key%d", i): i},
@@ -452,6 +491,47 @@ func TestFarmHash64EntityCollisions(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, value, *found)
 	}
+}
+
+func TestFarmHash64EntityForcedCollisions_PrimitiveType(t *testing.T) {
+	obj1 := "collision object 1"
+	obj2 := "collision object 2"
+
+	entity1 := ucache.Hashed(obj1)
+	entity2 := ucache.Hashed(obj2)
+
+	// Manually set the same hash value to simulate collision
+	collisionHash := int64(123456789)
+	entity1.Override(collisionHash)
+	entity2.Override(collisionHash)
+
+	require.True(t, entity1.Key() == collisionHash, "Entity1 should have the collision hash")
+	require.True(t, entity2.Key() == collisionHash, "Entity2 should have the collision hash")
+	require.False(t, entity1.Equals(entity2), "Entities with the same hash should not be equal (simulated collision)")
+
+	// Note: In a real-world scenario, Equals should compare the actual objects
+	// or their serialized forms to determine equality, not just the hash.
+	// This simulation assumes Equals is based solely on the hash.
+}
+
+func TestFarmHash64EntityForcedCollisions_CustomStruct(t *testing.T) {
+	obj1 := DummyComparable{1}
+	obj2 := DummyComparable{2}
+
+	entity1 := ucache.Hashed(obj1)
+	entity2 := ucache.Hashed(obj2)
+
+	collisionHash := int64(123456789)
+	entity1.Override(collisionHash)
+	entity2.Override(collisionHash)
+
+	require.True(t, entity1.Key() == collisionHash, "Entity1 should have the collision hash")
+	require.True(t, entity2.Key() == collisionHash, "Entity2 should have the collision hash")
+	require.False(t, entity1.Equals(entity2), "Entities with the same hash should not be equal (simulated collision)")
+
+	// Note: In a real-world scenario, Equals should compare the actual objects
+	// or their serialized forms to determine equality, not just the hash.
+	// This simulation assumes Equals is based solely on the hash.
 }
 
 func TestNewFarmHashCompositeKey(t *testing.T) {

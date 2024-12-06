@@ -540,11 +540,26 @@ func (e *FarmHash64Entity) Equals(other uconst.Comparable) bool {
 	if !ok {
 		return false
 	}
-	return e.calculateHash() == otherFH.calculateHash()
+
+	if e.calculateHash() != otherFH.calculateHash() {
+		return false
+	}
+
+	left, lok := e.obj.(uconst.Comparable)
+	if lok {
+		return left.Equals(other)
+	}
+
+	return reflect.DeepEqual(e.obj, otherFH.obj)
 }
 
 func (e *FarmHash64Entity) Key() int64 {
 	return e.calculateHash()
+}
+
+func (e *FarmHash64Entity) Override(hash int64) {
+	e.hashValue = hash
+	e.hashReady = true
 }
 
 type FarmHash64CompositeKey struct {
