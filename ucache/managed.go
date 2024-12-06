@@ -12,13 +12,13 @@ import (
 // periodic cleanup of outdated cache entries. It uses a background goroutine to perform
 // cleanup tasks based on the provided TTL (time-to-live) value.
 // The Stop method must be called to clean up resources if you want to stop managing the cache.
-type ManagedCache[K uconst.Unique, T any] struct {
-	cache    Cache[K, T]
+type ManagedCache[K any, T any] struct {
+	cache    BaseCache[K, T]
 	stopChan chan struct{}
 	wg       sync.WaitGroup
 }
 
-func NewManagedCache[K uconst.Unique, T any](cache Cache[K, T], tick time.Duration) *ManagedCache[K, T] {
+func NewManagedCache[K any, T any](cache BaseCache[K, T], tick time.Duration) *ManagedCache[K, T] {
 	b := &ManagedCache[K, T]{
 		cache:    cache,
 		stopChan: make(chan struct{}),
