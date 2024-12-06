@@ -16,7 +16,9 @@ import (
 	"github.com/kordax/basic-utils/uset"
 )
 
-type baseCache[K any, T any] interface {
+type BaseCache[K, T any] interface {
+	// Set updates the cache value for the provided key. If the key already exists,
+	// its previous value is removed before adding the new value. This method should be thread-safe.
 	Set(key K, value T)
 
 	// Get retrieves the value associated with the provided key from the cache.
@@ -54,12 +56,12 @@ type baseCache[K any, T any] interface {
 // This interface supports setting, getting, and managing cache entries with composite keys.
 // Unlike MultiCache, it is designed to handle only one value per key and does not support hierarchical composite keys.
 type Cache[K uconst.Unique, T any] interface {
-	baseCache[K, T]
+	BaseCache[K, T]
 }
 
 // The ComparableCache is the same as Cache, but is more generic and allows comparable keys.
 type ComparableCache[K comparable, T any] interface {
-	baseCache[K, T]
+	BaseCache[K, T]
 }
 
 type hashValueContainer[K uconst.Unique, T any] struct {
