@@ -17,9 +17,9 @@ This is due to the usage of features and packages introduced in this version.
 - **uarray**: Utilities related to array manipulations and operations.
 
 - **uasync**: Utilities that help to organize async operations.
-- 
+
 - **ucache**: Cache implementations and utilities.
-- 
+
 - **ucast**: Bi-directional utilities to convert basic types.
 
 - **uerror**: Provides utilities for error handling.
