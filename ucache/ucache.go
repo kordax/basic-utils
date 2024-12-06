@@ -13,14 +13,10 @@ import (
 	"github.com/kordax/basic-utils/uconst"
 	"github.com/kordax/basic-utils/umap"
 	"github.com/kordax/basic-utils/uopt"
+	"github.com/kordax/basic-utils/uset"
 )
 
-// The Cache interface defines a set of methods for a generic cache implementation.
-// This interface supports setting, getting, and managing cache entries with composite keys.
-// Unlike MultiCache, it is designed to handle only one value per key and does not support hierarchical composite keys.
-type Cache[K uconst.Unique, T any] interface {
-	// Set updates the cache value for the provided key. If the key already exists,
-	// its previous value is removed before adding the new value. This method should be thread-safe.
+type baseCache[K any, T any] interface {
 	Set(key K, value T)
 
 	// Get retrieves the value associated with the provided key from the cache.
@@ -31,13 +27,14 @@ type Cache[K uconst.Unique, T any] interface {
 
 	// Changes returns a slice of keys that have been modified in the cache.
 	// This method provides a way to track changes made to the cache, useful for scenarios like cache syncing.
-	// Cache changes will be updated only on modifying operations, meaning that in-fact, changes contain all the present keys.
+	// Cache changes will be updated only on modifying operations, but not on Drop() call, meaning that in-fact, changes contain all the present keys.
 	Changes() []K
 
 	// Drop completely clears the cache, removing all entries. This method should be thread-safe.
 	Drop()
 
 	// DropKey removes the value associated with the provided key from the cache. This method should be thread-safe.
+	// This method also clears up changes associated with this key.
 	DropKey(key K)
 
 	// Outdated checks if the provided key or the entire cache (if no key is provided)
@@ -51,6 +48,18 @@ type Cache[K uconst.Unique, T any] interface {
 	// This method should be thread-safe.
 	// This operation is much faster and can be used to optimize cache performance in case you don't want to track changes.
 	SetQuietly(key K, value T)
+}
+
+// The Cache interface defines a set of methods for a generic cache implementation.
+// This interface supports setting, getting, and managing cache entries with composite keys.
+// Unlike MultiCache, it is designed to handle only one value per key and does not support hierarchical composite keys.
+type Cache[K uconst.Unique, T any] interface {
+	baseCache[K, T]
+}
+
+// The ComparableCache is the same as Cache, but is more generic and allows comparable keys.
+type ComparableCache[K comparable, T any] interface {
+	baseCache[K, T]
 }
 
 type hashValueContainer[K uconst.Unique, T any] struct {
@@ -253,4 +262,120 @@ func (c *InMemoryHashMapCache[K, T]) addTran(key K, value T) int64 {
 
 func (c *InMemoryHashMapCache[K, T]) dropKey(key int64) {
 	delete(c.values, key)
+}
+
+// InMemoryComparableMapCache provides an in-memory caching mechanism using Go's native maps for single-value entries.
+// It supports optional TTL for entries and ensures concurrency-safe operations using a mutex.
+// It is very similiar to InMemoryHashMapCache by behaviour, and the only difference is a key type constraint.
+type InMemoryComparableMapCache[K comparable, T any] struct {
+	values  map[K]T
+	changes uset.Set[K]
+
+	lastUpdatedKeys map[K]time.Time
+	lastUpdated     time.Time
+
+	ttl  *time.Duration
+	vMtx sync.Mutex
+}
+
+// NewInMemoryComparableMapCache creates a new instance of InMemoryComparableMapCache.
+// It accepts an optional TTL (time-to-live) duration for cache entries.
+func NewInMemoryComparableMapCache[K comparable, T any](ttl uopt.Opt[time.Duration]) ComparableCache[K, T] {
+	c := &InMemoryComparableMapCache[K, T]{
+		values:          make(map[K]T),
+		changes:         uset.NewHashSet[K](),
+		lastUpdatedKeys: make(map[K]time.Time),
+	}
+	ttl.IfPresent(func(t time.Duration) {
+		c.ttl = &t
+	})
+	return c
+}
+
+// Set updates the cache value for the provided key. If the key already exists,
+// its previous value is replaced with the new value. The operation is thread-safe.
+func (c *InMemoryComparableMapCache[K, T]) Set(key K, value T) {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+	c.values[key] = value
+	c.changes.Add(key)
+	now := time.Now()
+	c.lastUpdatedKeys[key] = now
+	c.lastUpdated = now
+}
+
+// SetQuietly adds a value to the cache for the provided key without altering the change history.
+// This method is thread-safe and optimized for performance when change tracking is unnecessary.
+func (c *InMemoryComparableMapCache[K, T]) SetQuietly(key K, value T) {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+	c.values[key] = value
+	now := time.Now()
+	c.lastUpdatedKeys[key] = now
+	c.lastUpdated = now
+}
+
+// Get retrieves the value associated with the provided key from the cache.
+// It returns a pointer to the value and a boolean indicating whether the key was found.
+// The operation is thread-safe.
+func (c *InMemoryComparableMapCache[K, T]) Get(key K) (*T, bool) {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+
+	value, ok := c.values[key]
+	if !ok {
+		return nil, false
+	}
+	return &value, true
+}
+
+// Changes returns a slice of keys that have been modified in the cache since the last call to Changes.
+// This method is thread-safe.
+func (c *InMemoryComparableMapCache[K, T]) Changes() []K {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+
+	return c.changes.Values()
+}
+
+// Drop completely clears the cache, removing all entries. The operation is thread-safe.
+func (c *InMemoryComparableMapCache[K, T]) Drop() {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+	c.values = make(map[K]T)
+	c.changes.Clear()
+	c.lastUpdatedKeys = make(map[K]time.Time)
+	c.lastUpdated = time.Time{}
+}
+
+// DropKey removes the value associated with the provided key from the cache.
+// The operation is thread-safe.
+func (c *InMemoryComparableMapCache[K, T]) DropKey(key K) {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+	delete(c.values, key)
+	c.changes.Remove(key)
+	delete(c.lastUpdatedKeys, key)
+}
+
+// Outdated checks if the provided key is outdated based on the set TTL (time-to-live).
+// Returns true if outdated, false otherwise.
+// If no TTL is set or the key does not exist, it returns false.
+func (c *InMemoryComparableMapCache[K, T]) Outdated(key uopt.Opt[K]) bool {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+
+	if c.ttl == nil {
+		return false
+	}
+
+	if k := key.Get(); k != nil {
+		lastUpdated, exists := c.lastUpdatedKeys[*k]
+		if !exists {
+			return true
+		}
+		return time.Since(lastUpdated) > *c.ttl
+	}
+
+	return false
 }
