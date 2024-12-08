@@ -17,6 +17,72 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// StatusType is a custom type representing the status.
+type StatusType string
+
+// Predefined statuses for StatusType.
+const (
+	StatusActive   StatusType = "active"
+	StatusInactive StatusType = "inactive"
+	StatusPending  StatusType = "pending"
+)
+
+// NestedMeta is a nested comparable struct within ComplexComparableStruct.
+type NestedMeta struct {
+	Category string
+	Level    int
+}
+
+// Coordinates represents geographical coordinates.
+type Coordinates struct {
+	Latitude  float64
+	Longitude float64
+}
+
+// ComplexComparableStruct is a complex struct used for unit testing.
+// It includes various comparable field types, nested structs, arrays, and custom types.
+type ComplexComparableStruct struct {
+	ID               int
+	Name             string
+	Timestamp        time.Time
+	Active           bool
+	Scores           [5]int
+	Meta             NestedMeta
+	Location         Coordinates
+	Permissions      [3]bool
+	Rating           float32
+	Status           StatusType
+	RetryCounts      [2]int8
+	Flags            [4]uint8
+	Attributes       [3]string
+	Dimension        Dimension
+	DeviceStatus     DeviceStatus
+	RegistrationData RegistrationData
+	OptionalValue    *int
+	OptionalCategory *string
+}
+
+// Dimension is another nested comparable struct.
+type Dimension struct {
+	Width  float64
+	Height float64
+	Depth  float64
+}
+
+// DeviceStatus represents the status of a device with multiple fields.
+type DeviceStatus struct {
+	Online       bool
+	BatteryLevel uint8
+	ErrorCode    uint16
+}
+
+// RegistrationData holds registration details in a nested struct.
+type RegistrationData struct {
+	RegisteredAt time.Time
+	Verified     bool
+	Notes        [2]string
+}
+
 func TestHashMapCache_CompositeKey(t *testing.T) {
 	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 	key := ucache.StringKey("category")
@@ -500,6 +566,256 @@ func TestInMemoryComparableMapCache(t *testing.T) {
 	retrievedValue, ok = cache.Get(key5)
 	assert.False(t, ok, "Expected key5 to be removed from cache after Drop")
 	assert.Nil(t, retrievedValue, "Retrieved value for removed key5 should be nil after Drop")
+}
+
+func TestInMemoryComparableMapCacheWithComplexStruct(t *testing.T) {
+	cache := ucache.NewInMemoryComparableMapCache[string, ComplexComparableStruct](uopt.Null[time.Duration]())
+
+	key1 := "key1"
+	value1 := ComplexComparableStruct{
+		ID:        1,
+		Name:      "Test Entity 1",
+		Timestamp: time.Now(),
+		Active:    true,
+		Scores:    [5]int{90, 85, 95, 80, 100},
+		Meta: NestedMeta{
+			Category: "A",
+			Level:    2,
+		},
+		Location: Coordinates{
+			Latitude:  37.7749,
+			Longitude: -122.4194,
+		},
+		Permissions: [3]bool{true, false, true},
+		Rating:      4.5,
+		Status:      StatusActive,
+		RetryCounts: [2]int8{1, 2},
+		Flags:       [4]uint8{1, 0, 1, 1},
+		Attributes:  [3]string{"fast", "reliable", "scalable"},
+		Dimension: Dimension{
+			Width:  1920.0,
+			Height: 1080.0,
+			Depth:  500.0,
+		},
+		DeviceStatus: DeviceStatus{
+			Online:       true,
+			BatteryLevel: 85,
+			ErrorCode:    0,
+		},
+		RegistrationData: RegistrationData{
+			RegisteredAt: time.Now().Add(-24 * time.Hour),
+			Verified:     true,
+			Notes:        [2]string{"Initial registration", "No issues"},
+		},
+		OptionalValue:    nil,
+		OptionalCategory: nil,
+	}
+
+	key2 := "key2"
+	value2 := ComplexComparableStruct{
+		ID:        2,
+		Name:      "Test Entity 2",
+		Timestamp: time.Now(),
+		Active:    false,
+		Scores:    [5]int{80, 75, 85, 70, 90},
+		Meta: NestedMeta{
+			Category: "B",
+			Level:    1,
+		},
+		Location: Coordinates{
+			Latitude:  40.7128,
+			Longitude: -74.0060,
+		},
+		Permissions: [3]bool{false, true, false},
+		Rating:      3.5,
+		Status:      StatusInactive,
+		RetryCounts: [2]int8{0, 1},
+		Flags:       [4]uint8{0, 1, 0, 0},
+		Attributes:  [3]string{"slow", "unreliable", "non-scalable"},
+		Dimension: Dimension{
+			Width:  1280.0,
+			Height: 720.0,
+			Depth:  300.0,
+		},
+		DeviceStatus: DeviceStatus{
+			Online:       false,
+			BatteryLevel: 50,
+			ErrorCode:    404,
+		},
+		RegistrationData: RegistrationData{
+			RegisteredAt: time.Now().Add(-48 * time.Hour),
+			Verified:     false,
+			Notes:        [2]string{"Delayed verification", "Issues encountered"},
+		},
+		OptionalValue:    nil,
+		OptionalCategory: nil,
+	}
+
+	key3 := "key3"
+	value3 := ComplexComparableStruct{
+		ID:        3,
+		Name:      "Test Entity 3",
+		Timestamp: time.Now(),
+		Active:    true,
+		Scores:    [5]int{100, 100, 100, 100, 100},
+		Meta: NestedMeta{
+			Category: "C",
+			Level:    3,
+		},
+		Location: Coordinates{
+			Latitude:  34.0522,
+			Longitude: -118.2437,
+		},
+		Permissions: [3]bool{true, true, true},
+		Rating:      5.0,
+		Status:      StatusPending,
+		RetryCounts: [2]int8{2, 3},
+		Flags:       [4]uint8{1, 1, 1, 1},
+		Attributes:  [3]string{"efficient", "robust", "scalable"},
+		Dimension: Dimension{
+			Width:  2560.0,
+			Height: 1440.0,
+			Depth:  600.0,
+		},
+		DeviceStatus: DeviceStatus{
+			Online:       true,
+			BatteryLevel: 100,
+			ErrorCode:    0,
+		},
+		RegistrationData: RegistrationData{
+			RegisteredAt: time.Now().Add(-72 * time.Hour),
+			Verified:     true,
+			Notes:        [2]string{"Verified", "All checks passed"},
+		},
+		OptionalValue:    nil,
+		OptionalCategory: nil,
+	}
+
+	cache.Set(key1, value1)
+	cache.Set(key2, value2)
+	cache.Set(key3, value3)
+
+	retrievedValue, ok := cache.Get(key1)
+	require.True(t, ok, "Expected to retrieve value for key1")
+	assert.Equal(t, value1, *retrievedValue, "Retrieved value should match the set value for key1")
+
+	retrievedValue, ok = cache.Get(key2)
+	require.True(t, ok, "Expected to retrieve value for key2")
+	assert.Equal(t, value2, *retrievedValue, "Retrieved value should match the set value for key2")
+
+	retrievedValue, ok = cache.Get(key3)
+	require.True(t, ok, "Expected to retrieve value for key3")
+	assert.Equal(t, value3, *retrievedValue, "Retrieved value should match the set value for key3")
+
+	updatedValue1 := ComplexComparableStruct{
+		ID:        1,
+		Name:      "Updated Test Entity 1",
+		Timestamp: value1.Timestamp.Add(1 * time.Hour),
+		Active:    false,
+		Scores:    [5]int{85, 80, 90, 75, 95},
+		Meta: NestedMeta{
+			Category: "A1",
+			Level:    3,
+		},
+		Location: Coordinates{
+			Latitude:  37.7749,
+			Longitude: -122.4194,
+		},
+		Permissions: [3]bool{false, false, true},
+		Rating:      4.0,
+		Status:      StatusInactive,
+		RetryCounts: [2]int8{2, 3},
+		Flags:       [4]uint8{0, 0, 1, 1},
+		Attributes:  [3]string{"moderate", "reliable", "scalable"},
+		Dimension: Dimension{
+			Width:  1920.0,
+			Height: 1080.0,
+			Depth:  500.0,
+		},
+		DeviceStatus: DeviceStatus{
+			Online:       false,
+			BatteryLevel: 75,
+			ErrorCode:    1,
+		},
+		RegistrationData: RegistrationData{
+			RegisteredAt: value1.RegistrationData.RegisteredAt.Add(1 * time.Hour),
+			Verified:     false,
+			Notes:        [2]string{"Re-registered", "Minor issues"},
+		},
+		OptionalValue:    nil,
+		OptionalCategory: nil,
+	}
+
+	cache.Set(key1, updatedValue1)
+	retrievedValue, ok = cache.Get(key1)
+	require.True(t, ok, "Expected to retrieve updated value for key1")
+	assert.Equal(t, updatedValue1, *retrievedValue, "Retrieved value should match the updated value for key1")
+
+	cache.DropKey(key1)
+	retrievedValue, ok = cache.Get(key1)
+	assert.False(t, ok, "Expected key1 to be removed from cache")
+	assert.Nil(t, retrievedValue, "Retrieved value for removed key1 should be nil")
+
+	retrievedValue, ok = cache.Get(key2)
+	require.True(t, ok, "Expected to retrieve value for key2")
+	assert.Equal(t, value2, *retrievedValue, "Retrieved value should match the set value for key2")
+
+	retrievedValue, ok = cache.Get(key3)
+	require.True(t, ok, "Expected to retrieve value for key3")
+	assert.Equal(t, value3, *retrievedValue, "Retrieved value should match the set value for key3")
+
+	quietUpdatedValue2 := ComplexComparableStruct{
+		ID:        2,
+		Name:      "Quietly Updated Test Entity 2",
+		Timestamp: value2.Timestamp.Add(2 * time.Hour),
+		Active:    true,
+		Scores:    [5]int{95, 90, 100, 85, 105},
+		Meta: NestedMeta{
+			Category: "B1",
+			Level:    2,
+		},
+		Location: Coordinates{
+			Latitude:  40.7128,
+			Longitude: -74.0060,
+		},
+		Permissions: [3]bool{true, true, false},
+		Rating:      4.8,
+		Status:      StatusPending,
+		RetryCounts: [2]int8{3, 4},
+		Flags:       [4]uint8{1, 1, 0, 0},
+		Attributes:  [3]string{"efficient", "reliable", "scalable"},
+		Dimension: Dimension{
+			Width:  1280.0,
+			Height: 720.0,
+			Depth:  300.0,
+		},
+		DeviceStatus: DeviceStatus{
+			Online:       true,
+			BatteryLevel: 90,
+			ErrorCode:    2,
+		},
+		RegistrationData: RegistrationData{
+			RegisteredAt: value2.RegistrationData.RegisteredAt.Add(2 * time.Hour),
+			Verified:     true,
+			Notes:        [2]string{"Verified again", "No new issues"},
+		},
+		OptionalValue:    nil,
+		OptionalCategory: nil,
+	}
+
+	cache.SetQuietly(key2, quietUpdatedValue2)
+	retrievedValue, ok = cache.Get(key2)
+	require.True(t, ok, "Expected to retrieve value for key2 after SetQuietly")
+	assert.Equal(t, quietUpdatedValue2, *retrievedValue, "Retrieved value should match the set value for key2 after SetQuietly")
+
+	cache.Drop()
+	retrievedValue, ok = cache.Get(key2)
+	assert.False(t, ok, "Expected key2 to be removed from cache after Drop")
+	assert.Nil(t, retrievedValue, "Retrieved value for removed key2 should be nil after Drop")
+
+	retrievedValue, ok = cache.Get(key3)
+	assert.False(t, ok, "Expected key3 to be removed from cache after Drop")
+	assert.Nil(t, retrievedValue, "Retrieved value for removed key3 should be nil after Drop")
 }
 
 func TestComparableMapCacheHighCollisionProbability(t *testing.T) {
