@@ -1204,3 +1204,64 @@ func TestMapBoolToString(t *testing.T) {
 	result := uarray.Map(values, ucast.BoolToString)
 	assert.Equal(t, expected, result)
 }
+
+func TestUnique(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     []int
+		transform []func(v *int) int
+		expected  []int
+	}{
+		{
+			name:      "Empty slice",
+			input:     []int{},
+			transform: nil,
+			expected:  []int{},
+		},
+		{
+			name:      "No duplicates",
+			input:     []int{1, 2, 3, 4},
+			transform: nil,
+			expected:  []int{1, 2, 3, 4},
+		},
+		{
+			name:      "With duplicates",
+			input:     []int{1, 2, 2, 3, 3, 4, 4, 4},
+			transform: nil,
+			expected:  []int{1, 2, 3, 4},
+		},
+		{
+			name:      "All elements same",
+			input:     []int{5, 5, 5, 5},
+			transform: nil,
+			expected:  []int{5},
+		},
+		{
+			name:      "Using transform function (absolute value)",
+			input:     []int{-1, 1, -2, 2, 3},
+			transform: []func(v *int) int{func(v *int) int { return umath.AbsVal(*v) }},
+			expected:  []int{-1, -2, 3},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := uarray.Unique(tt.input, tt.transform...)
+			require.NotNil(t, result, "Result should not be nil")
+			assert.Equal(t, tt.expected, result, "Result should match the expected output")
+		})
+	}
+}
+
+func TestUnique_WithTransform_BothTransformed(t *testing.T) {
+	values := []string{"hello", "HELLO", "world", "WORLD", "golang"}
+	expected := []string{"hello", "world", "golang"}
+
+	transform := func(v *string) string {
+		return strings.ToLower(*v)
+	}
+	result := uarray.Unique(values, transform)
+
+	require.NotNil(t, result, "Result should not be nil")
+	assert.Equal(t, expected, result, "Result should match the expected output")
+}
