@@ -331,7 +331,55 @@ func ToMultiMap[V any, K comparable, R any](values []V, m func(v *V) (K, R)) map
 func Uniq[V any, F comparable](values []V, getter func(v *V) F) []V {
 	result := make([]V, 0)
 	for _, v := range values {
-		if !AnyMatch(result, func(i *V) bool { return getter(i) == getter(&v) }) {
+		current := getter(&v)
+		if !AnyMatch(result, func(i *V) bool {
+			return getter(i) == current
+		}) {
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
+// Unique filters unique elements from a slice.
+//
+// The function accepts an optional list of transform functions.
+// Each transform function can modify the elements before comparing them.
+// If no transform functions are provided, elements are compared directly.
+//
+// Parameters:
+// - values: The slice of comparable elements to filter.
+// - transform: A variadic list of functions that take a pointer to a value and return the transformed value.
+// All transform functions are applied in provided order.
+//
+// Returns:
+// - A slice of unique elements from the input, based on the provided transform functions (if any).
+//
+// Example:
+//
+//	values := []int{1, 2, 2, 3, 4, 4}
+//	uniqueValues := Unique(values) // Output: [1, 2, 3, 4]
+//
+//	// Using a transform function to compare absolute values
+//	valuesWithNegatives := []int{-1, 1, -2, 2, 3}
+//	uniqueAbsValues := Unique(valuesWithNegatives, func(v *int) int { return abs(*v) })
+//	// Output: [-1, -2, 3]
+func Unique[V comparable](values []V, transform ...func(v *V) V) []V {
+	result := make([]V, 0)
+	for _, v := range values {
+		right := v
+		for _, t := range transform {
+			right = t(&right)
+		}
+
+		if !AnyMatch(result, func(i *V) bool {
+			left := *i
+			for _, t := range transform {
+				left = t(&left)
+			}
+			return left == right
+		}) {
 			result = append(result, v)
 		}
 	}
