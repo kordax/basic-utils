@@ -329,12 +329,13 @@ func ToMultiMap[V any, K comparable, R any](values []V, m func(v *V) (K, R)) map
 
 // Uniq filters unique elements by predicate that returns any comparable value
 func Uniq[V any, F comparable](values []V, getter func(v *V) F) []V {
+	set := make(map[F]struct{}) // Use map as a Set
 	result := make([]V, 0)
+
 	for _, v := range values {
-		current := getter(&v)
-		if !AnyMatch(result, func(i *V) bool {
-			return getter(i) == current
-		}) {
+		key := getter(&v)
+		if _, exists := set[key]; !exists {
+			set[key] = struct{}{}
 			result = append(result, v)
 		}
 	}
@@ -366,20 +367,17 @@ func Uniq[V any, F comparable](values []V, getter func(v *V) F) []V {
 //	uniqueAbsValues := Unique(valuesWithNegatives, func(v *int) int { return abs(*v) })
 //	// Output: [-1, -2, 3]
 func Unique[V comparable](values []V, transform ...func(v *V) V) []V {
+	set := make(map[V]struct{}) // Set to track unique values
 	result := make([]V, 0)
+
 	for _, v := range values {
-		right := v
+		transformed := v
 		for _, t := range transform {
-			right = t(&right)
+			transformed = t(&transformed)
 		}
 
-		if !AnyMatch(result, func(i *V) bool {
-			left := *i
-			for _, t := range transform {
-				left = t(&left)
-			}
-			return left == right
-		}) {
+		if _, exists := set[transformed]; !exists {
+			set[transformed] = struct{}{}
 			result = append(result, v)
 		}
 	}
