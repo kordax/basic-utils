@@ -205,6 +205,7 @@ func FilterOutBySet[V comparable](values []V, filter ...V) []V {
 // SortFind sorts the given slice using the provided less function and then finds the first match
 // using a binary search with the filter function. This approach is efficient for large slices
 // and repeated searches, as it leverages the speed of binary search.
+// NOTE: please note that the original slice will be modified.
 //
 // Parameters:
 //   - values: the slice of elements to search through.
@@ -213,48 +214,48 @@ func FilterOutBySet[V comparable](values []V, filter ...V) []V {
 //
 // Returns:
 //   - A pointer to the found element, or nil if no match is found.
-//
-// Examples:
-//
-//   - Finding an integer in a slice of integers:
-//     intSlice := []int{9, 7, 5, 3, 1}
-//     foundInt := SortFind(intSlice, func(a, b int) bool { return a < b }, func(v int) bool { return v == 5 })
-//     if foundInt != nil {
-//     fmt.Println("Found:", *foundInt)
-//     }
-//
-//   - Finding a string in a slice of strings:
-//     stringSlice := []string{"apple", "banana", "cherry"}
-//     foundString := SortFind(stringSlice, func(a, b string) bool { return a < b }, func(v string) bool { return v == "banana" })
-//     if foundString != nil {
-//     fmt.Println("Found:", *foundString)
-//     }
 func SortFind[V any](values []V, less func(a, b V) bool, filter func(*V) bool) *V {
 	if len(values) == 0 {
 		return nil
 	}
 
-	// Create a copy of the slice to avoid mutating the original slice
-	sortedValues := make([]V, len(values))
-	copy(sortedValues, values)
-
 	// Sort the copy using the provided less function
-	sort.Slice(sortedValues, func(i, j int) bool {
-		return less(sortedValues[i], sortedValues[j])
+	sort.Slice(values, func(i, j int) bool {
+		return less(values[i], values[j])
 	})
 
-	return Find(sortedValues, filter)
+	return FindBinary(values, filter)
 }
 
-// Find finds the first match in a sorted slice using binary search.
-// The slice must be sorted for binary search to work correctly.
-// The filter function should implement a comparison suitable for binary search.
+// Find finds the first match in a  slice using simple looping.
 func Find[V any](values []V, filter func(v *V) bool) *V {
 	for i := range values {
 		if filter(&values[i]) {
 			return &values[i] // Return a pointer to the found element
 		}
 	}
+	return nil
+}
+
+// FindBinary finds the first match in a sorted slice using binary search.
+// The filter function should implement a comparison suitable for binary search.
+func FindBinary[V any](values []V, filter func(v *V) bool) *V {
+	start, end := 0, len(values)-1
+
+	for start <= end {
+		mid := start + (end-start)/2
+		if filter(&values[mid]) {
+			// if we are at the first element then we don't have to iterate more.
+			if mid == 0 || !filter(&values[mid-1]) {
+				return &values[mid]
+			}
+
+			end = mid - 1
+		} else {
+			start = mid + 1
+		}
+	}
+
 	return nil
 }
 

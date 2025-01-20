@@ -63,3 +63,50 @@ func BenchmarkMapAndGroupToMapBy(b *testing.B) {
 		})
 	}
 }
+
+func BenchmarkFind(b *testing.B) {
+	largeSlice := make([]int, 10000)
+	for i := range largeSlice {
+		largeSlice[i] = i
+	}
+	toFind := 9999
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Find(largeSlice, func(v *int) bool {
+			return *v == toFind
+		})
+	}
+}
+
+func BenchmarkFindBinary(b *testing.B) {
+	largeSlice := make([]int, 10000)
+	for i := range largeSlice {
+		largeSlice[i] = i
+	}
+	toFind := 9999
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		FindBinary(largeSlice, func(v *int) bool {
+			return *v == toFind
+		})
+	}
+}
+
+func BenchmarkSortFind(b *testing.B) {
+	largeSlice := make([]int, 10000)
+	for i := range largeSlice {
+		largeSlice[i] = i
+	}
+	toFind := 5846
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		SortFind(largeSlice, func(a, b int) bool {
+			return a < b
+		}, func(v *int) bool {
+			return *v == toFind
+		})
+	}
+}
