@@ -507,12 +507,14 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) PutQuietly(key K, values ...T) {
 func (c *InMemoryHashMapMultiCache[K, T, H]) Get(key K) []T {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
-
 	return c.values[c.toHash(key.Keys())]
 }
 
 // Changes returns a list of keys that have experienced changes in the cache since the last reset.
 func (c *InMemoryHashMapMultiCache[K, T, H]) Changes() []K {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+
 	return umap.Values(c.changes)
 }
 
