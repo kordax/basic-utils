@@ -8,7 +8,6 @@ package uasync
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -102,7 +101,7 @@ func (t *AsyncTask[R]) Wait() (*R, error) {
 func (t *AsyncTask[R]) cancel() {
 	t.f.Cancel()
 	t.mtx.Lock()
-	t.done = uarray.NewPair[*R, error](nil, errors.New("cancelled")) // Set the done pair to represent the cancellation.
+	t.done = uarray.NewPair[*R, error](nil, context.Canceled) // Set the done pair to represent the cancellation.
 	t.mtx.Unlock()
 }
 

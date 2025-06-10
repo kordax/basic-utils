@@ -203,18 +203,18 @@ func TestFutureCancelBeforeCompletion(t *testing.T) {
 	}()
 
 	// Cancel the future before it can complete.
-	cancelled := f.Cancel()
-	if !cancelled {
-		t.Fatal("Expected future to be cancelled, but it wasn't")
+	canceled := f.Cancel()
+	if !canceled {
+		t.Fatal("Expected future to be canceled, but it wasn't")
 	}
 
-	// Check if the future returns the CancelledOperationError after being cancelled.
+	// Check if the future returns the context.Canceled after being canceled.
 	_, err := f.Wait()
 	if err == nil {
 		t.Fatal("Expected cancellation error, got none")
 	}
 
-	if !IsCancelledOperationError(err) {
-		t.Fatalf("Expected CancelledOperationError, got: %v", err)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("Expected context.Canceled, got: %v", err)
 	}
 }
