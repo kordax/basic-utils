@@ -111,7 +111,7 @@ func (f *FutureImpl[T]) Fail(err error) bool {
 // It then wakes up all goroutines waiting on the FutureImpl.
 // It returns false if the FutureImpl is already completed.
 func (f *FutureImpl[T]) Cancel() bool {
-	return f.Fail(NewCancelledOperationError())
+	return f.Fail(context.Canceled)
 }
 
 func (f *FutureImpl[T]) getV() *T {
