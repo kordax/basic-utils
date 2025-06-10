@@ -15,7 +15,7 @@ import (
 // If the timeout elapses before the operation completes, the function returns context error and the operation is canceled using the provided cancelFunc.
 //
 // Possible errors returned:
-// - CancelledOperationError: Indicates that the operation was canceled before it could complete.
+// - context.Canceled: Indicates that the operation was canceled before it could complete.
 // - Other generic errors: Represents any other error that might occur during the operation.
 //
 // It's important for callers to handle these specific error cases, especially if there's a need to distinguish between a genuine operation failure and a timeout or cancellation.

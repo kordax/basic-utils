@@ -158,10 +158,10 @@ func IfPresent[K comparable, V any](m map[K]V, key K, action func(value V)) {
 // Parameters:
 //   - m map[K]V: The map from which to retrieve the value.
 //   - key K: The key whose associated value is to be returned.
-//   - defaultValue V: The value to return if the key is not present in the map.
+//   - def V: The value to return if the key is not present in the map.
 //
 // Returns:
-//   - V: The value associated with the key, or `defaultValue` if the key is not found.
+//   - V: The value associated with the key, or `def` if the key is not found.
 //
 // Example Usage:
 //

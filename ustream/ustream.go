@@ -108,7 +108,7 @@ func (s *TerminalStream[T]) ParallelExecute(fn func(int, *T), parallelism int) {
 
 // ParallelExecuteWithTimeout executes a batch of tasks in parallel with a specified level of parallelism and timeout.
 // This method divides the work into batches according to the parallelism parameter and executes each task asynchronously.
-// Each task will be cancelled if it does not complete within the specified timeout duration.
+// Each task will be canceled if it does not complete within the specified timeout duration.
 //
 // Parameters:
 // - fn: The function to execute for each item in the TerminalStream. This function receives an index and a pointer to the item.
