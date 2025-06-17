@@ -27,7 +27,7 @@ func TestScheduledTask_ExecutesAfterDelay(t *testing.T) {
 		return &val, nil
 	}, 0)
 
-	fut := task.Start()
+	fut := task.Schedule()
 	select {
 	case <-called:
 		// ok
@@ -50,7 +50,7 @@ func TestScheduledTask_CancelBeforeStart(t *testing.T) {
 		return &val, nil
 	}, 0)
 
-	fut := task.Start()
+	fut := task.Schedule()
 	task.Cancel()
 	
 	_, err := fut.Wait()
@@ -66,9 +66,9 @@ func TestScheduleTask_WithExistingTask(t *testing.T) {
 	}, 0)
 
 	start := time.Now().Add(100 * time.Millisecond)
-	sched := uasync.ScheduleTask(start, at)
+	sched := uasync.AsScheduledTask(start, at)
 
-	fut := sched.Start()
+	fut := sched.Schedule()
 
 	val, err := fut.Wait()
 	require.NoError(t, err)
@@ -89,7 +89,7 @@ func TestScheduledTask_RetriesOnError(t *testing.T) {
 		return &v, nil
 	}, 3)
 
-	fut := task.Start()
+	fut := task.Schedule()
 	val, err := fut.Wait()
 	require.NoError(t, err)
 	require.Equal(t, 7, *val)
