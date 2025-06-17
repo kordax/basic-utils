@@ -168,3 +168,23 @@ func TestAsyncTask_ConcurrentWaits(t *testing.T) {
 		<-done
 	}
 }
+
+func TestAsyncTask_InfiniteRetryUntilSuccess(t *testing.T) {
+	attempts := 0
+	task := uasync.NewAsyncTask(context.Background(), func(ctx context.Context) (*int, error) {
+		attempts++
+		if attempts < 5 {
+			return nil, errors.New("temporary failure")
+		}
+		val := 42
+		return &val, nil
+	}, -1)
+
+	task.ExecuteAsync()
+
+	result, err := task.Wait()
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, 42, *result)
+	require.GreaterOrEqual(t, attempts, 5)
+}

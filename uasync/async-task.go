@@ -19,7 +19,7 @@ import (
 // Additionally, it allows for retrying the task a specified number of times in case of failure.
 type AsyncTask[R any] struct {
 	fn      func(ctx context.Context) (*R, error) // The function that represents the async task.
-	retries int                                   // Number of times to retry the task on failure.
+	retries int                                   // Number of times to retry the task on failure. Value less than 0 means retry forever.
 
 	f    Future[R]               // A future object to represent the result or error of the task.
 	done *uarray.Pair[*R, error] // A pair containing the result and error of the task.
@@ -106,15 +106,22 @@ func (t *AsyncTask[R]) cancel() {
 }
 
 // tryTask tries to execute a task function up to a maximum number of times.
+// If max < 0, it retries forever. Context cancellation is respected.
 func tryTask[R any](ctx context.Context, fn func(ctx context.Context) (*R, error), try int, max int) (*R, error) {
-	r, err := fn(ctx) // Execute the task function.
-	if err != nil {
-		if try < max {
-			return tryTask[R](ctx, fn, try+1, max)
-		} else {
-			return nil, fmt.Errorf("attempt %d has failed: %w", try, err)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			r, err := fn(ctx)
+			if err == nil {
+				return r, nil
+			}
+
+			if max >= 0 && try >= max {
+				return nil, fmt.Errorf("attempt %d has failed: %w", try, err)
+			}
+			try++
 		}
 	}
-
-	return r, nil
 }
