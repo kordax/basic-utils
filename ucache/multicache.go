@@ -410,7 +410,7 @@ type InMemoryHashMapMultiCache[K CompositeKey, T any, H comparable] struct {
 // NewInMemoryHashMapMultiCache creates a new instance of the InMemoryHashMapMultiCache.
 // It takes a hashing function to translate the composite keys to a desired hash type,
 // and an optional time-to-live duration for the cache entries.
-func NewInMemoryHashMapMultiCache[K CompositeKey, T any, H comparable](toHash func(keys []uconst.Unique) H, ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
+func NewInMemoryHashMapMultiCache[K CompositeKey, T any, H comparable](toHash func(keys []uconst.Unique) H, ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, H] {
 	c := &InMemoryHashMapMultiCache[K, T, H]{
 		values:          make(map[H][]T),
 		changes:         make(map[H]K, 0),
@@ -425,11 +425,11 @@ func NewInMemoryHashMapMultiCache[K CompositeKey, T any, H comparable](toHash fu
 }
 
 // NewDefaultHashMapMultiCache creates a new instance of the InMemoryHashMapMultiCache using SHA256 as the hashing algorithm.
-func NewDefaultHashMapMultiCache[K CompositeKey, T uconst.Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
+func NewDefaultHashMapMultiCache[K CompositeKey, T uconst.Comparable](ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, uint64] {
 	return NewFarmHashMapMultiCache[K, T](ttl)
 }
 
-func NewFarmHashMapMultiCache[K CompositeKey, T uconst.Comparable](ttl uopt.Opt[time.Duration]) MultiCache[K, T] {
+func NewFarmHashMapMultiCache[K CompositeKey, T uconst.Comparable](ttl uopt.Opt[time.Duration]) *InMemoryHashMapMultiCache[K, T, uint64] {
 	return NewInMemoryHashMapMultiCache[K, T, uint64](func(keys []uconst.Unique) uint64 {
 		buffer := new(bytes.Buffer)
 		arr := make([]byte, 0)

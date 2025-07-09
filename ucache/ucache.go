@@ -90,7 +90,7 @@ type InMemoryHashMapCache[K uconst.Unique, T any] struct {
 // NewInMemoryHashMapCache creates a new instance of the InMemoryHashMapCache.
 // It takes a hashing function to translate the composite keys to a desired hash type,
 // and an optional time-to-live duration for the cache entries.
-func NewInMemoryHashMapCache[K uconst.Unique, T any](ttl uopt.Opt[time.Duration]) Cache[K, T] {
+func NewInMemoryHashMapCache[K uconst.Unique, T any](ttl uopt.Opt[time.Duration]) *InMemoryHashMapCache[K, T] {
 	c := &InMemoryHashMapCache[K, T]{
 		values:          make(map[int64][]hashValueContainer[K, T]),
 		changes:         make(map[int64]K),
@@ -282,7 +282,7 @@ type InMemoryComparableMapCache[K comparable, T any] struct {
 
 // NewInMemoryComparableMapCache creates a new instance of InMemoryComparableMapCache.
 // It accepts an optional TTL (time-to-live) duration for cache entries.
-func NewInMemoryComparableMapCache[K comparable, T any](ttl uopt.Opt[time.Duration]) ComparableCache[K, T] {
+func NewInMemoryComparableMapCache[K comparable, T any](ttl uopt.Opt[time.Duration]) *InMemoryComparableMapCache[K, T] {
 	c := &InMemoryComparableMapCache[K, T]{
 		values:          make(map[K]T),
 		changes:         uset.NewHashSet[K](),
