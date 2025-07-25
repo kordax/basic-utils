@@ -47,7 +47,7 @@ value handling.
 ```go
 package myprogram
 
-import "github.com/kordax/basic-utils/queue"
+import "github.com/kordax/basic-utils/v2/queue"
 
 // To use the FIFO queue:
 q := queue.NewFIFOQueue[int](1, 2, 3)
@@ -61,7 +61,7 @@ item := q.Poll(5 * time.Second)
 ```go
 package myprogram
 
-import "github.com/kordax/basic-utils/queue"
+import "github.com/kordax/basic-utils/v2/queue"
 
 pq := queue.NewPrioritizedPriorityQueueint
 pq.Queue(1, 3) // The number 3 here is the priority

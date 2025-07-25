@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/dgryski/go-farm"
-	"github.com/kordax/basic-utils/uarray"
-	"github.com/kordax/basic-utils/uconst"
-	"github.com/kordax/basic-utils/umap"
-	"github.com/kordax/basic-utils/uopt"
+	"github.com/kordax/basic-utils/v2/uarray"
+	"github.com/kordax/basic-utils/v2/uconst"
+	"github.com/kordax/basic-utils/v2/umap"
+	"github.com/kordax/basic-utils/v2/uopt"
 )
 
 type container[K CompositeKey, T uconst.Comparable] struct {
@@ -192,8 +192,8 @@ func (c *InMemoryTreeMultiCache[K, T]) DropKey(key K) {
 	defer c.vMtx.Unlock()
 	c.dropKeyRecursively(key.Keys(), 0, c.values)
 	delete(c.lastUpdatedKeys, keysAsString(key.Keys()))
-	ind, _ := uarray.ContainsPredicate(c.changes, func(v *K) bool {
-		return (*v).Equals(key)
+	ind, _ := uarray.ContainsPredicate(c.changes, func(v K) bool {
+		return v.Equals(key)
 	})
 	if ind > -1 {
 		c.changes = uarray.CopyWithoutIndex(c.changes, ind)
@@ -261,7 +261,7 @@ func (c *InMemoryTreeMultiCache[K, T]) addTran(key K, values ...T) {
 	lowKey := key.Keys()[len(keys)-1].Key()
 
 	for _, value := range values {
-		if ind, _ := uarray.ContainsPredicate(bucket[lowKey], func(v *uarray.Pair[K, T]) bool {
+		if ind, _ := uarray.ContainsPredicate(bucket[lowKey], func(v uarray.Pair[K, T]) bool {
 			return v.Right.Equals(value)
 		}); ind > -1 {
 			bucket[lowKey][ind] = *uarray.NewPair[K, T](key, value)

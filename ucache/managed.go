@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kordax/basic-utils/uconst"
-	"github.com/kordax/basic-utils/uopt"
+	"github.com/kordax/basic-utils/v2/uconst"
+	"github.com/kordax/basic-utils/v2/uopt"
 )
 
 // ManagedCache provides a wrapper around a Cache implementation to manage

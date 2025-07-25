@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kordax/basic-utils/uconst"
-	"github.com/kordax/basic-utils/umap"
-	"github.com/kordax/basic-utils/uopt"
-	"github.com/kordax/basic-utils/uset"
+	"github.com/kordax/basic-utils/v2/uconst"
+	"github.com/kordax/basic-utils/v2/umap"
+	"github.com/kordax/basic-utils/v2/uopt"
+	"github.com/kordax/basic-utils/v2/uset"
 )
 
 type BaseCache[K, T any] interface {

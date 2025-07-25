@@ -12,8 +12,8 @@ import (
 	"unsafe"
 
 	"github.com/dgryski/go-farm"
-	"github.com/kordax/basic-utils/uref"
-	"github.com/kordax/basic-utils/usrlz"
+	"github.com/kordax/basic-utils/v2/uref"
+	"github.com/kordax/basic-utils/v2/usrlz"
 )
 
 type node[T comparable] struct {
@@ -27,11 +27,11 @@ type node[T comparable] struct {
 type ConcurrentHashSet[T comparable] struct {
 	buckets sync.Map
 
-	hash func(value *T) uint64
+	hash func(value T) uint64
 }
 
 // NewCustomConcurrentHashSet creates a new instance of ConcurrentHashSet with specific hashing implementation
-func NewCustomConcurrentHashSet[T comparable](hash func(value *T) uint64) *ConcurrentHashSet[T] {
+func NewCustomConcurrentHashSet[T comparable](hash func(value T) uint64) *ConcurrentHashSet[T] {
 	return &ConcurrentHashSet[T]{
 		hash: hash,
 	}
@@ -39,14 +39,14 @@ func NewCustomConcurrentHashSet[T comparable](hash func(value *T) uint64) *Concu
 
 // NewConcurrentHashSet creates a new instance of ConcurrentHashSet with default Farm64 hash implementation
 func NewConcurrentHashSet[T comparable]() *ConcurrentHashSet[T] {
-	return NewCustomConcurrentHashSet[T](func(value *T) uint64 {
-		return farm.Hash64(usrlz.ToBytes(value))
+	return NewCustomConcurrentHashSet[T](func(value T) uint64 {
+		return farm.Hash64(usrlz.ToBytes(&value))
 	})
 }
 
 // Add inserts a value into the set
 func (s *ConcurrentHashSet[T]) Add(value T) bool {
-	index := s.hash(&value)
+	index := s.hash(value)
 	bval, ok := s.buckets.Load(index)
 
 	var head *node[T]
@@ -75,7 +75,7 @@ func (s *ConcurrentHashSet[T]) Add(value T) bool {
 
 // Contains checks if a value is present in the set
 func (s *ConcurrentHashSet[T]) Contains(value T) bool {
-	index := s.hash(&value)
+	index := s.hash(value)
 	bval, ok := s.buckets.Load(index)
 
 	if ok {
@@ -93,7 +93,7 @@ func (s *ConcurrentHashSet[T]) Contains(value T) bool {
 
 // Remove deletes a value from the set
 func (s *ConcurrentHashSet[T]) Remove(value T) bool {
-	index := s.hash(&value)
+	index := s.hash(value)
 	bval, _ := s.buckets.Load(index)
 	ptr := bval.(*unsafe.Pointer)
 	head := (*node[T])(atomic.LoadPointer(ptr))

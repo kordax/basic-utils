@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/uasync"
+	"github.com/kordax/basic-utils/v2/uasync"
 	"github.com/stretchr/testify/require"
 )
 

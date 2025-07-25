@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/ucache"
-	"github.com/kordax/basic-utils/uconst"
-	"github.com/kordax/basic-utils/uopt"
+	"github.com/kordax/basic-utils/v2/ucache"
+	"github.com/kordax/basic-utils/v2/uconst"
+	"github.com/kordax/basic-utils/v2/uopt"
 	"github.com/stretchr/testify/assert"
 )
 

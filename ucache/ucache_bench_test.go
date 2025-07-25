@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/ucache"
-	"github.com/kordax/basic-utils/uopt"
+	"github.com/kordax/basic-utils/v2/ucache"
+	"github.com/kordax/basic-utils/v2/uopt"
 )
 
 func BenchmarkInMemoryHashMapCachePut(b *testing.B) {

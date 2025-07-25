@@ -9,7 +9,7 @@ package uqueue
 import (
 	"time"
 
-	"github.com/kordax/basic-utils/uopt"
+	"github.com/kordax/basic-utils/v2/uopt"
 )
 
 type Queue[T any] interface {

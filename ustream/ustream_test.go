@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/ustream"
+	"github.com/kordax/basic-utils/v2/ustream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,8 +32,8 @@ func TestStream_NewStream(t *testing.T) {
 func TestStream_Filter(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
 	stream := ustream.Of(values)
-	filtered := stream.Filter(func(v *int) bool {
-		return *v%2 == 0
+	filtered := stream.Filter(func(v int) bool {
+		return v%2 == 0
 	}).Collect()
 
 	expected := []int{2, 4}
@@ -43,8 +43,8 @@ func TestStream_Filter(t *testing.T) {
 func TestStream_FilterOut(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
 	stream := ustream.Of(values)
-	filteredOut := stream.FilterOut(func(v *int) bool {
-		return *v%2 == 0
+	filteredOut := stream.FilterOut(func(v int) bool {
+		return v%2 == 0
 	}).Collect()
 
 	expected := []int{1, 3, 5}
@@ -54,8 +54,8 @@ func TestStream_FilterOut(t *testing.T) {
 func TestStream_Map(t *testing.T) {
 	values := []int{1, 2, 3}
 	stream := ustream.Of(values)
-	mapped := stream.Map(func(v *int) any {
-		return fmt.Sprintf("Num: %d", *v)
+	mapped := stream.Map(func(v int) any {
+		return fmt.Sprintf("Num: %d", v)
 	}).Collect()
 
 	expected := []interface{}{"Num: 1", "Num: 2", "Num: 3"}
@@ -74,18 +74,18 @@ func TestStream_CollectToMap(t *testing.T) {
 
 	// Perform operations on the stream
 	// Since Map returns a TerminalStream, we perform all transformations before mapping
-	filteredStream := stream.Filter(func(v *int) bool {
-		return *v%2 == 0 // Keep only even numbers
-	}).FilterOut(func(v *int) bool {
-		return strings.Contains(fmt.Sprintf("%d", *v), "100") // Remove numbers containing '100'
+	filteredStream := stream.Filter(func(v int) bool {
+		return v%2 == 0 // Keep only even numbers
+	}).FilterOut(func(v int) bool {
+		return strings.Contains(fmt.Sprintf("%d", v), "100") // Remove numbers containing '100'
 	})
 
-	resultStream := filteredStream.Map(func(v *int) any {
-		return fmt.Sprintf("Even-%d", *v) // Convert to string with a prefix
+	resultStream := filteredStream.Map(func(v int) any {
+		return fmt.Sprintf("Even-%d", v) // Convert to string with a prefix
 	})
 
-	collectedMap := resultStream.CollectToMap(func(v *any) (any, any) {
-		return len((*v).(string)), *v
+	collectedMap := resultStream.CollectToMap(func(v any) (any, any) {
+		return len((v).(string)), v
 	})
 
 	assert.NotEmpty(t, collectedMap, "CollectToMap should produce a non-empty map")
@@ -111,11 +111,11 @@ func TestTerminalStream_ParallelExecuteWithTimeout(t *testing.T) {
 
 	var counter atomic.Int32
 
-	mockFn := func(index int, item *dummy) {
+	mockFn := func(index int, item dummy) {
 		time.Sleep(1 * time.Millisecond) // Simulate some processing time
 		counter.Add(1)
 	}
-	cancel := func(i int, d *dummy) {
+	cancel := func(i int, d dummy) {
 		assert.Fail(t, fmt.Sprintf("cancel for timeout called on item index %d", i))
 	}
 
@@ -130,10 +130,10 @@ func TestTerminalStream_ParallelExecuteWithTimeout_Timeout(t *testing.T) {
 
 	var counter atomic.Int32
 
-	mockFn := func(index int, item *dummy) {
+	mockFn := func(index int, item dummy) {
 		time.Sleep(10 * time.Millisecond) // Simulate some processing time
 	}
-	cancel := func(i int, d *dummy) {
+	cancel := func(i int, d dummy) {
 		counter.Add(1)
 	}
 

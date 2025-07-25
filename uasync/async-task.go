@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/kordax/basic-utils/uarray"
+	"github.com/kordax/basic-utils/v2/uarray"
 )
 
 // AsyncTask represents an asynchronous task that can be executed in the background.

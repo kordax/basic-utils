@@ -10,7 +10,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kordax/basic-utils/uerror"
+	"github.com/kordax/basic-utils/v2/uerror"
 	"github.com/stretchr/testify/assert"
 )
 
