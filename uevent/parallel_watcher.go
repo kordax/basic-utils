@@ -64,17 +64,18 @@ func (w *ParallelWatcher[T]) Watch(ctx context.Context) bool {
 	go func() {
 		defer w.watching.Store(false)
 		for {
-			select {
-			case <-ctx.Done():
+			orig, ok := <-w.ch
+			if !ok {
 				return
-			case orig, ok := <-w.ch:
-				if !ok {
-					return
-				}
-				v := orig
-				f := w.f.Load()
-				go (*f)(ctx, &v)
 			}
+
+			if ctx.Err() != nil {
+				continue
+			}
+
+			v := orig
+			fptr := w.f.Load()
+			go (*fptr)(ctx, &v)
 		}
 	}()
 
