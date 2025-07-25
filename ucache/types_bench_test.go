@@ -24,8 +24,8 @@ func BenchmarkFarmHash64Entity(b *testing.B) {
 	}
 
 	numItems := 10000
-	cache := ucache.NewInMemoryHashMapCache[*ucache.FarmHash64Entity, int](uopt.Null[time.Duration]())
-	keys := make([]*ucache.FarmHash64Entity, numItems)
+	cache := ucache.NewInMemoryHashMapCache[ucache.FarmHash64Entity, int](uopt.Null[time.Duration]())
+	keys := make([]ucache.FarmHash64Entity, numItems)
 	for i := 0; i < numItems; i++ {
 		str := fmt.Sprint(i)
 		keys[i] = ucache.Hashed(testEntity{

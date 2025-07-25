@@ -206,8 +206,8 @@ func RequireEnvAs[T any](key string, f MappingFunc[T]) T {
 //		defer and recover mechanisms to gracefully manage errors and prevent application termination.
 func RequireEnvSlice(key string) []string {
 	raw := RequireEnvAs[string](key, MapString)
-	return uarray.Map(strings.Split(raw, ","), func(v *string) string {
-		return strings.TrimSpace(*v)
+	return uarray.Map(strings.Split(raw, ","), func(v string) string {
+		return strings.TrimSpace(v)
 	})
 }
 

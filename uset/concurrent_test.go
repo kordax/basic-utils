@@ -74,8 +74,8 @@ func TestConcurrentHashSet_Clear(t *testing.T) {
 }
 
 func TestConcurrentHashSet_CustomHasher(t *testing.T) {
-	hasher := func(value *int) uint64 {
-		return uint64(*value) * 123456789
+	hasher := func(value int) uint64 {
+		return uint64(value) * 123456789
 	}
 	set := uset.NewCustomConcurrentHashSet[int](hasher)
 

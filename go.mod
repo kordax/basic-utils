@@ -1,6 +1,6 @@
 module github.com/kordax/basic-utils
 
-go 1.23
+go 1.24
 
 require (
 	github.com/dgryski/go-farm v0.0.0-20240924180020-3414d57e47da

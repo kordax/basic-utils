@@ -10,7 +10,7 @@ import (
 	"context"
 )
 
-type watchFunc[T any] func(ctx context.Context, t *T)
+type watchFunc[T any] func(ctx context.Context, t T)
 
 // Watcher is an interface that defines a method to start watching a channel for incoming messages.
 // The Watch method takes a context.Context to allow for cancellation and returns a boolean indicating
