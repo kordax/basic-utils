@@ -9,7 +9,7 @@ package uctx
 import (
 	"sync"
 
-	"github.com/kordax/basic-utils/uonce"
+	"github.com/kordax/basic-utils/v2/uonce"
 )
 
 var getGlobalContext = uonce.Once(func() *UContext {

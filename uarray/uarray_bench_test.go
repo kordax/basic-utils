@@ -58,8 +58,8 @@ func BenchmarkMapAndGroupToMapBy(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = MapAndGroupToMapBy(sampleSlice, func(v *string) (int, *string) {
-			return len(*v), v
+		_ = MapAndGroupToMapBy(sampleSlice, func(v string) (int, string) {
+			return len(v), v
 		})
 	}
 }
@@ -73,8 +73,8 @@ func BenchmarkFind(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Find(largeSlice, func(v *int) bool {
-			return *v == toFind
+		Find(largeSlice, func(v int) bool {
+			return v == toFind
 		})
 	}
 }
@@ -88,8 +88,8 @@ func BenchmarkFindBinary(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		FindBinary(largeSlice, func(v *int) bool {
-			return *v == toFind
+		FindBinary(largeSlice, func(v int) bool {
+			return v == toFind
 		})
 	}
 }
@@ -105,8 +105,8 @@ func BenchmarkSortFind(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		SortFind(largeSlice, func(a, b int) bool {
 			return a < b
-		}, func(v *int) bool {
-			return *v == toFind
+		}, func(v int) bool {
+			return v == toFind
 		})
 	}
 }

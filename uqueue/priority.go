@@ -10,7 +10,7 @@ import (
 	"container/heap"
 	"time"
 
-	"github.com/kordax/basic-utils/uopt"
+	"github.com/kordax/basic-utils/v2/uopt"
 )
 
 // container represents an individual item in the priority queue.

@@ -9,7 +9,7 @@ package uopt_test
 import (
 	"testing"
 
-	"github.com/kordax/basic-utils/uopt"
+	"github.com/kordax/basic-utils/v2/uopt"
 	"github.com/stretchr/testify/assert"
 )
 

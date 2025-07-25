@@ -10,7 +10,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/kordax/basic-utils/umath"
+	"github.com/kordax/basic-utils/v2/umath"
 	"github.com/stretchr/testify/assert"
 )
 

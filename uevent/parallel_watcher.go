@@ -73,7 +73,7 @@ func (w *ParallelWatcher[T]) Watch(ctx context.Context) bool {
 				}
 				v := orig
 				f := w.f.Load()
-				go (*f)(ctx, &v)
+				go (*f)(ctx, v)
 			}
 		}
 	}()

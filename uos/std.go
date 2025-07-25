@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kordax/basic-utils/uref"
+	"github.com/kordax/basic-utils/v2/uref"
 )
 
 // MappingFunc is a type for functions that convert a string to a pointer of type T, returning an error if the conversion fails.

@@ -14,8 +14,8 @@ import (
 	"strconv"
 	"time"
 
-	basicutils "github.com/kordax/basic-utils/uconst"
-	"github.com/kordax/basic-utils/uref"
+	basicutils "github.com/kordax/basic-utils/v2/uconst"
+	"github.com/kordax/basic-utils/v2/uref"
 )
 
 // Opt represents a generic container for optional values.
@@ -105,8 +105,8 @@ func OfNumeric[T basicutils.Numeric](v T) Opt[T] {
 }
 
 // OfCond creates an Opt containing a value if a given condition is met.
-func OfCond[T any](v T, cond func(v *T) bool) Opt[T] {
-	if cond(&v) {
+func OfCond[T any](v T, cond func(v T) bool) Opt[T] {
+	if cond(v) {
 		return Opt[T]{
 			v: &v,
 		}
@@ -156,8 +156,8 @@ func (o *Opt[T]) Set(v *T) {
 }
 
 // GetAs retrieves the value within the Opt after applying a mapping function.
-func (o Opt[T]) GetAs(mapping func(t *T) any) any {
-	return mapping(o.v)
+func (o Opt[T]) GetAs(mapping func(t T) any) any {
+	return mapping(*o.v)
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface for the Opt type.
