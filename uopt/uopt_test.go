@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/uopt"
+	"github.com/kordax/basic-utils/v2/uopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -147,8 +147,8 @@ func TestOfNumeric(t *testing.T) {
 // TestOfCond tests the OfCond method.
 func TestOfCond(t *testing.T) {
 	// Test with a value that matches the condition
-	o := uopt.OfCond(42, func(v *int) bool {
-		return *v > 0
+	o := uopt.OfCond(42, func(v int) bool {
+		return v > 0
 	})
 	if !o.Present() {
 		t.Error("Expected OfCond to create an Opt with a value")
@@ -158,8 +158,8 @@ func TestOfCond(t *testing.T) {
 	}
 
 	// Test with a value that doesn't match the condition
-	o = uopt.OfCond(0, func(v *int) bool {
-		return *v > 0
+	o = uopt.OfCond(0, func(v int) bool {
+		return v > 0
 	})
 	if o.Present() {
 		t.Error("Expected OfCond to create an Opt without a value")
@@ -252,8 +252,8 @@ func TestSet(t *testing.T) {
 // TestGetAs tests the GetAs method.
 func TestGetAs(t *testing.T) {
 	o := uopt.Of[int](42)
-	result := o.GetAs(func(t *int) interface{} {
-		return *t
+	result := o.GetAs(func(t int) interface{} {
+		return t
 	})
 	if result != 42 {
 		assert.Fail(t, fmt.Sprintf("Expected GetAs to return value 42, but got %v", result))
@@ -481,12 +481,12 @@ func TestOpt_OfNumeric(t *testing.T) {
 }
 
 func TestOpt_OfCond(t *testing.T) {
-	opt1 := uopt.OfCond(123, func(v *int) bool {
-		return *v > 200
+	opt1 := uopt.OfCond(123, func(v int) bool {
+		return v > 200
 	})
 
-	opt2 := uopt.OfCond(123, func(v *int) bool {
-		return *v < 200
+	opt2 := uopt.OfCond(123, func(v int) bool {
+		return v < 200
 	})
 
 	if opt1.Present() {
@@ -549,8 +549,8 @@ func TestOpt_Set(t *testing.T) {
 
 func TestOpt_GetAs(t *testing.T) {
 	o := uopt.Of(123)
-	result := o.GetAs(func(t *int) any {
-		return *t + 1
+	result := o.GetAs(func(t int) any {
+		return t + 1
 	})
 
 	if result.(int) != 124 {

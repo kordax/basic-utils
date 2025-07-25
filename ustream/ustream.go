@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kordax/basic-utils/uarray"
+	"github.com/kordax/basic-utils/v2/uarray"
 )
 
 type parallelTask[T any] struct {
@@ -22,7 +22,7 @@ type parallelTask[T any] struct {
 // Collector defines the interface for collecting elements from a stream.
 type Collector[T any] interface {
 	Collect() []T
-	CollectToMap(func(*T) (any, any)) map[any]any
+	CollectToMap(func(T) (any, any)) map[any]any
 }
 
 type Stream[T any] struct {
@@ -35,18 +35,18 @@ func Of[T any](values []T) *Stream[T] {
 }
 
 // Filter wraps the uarray.Filter function in the stream API.
-func (s *Stream[T]) Filter(predicate func(*T) bool) *Stream[T] {
+func (s *Stream[T]) Filter(predicate func(T) bool) *Stream[T] {
 	return Of(uarray.Filter(s.values, predicate))
 }
 
 // FilterOut wraps the uarray.FilterOut function in the stream API.
-func (s *Stream[T]) FilterOut(predicate func(*T) bool) *Stream[T] {
+func (s *Stream[T]) FilterOut(predicate func(T) bool) *Stream[T] {
 	return Of(uarray.FilterOut(s.values, predicate))
 }
 
 // Map wraps the uarray.Map function in the stream API.
 // This operation can only be the last in a pipeline.
-func (s *Stream[T]) Map(mapper func(*T) any) *TerminalStream[any] {
+func (s *Stream[T]) Map(mapper func(T) any) *TerminalStream[any] {
 	return NewTerminalStream(uarray.Map(s.values, mapper))
 }
 
@@ -55,7 +55,7 @@ func (s *Stream[T]) Collect() []T {
 }
 
 // CollectToMap uses the uarray.ToMultiMap function to collect elements of the Stream into a map.
-func (s *Stream[T]) CollectToMap(mapper func(*T) (any, any)) map[any]any {
+func (s *Stream[T]) CollectToMap(mapper func(T) (any, any)) map[any]any {
 	return uarray.ToMap(s.values, mapper)
 }
 
@@ -131,7 +131,7 @@ func (s *TerminalStream[T]) ParallelExecute(fn func(int, *T), parallelism int) {
 //
 // Note: The actual processing function (fn) does not return a value. If you need to collect results or errors from each task,
 // you might need to use a different approach or modify the method accordingly.
-func (s *TerminalStream[T]) ParallelExecuteWithTimeout(fn func(int, *T), cancel func(int, *T), timeout time.Duration, parallelism int) {
+func (s *TerminalStream[T]) ParallelExecuteWithTimeout(fn func(int, T), cancel func(int, T), timeout time.Duration, parallelism int) {
 	ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
 	defer cancelFunc()
 
@@ -150,10 +150,10 @@ func (s *TerminalStream[T]) ParallelExecuteWithTimeout(fn func(int, *T), cancel 
 
 			select {
 			case <-ctx.Done():
-				cancel(v.index, v.v)
+				cancel(v.index, *v.v)
 				goto cycle
 			default:
-				fn(v.index, v.v)
+				fn(v.index, *v.v)
 				goto cycle
 			}
 		}(i)
@@ -181,6 +181,6 @@ func (s *TerminalStream[T]) Collect() []T {
 }
 
 // CollectToMap uses the uarray.ToMultiMap function to collect elements of the Stream into a map.
-func (s *TerminalStream[T]) CollectToMap(mapper func(*T) (any, T)) map[any][]T {
+func (s *TerminalStream[T]) CollectToMap(mapper func(T) (any, T)) map[any][]T {
 	return uarray.ToMultiMap(s.values, mapper)
 }

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/kordax/basic-utils/usrlz"
+	"github.com/kordax/basic-utils/v2/usrlz"
 	"github.com/stretchr/testify/assert"
 )
 

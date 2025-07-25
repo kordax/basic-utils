@@ -14,7 +14,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/kordax/basic-utils/uopt"
+	"github.com/kordax/basic-utils/v2/uopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

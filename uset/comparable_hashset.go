@@ -7,8 +7,8 @@
 package uset
 
 import (
-	"github.com/kordax/basic-utils/uconst"
-	"github.com/kordax/basic-utils/umap"
+	"github.com/kordax/basic-utils/v2/uconst"
+	"github.com/kordax/basic-utils/v2/umap"
 )
 
 // ComparableHashSet is the same as HashSet, but allows for custom UniqueKey definition.

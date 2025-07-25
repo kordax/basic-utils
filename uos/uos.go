@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kordax/basic-utils/uarray"
-	basicutils "github.com/kordax/basic-utils/uconst"
-	"github.com/kordax/basic-utils/umath"
+	"github.com/kordax/basic-utils/v2/uarray"
+	basicutils "github.com/kordax/basic-utils/v2/uconst"
+	"github.com/kordax/basic-utils/v2/umath"
 )
 
 // GetCPUs calculates and returns the number of CPU cores available to the application.
@@ -206,8 +206,8 @@ func RequireEnvAs[T any](key string, f MappingFunc[T]) T {
 //		defer and recover mechanisms to gracefully manage errors and prevent application termination.
 func RequireEnvSlice(key string) []string {
 	raw := RequireEnvAs[string](key, MapString)
-	return uarray.Map(strings.Split(raw, ","), func(v *string) string {
-		return strings.TrimSpace(*v)
+	return uarray.Map(strings.Split(raw, ","), func(v string) string {
+		return strings.TrimSpace(v)
 	})
 }
 

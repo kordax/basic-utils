@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/uasync"
+	"github.com/kordax/basic-utils/v2/uasync"
 	"github.com/stretchr/testify/require"
 )
 
@@ -52,7 +52,7 @@ func TestScheduledTask_CancelBeforeStart(t *testing.T) {
 
 	fut := task.Schedule()
 	task.Cancel()
-	
+
 	_, err := fut.Wait()
 	require.Error(t, err)
 	require.ErrorIs(t, err, context.Canceled)

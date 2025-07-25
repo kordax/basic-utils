@@ -11,8 +11,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/kordax/basic-utils/uarray"
-	"github.com/kordax/basic-utils/uevent"
+	"github.com/kordax/basic-utils/v2/uarray"
+	"github.com/kordax/basic-utils/v2/uevent"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,11 +28,11 @@ func TestParallelWatcher(t *testing.T) {
 	// Register the function that will receive messages
 	var received []int
 	wg.Add(expectedCount)
-	watcherFunc := func(ctx context.Context, msg *int) {
+	watcherFunc := func(ctx context.Context, msg int) {
 		defer wg.Done()
 		m.Lock()
 		defer m.Unlock()
-		received = append(received, *msg)
+		received = append(received, msg)
 	}
 
 	watcher := uevent.NewParallelWatcher(inputCh, watcherFunc)
@@ -73,9 +73,9 @@ func TestParallelWatcherWithNoMessages(t *testing.T) {
 	// Register the function that will receive messages
 	var received []int
 	wg.Add(expectedCount)
-	watcherFunc := func(ctx context.Context, msg *int) {
+	watcherFunc := func(ctx context.Context, msg int) {
 		defer wg.Done()
-		received = append(received, *msg)
+		received = append(received, msg)
 	}
 
 	watcher := uevent.NewParallelWatcher(inputCh, watcherFunc)
@@ -112,10 +112,10 @@ func TestParallelWatcherContextCancel(t *testing.T) {
 	// Register the function that will receive messages
 	var received []int
 	wg.Add(expectedCount)
-	watcherFunc := func(ctx context.Context, msg *int) {
+	watcherFunc := func(ctx context.Context, msg int) {
 		defer wg.Done()
 		mu.Lock() // Lock before appending to received
-		received = append(received, *msg)
+		received = append(received, msg)
 		mu.Unlock() // Unlock after appending
 	}
 

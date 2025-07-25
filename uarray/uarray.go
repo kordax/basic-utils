@@ -11,8 +11,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kordax/basic-utils/ucast"
-	"github.com/kordax/basic-utils/uconst"
+	"github.com/kordax/basic-utils/v2/ucast"
+	"github.com/kordax/basic-utils/v2/uconst"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/maps"
 )
@@ -44,9 +44,9 @@ type Indexed[T any] interface {
 
 // ContainsPredicate checks if slice contains specified struct element by using a predicate.
 // Returns its index and value if found, -1 and nil otherwise.
-func ContainsPredicate[T any](values []T, predicate func(v *T) bool) (int, *T) {
+func ContainsPredicate[T any](values []T, predicate func(v T) bool) (int, *T) {
 	for i, v := range values {
-		if predicate(&v) {
+		if predicate(v) {
 			return i, &v
 		}
 	}
@@ -94,8 +94,8 @@ func ContainsAny[V comparable](from []V, values ...V) int {
 
 // AllMatch checks if all slice elements match the predicate.
 // Returns true if all elements match the predicate, false otherwise.
-func AllMatch[T any](values []T, predicate func(v *T) bool) bool {
-	ind, _ := ContainsPredicate(values, func(v *T) bool {
+func AllMatch[T any](values []T, predicate func(v T) bool) bool {
+	ind, _ := ContainsPredicate(values, func(v T) bool {
 		return !predicate(v)
 	})
 	return ind == -1
@@ -103,7 +103,7 @@ func AllMatch[T any](values []T, predicate func(v *T) bool) bool {
 
 // AnyMatch checks if slice has an element that matches predicate.
 // Returns true if there's a match, false otherwise.
-func AnyMatch[T any](values []T, predicate func(v *T) bool) bool {
+func AnyMatch[T any](values []T, predicate func(v T) bool) bool {
 	ind, _ := ContainsPredicate(values, predicate)
 	return ind != -1
 }
@@ -111,20 +111,20 @@ func AnyMatch[T any](values []T, predicate func(v *T) bool) bool {
 // Has checks if slice has an element.
 // Returns true if there's a match, false otherwise.
 func Has[T comparable](values []T, val T) bool {
-	return AnyMatch(values, func(v *T) bool {
-		return *v == val
+	return AnyMatch(values, func(v T) bool {
+		return v == val
 	})
 }
 
 // Filter filters values slice and returns a copy with filtered elements matching a predicate.
 // Returns its index if found, -1 otherwise.
-func Filter[V any](values []V, filter func(v *V) bool) []V {
+func Filter[V any](values []V, filter func(v V) bool) []V {
 	if len(values) == 0 {
 		return []V{}
 	}
 	result := make([]V, 0)
 	for _, v := range values {
-		if filter(&v) {
+		if filter(v) {
 			result = append(result, v)
 		}
 	}
@@ -134,7 +134,7 @@ func Filter[V any](values []V, filter func(v *V) bool) []V {
 
 // FilterAll filters values slice and returns a copy with filtered elements matching a predicate and elements that do not match any filter.
 // Returns its index if found, -1 otherwise.
-func FilterAll[V any](values []V, filter func(v *V) bool) ([]V, []V) {
+func FilterAll[V any](values []V, filter func(v V) bool) ([]V, []V) {
 	if len(values) == 0 {
 		return []V{}, []V{}
 	}
@@ -142,7 +142,7 @@ func FilterAll[V any](values []V, filter func(v *V) bool) ([]V, []V) {
 	result := make([]V, 0)
 	nonMatching := make([]V, 0)
 	for _, v := range values {
-		if filter(&v) {
+		if filter(v) {
 			result = append(result, v)
 		} else {
 			nonMatching = append(nonMatching, v)
@@ -175,8 +175,8 @@ func FilterBySet[V comparable](values []V, filter ...V) []V {
 
 // FilterOut is a macros to Filter, so it acts like Filter, but filters out values.
 // That means that only values not matching the filter will be returned.
-func FilterOut[V any](values []V, filter func(v *V) bool) []V {
-	return Filter(values, func(v *V) bool {
+func FilterOut[V any](values []V, filter func(v V) bool) []V {
+	return Filter(values, func(v V) bool {
 		return !filter(v)
 	})
 }
@@ -214,7 +214,7 @@ func FilterOutBySet[V comparable](values []V, filter ...V) []V {
 //
 // Returns:
 //   - A pointer to the found element, or nil if no match is found.
-func SortFind[V any](values []V, less func(a, b V) bool, filter func(*V) bool) *V {
+func SortFind[V any](values []V, less func(a, b V) bool, filter func(V) bool) *V {
 	if len(values) == 0 {
 		return nil
 	}
@@ -228,9 +228,9 @@ func SortFind[V any](values []V, less func(a, b V) bool, filter func(*V) bool) *
 }
 
 // Find finds the first match in a  slice using simple looping.
-func Find[V any](values []V, filter func(v *V) bool) *V {
+func Find[V any](values []V, filter func(v V) bool) *V {
 	for i := range values {
-		if filter(&values[i]) {
+		if filter(values[i]) {
 			return &values[i] // Return a pointer to the found element
 		}
 	}
@@ -239,14 +239,14 @@ func Find[V any](values []V, filter func(v *V) bool) *V {
 
 // FindBinary finds the first match in a sorted slice using binary search.
 // The filter function should implement a comparison suitable for binary search.
-func FindBinary[V any](values []V, filter func(v *V) bool) *V {
+func FindBinary[V any](values []V, filter func(v V) bool) *V {
 	start, end := 0, len(values)-1
 
 	for start <= end {
 		mid := start + (end-start)/2
-		if filter(&values[mid]) {
+		if filter(values[mid]) {
 			// if we are at the first element then we don't have to iterate more.
-			if mid == 0 || !filter(&values[mid-1]) {
+			if mid == 0 || !filter(values[mid-1]) {
 				return &values[mid]
 			}
 
@@ -260,31 +260,31 @@ func FindBinary[V any](values []V, filter func(v *V) bool) *V {
 }
 
 // MapAggr maps a func to each set of elements and returns an aggregated result.
-func MapAggr[V, R any](values []V, aggr func(v *V) []R) []R {
+func MapAggr[V, R any](values []V, aggr func(v V) []R) []R {
 	result := make([]R, 0)
 	for _, v := range values {
-		result = append(result, aggr(&v)...)
+		result = append(result, aggr(v)...)
 	}
 
 	return result
 }
 
 // Map maps a func and returns a result.
-func Map[V, R any](values []V, m func(v *V) R) []R {
+func Map[V, R any](values []V, m func(v V) R) []R {
 	result := make([]R, 0)
 	for _, v := range values {
-		result = append(result, m(&v))
+		result = append(result, m(v))
 	}
 
 	return result
 }
 
 // FlatMap applies the Map method and the Flat method consequently.
-func FlatMap[V, R any](values [][]V, m func(v *V) R) []R {
+func FlatMap[V, R any](values [][]V, m func(v V) R) []R {
 	flatten := Flat(values)
 	result := make([]R, 0)
 	for _, v := range flatten {
-		result = append(result, m(&v))
+		result = append(result, m(v))
 	}
 
 	return result
@@ -307,10 +307,10 @@ func Flat[V any](values [][]V) []V {
 //	map will contain only the last value associated with that key, as the map does not
 //	behave like a multimap. Each key in the returned map corresponds to a single value,
 //	and any previous value for the same key will be overwritten.
-func ToMap[V any, K comparable, R any](values []V, m func(v *V) (K, R)) map[K]R {
+func ToMap[V any, K comparable, R any](values []V, m func(v V) (K, R)) map[K]R {
 	result := make(map[K]R)
 	for _, v := range values {
-		k, nv := m(&v)
+		k, nv := m(v)
 		result[k] = nv
 	}
 
@@ -318,10 +318,10 @@ func ToMap[V any, K comparable, R any](values []V, m func(v *V) (K, R)) map[K]R 
 }
 
 // ToMultiMap collects a stream using collector func to a multimap.
-func ToMultiMap[V any, K comparable, R any](values []V, m func(v *V) (K, R)) map[K][]R {
+func ToMultiMap[V any, K comparable, R any](values []V, m func(v V) (K, R)) map[K][]R {
 	result := make(map[K][]R)
 	for _, v := range values {
-		k, v := m(&v)
+		k, v := m(v)
 		result[k] = append(result[k], v)
 	}
 
@@ -329,12 +329,12 @@ func ToMultiMap[V any, K comparable, R any](values []V, m func(v *V) (K, R)) map
 }
 
 // Uniq filters unique elements by predicate that returns any comparable value
-func Uniq[V any, F comparable](values []V, getter func(v *V) F) []V {
+func Uniq[V any, F comparable](values []V, getter func(v V) F) []V {
 	set := make(map[F]struct{}) // Use map as a Set
 	result := make([]V, 0)
 
 	for _, v := range values {
-		key := getter(&v)
+		key := getter(v)
 		if _, exists := set[key]; !exists {
 			set[key] = struct{}{}
 			result = append(result, v)
@@ -365,16 +365,16 @@ func Uniq[V any, F comparable](values []V, getter func(v *V) F) []V {
 //
 //	// Using a transform function to compare absolute values
 //	valuesWithNegatives := []int{-1, 1, -2, 2, 3}
-//	uniqueAbsValues := Unique(valuesWithNegatives, func(v *int) int { return abs(*v) })
+//	uniqueAbsValues := Unique(valuesWithNegatives, func(v int) int { return abs(v) })
 //	// Output: [-1, -2, 3]
-func Unique[V comparable](values []V, transform ...func(v *V) V) []V {
+func Unique[V comparable](values []V, transform ...func(v V) V) []V {
 	set := make(map[V]struct{}) // Set to track unique values
 	result := make([]V, 0)
 
 	for _, v := range values {
 		transformed := v
 		for _, t := range transform {
-			transformed = t(&transformed)
+			transformed = t(transformed)
 		}
 
 		if _, exists := set[transformed]; !exists {
@@ -387,12 +387,12 @@ func Unique[V comparable](values []V, transform ...func(v *V) V) []V {
 }
 
 // GroupBy groups and aggregates elements with aggregator method func
-func GroupBy[V any, G comparable](values []V, group func(v *V) G, aggregator func(v1, v2 *V) V) []V {
+func GroupBy[V any, G comparable](values []V, group func(v V) G, aggregator func(v1, v2 V) V) []V {
 	result := make(map[G]V)
 	for _, v := range values {
-		g := group(&v)
+		g := group(v)
 		if existing, contains := result[g]; contains {
-			result[g] = aggregator(&existing, &v)
+			result[g] = aggregator(existing, v)
 		} else {
 			result[g] = v
 		}
@@ -402,10 +402,10 @@ func GroupBy[V any, G comparable](values []V, group func(v *V) G, aggregator fun
 }
 
 // GroupToMapBy groups elements with group method func
-func GroupToMapBy[V any, G comparable](values []V, group func(v *V) G) map[G][]V {
+func GroupToMapBy[V any, G comparable](values []V, group func(v V) G) map[G][]V {
 	result := make(map[G][]V)
 	for _, v := range values {
-		g := group(&v)
+		g := group(v)
 		result[g] = append(result[g], v)
 	}
 
@@ -413,10 +413,10 @@ func GroupToMapBy[V any, G comparable](values []V, group func(v *V) G) map[G][]V
 }
 
 // MapAndGroupToMapBy same as GroupToMapBy, but allows elements to be mapped to a different type.
-func MapAndGroupToMapBy[V any, G comparable, R any](values []V, group func(v *V) (G, R)) map[G][]R {
+func MapAndGroupToMapBy[V any, G comparable, R any](values []V, group func(v V) (G, R)) map[G][]R {
 	result := make(map[G][]R)
 	for _, v := range values {
-		g, r := group(&v)
+		g, r := group(v)
 		result[g] = append(result[g], r)
 	}
 
@@ -456,10 +456,10 @@ func CopyWithoutIndexes[T any](src []T, indexes []int) []T {
 }
 
 // CollectAsMap collects corresponding values to a map.
-func CollectAsMap[K comparable, V, R any](values []V, key func(v *V) K, val func(v V) R) map[K]R {
+func CollectAsMap[K comparable, V, R any](values []V, key func(v V) K, val func(v V) R) map[K]R {
 	result := make(map[K]R)
 	for _, v := range values {
-		result[key(&v)] = val(v)
+		result[key(v)] = val(v)
 	}
 
 	return result
@@ -540,18 +540,18 @@ func EqualValuesCompare[T any](left []T, right []T, compare func(t1, t2 T) bool,
 }
 
 // Merge merges two slices with t1 elements prioritized against elements of t2.
-func Merge[K comparable, T any](t1 []T, t2 []T, key func(t *T) K) []T {
+func Merge[K comparable, T any](t1 []T, t2 []T, key func(t T) K) []T {
 	hashes := make(map[K]struct{})
 	var result []T
 	for _, t := range t1 {
-		k := key(&t)
+		k := key(t)
 		if _, ok := hashes[k]; !ok {
 			hashes[k] = struct{}{}
 			result = append(result, t)
 		}
 	}
 	for _, t := range t2 {
-		k := key(&t)
+		k := key(t)
 		if _, ok := hashes[k]; !ok {
 			hashes[k] = struct{}{}
 			result = append(result, t)
@@ -607,19 +607,19 @@ func RangeWithStep(from, to, step int) []int {
 // BestMatchBy iterates over the slice and selects the element that satisfies the predicate function as the best match.
 // The predicate function compares the current best match with the candidate and determines if the candidate is better.
 // Returns a pointer to the selected element or nil if the slice is empty.
-func BestMatchBy[T any](values []T, predicate func(currentBest, candidate *T) bool) *T {
+func BestMatchBy[T any](values []T, predicate func(currentBest, candidate T) bool) *T {
 	if len(values) == 0 {
 		return nil
 	}
 
-	var bestMatch *T = &values[0]
+	var bestMatch = values[0]
 	for i := 1; i < len(values); i++ {
-		if predicate(bestMatch, &values[i]) {
-			bestMatch = &values[i]
+		if predicate(bestMatch, values[i]) {
+			bestMatch = values[i]
 		}
 	}
 
-	return bestMatch
+	return &bestMatch
 }
 
 // Split divides a slice into multiple smaller slices (chunks) of a specified size and returns a slice of these chunks.
@@ -668,29 +668,29 @@ func AsString[T uconst.Stringable](delimiter string, values ...T) string {
 		var s string
 		switch val := any(v).(type) {
 		case int:
-			s = ucast.IntToString(&val)
+			s = ucast.IntToString(val)
 		case int8:
-			s = ucast.Int8ToString(&val)
+			s = ucast.Int8ToString(val)
 		case int16:
-			s = ucast.Int16ToString(&val)
+			s = ucast.Int16ToString(val)
 		case int32:
-			s = ucast.Int32ToString(&val)
+			s = ucast.Int32ToString(val)
 		case int64:
-			s = ucast.Int64ToString(&val)
+			s = ucast.Int64ToString(val)
 		case uint8:
-			s = ucast.Uint8ToString(&val)
+			s = ucast.Uint8ToString(val)
 		case uint16:
-			s = ucast.Uint16ToString(&val)
+			s = ucast.Uint16ToString(val)
 		case uint32:
-			s = ucast.Uint32ToString(&val)
+			s = ucast.Uint32ToString(val)
 		case uint64:
-			s = ucast.Uint64ToString(&val)
+			s = ucast.Uint64ToString(val)
 		case float32:
-			s = ucast.Float32ToString(&val)
+			s = ucast.Float32ToString(val)
 		case float64:
-			s = ucast.Float64ToString(&val)
+			s = ucast.Float64ToString(val)
 		case bool:
-			s = ucast.BoolToString(&val)
+			s = ucast.BoolToString(val)
 		}
 		parts = append(parts, s)
 	}

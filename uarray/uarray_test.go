@@ -13,9 +13,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kordax/basic-utils/uarray"
-	"github.com/kordax/basic-utils/ucast"
-	"github.com/kordax/basic-utils/umath"
+	"github.com/kordax/basic-utils/v2/uarray"
+	"github.com/kordax/basic-utils/v2/ucast"
+	"github.com/kordax/basic-utils/v2/umath"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -84,8 +84,8 @@ func TestContainsPredicate(t *testing.T) {
 		{4, 5},
 	}
 	for _, test := range truePredicateTests {
-		index, value := uarray.ContainsPredicate(slice, func(v *int) bool {
-			return *v == test.expectedValue
+		index, value := uarray.ContainsPredicate(slice, func(v int) bool {
+			return v == test.expectedValue
 		})
 		if index != test.expectedIndex || *value != test.expectedValue {
 			t.Errorf("Expected index %d and value %d, but got index %d and value %d",
@@ -94,8 +94,8 @@ func TestContainsPredicate(t *testing.T) {
 	}
 
 	// Test case for predicate that returns false
-	index, value := uarray.ContainsPredicate(slice, func(v *int) bool {
-		return *v == 0
+	index, value := uarray.ContainsPredicate(slice, func(v int) bool {
+		return v == 0
 	})
 	if index != -1 || value != nil {
 		t.Errorf("Expected index -1 and nil value, but got index %d and value %v", index, value)
@@ -189,8 +189,8 @@ func TestAllMatch(t *testing.T) {
 	slice := []string{"apple", "banana", "orange", "grape", "watermelon"}
 
 	// Test case for matching predicate
-	predicate := func(v *string) bool {
-		return len(*v) > 3
+	predicate := func(v string) bool {
+		return len(v) > 3
 	}
 	match := uarray.AllMatch(slice, predicate)
 	if !match {
@@ -198,8 +198,8 @@ func TestAllMatch(t *testing.T) {
 	}
 
 	// Test case for non-matching predicate
-	predicate = func(v *string) bool {
-		return len(*v) > 5
+	predicate = func(v string) bool {
+		return len(v) > 5
 	}
 	match = uarray.AllMatch(slice, predicate)
 	if match {
@@ -214,8 +214,8 @@ func TestAllMatch(t *testing.T) {
 	}
 
 	// Test case with different predicate
-	predicate = func(v *string) bool {
-		return *v != "banana"
+	predicate = func(v string) bool {
+		return v != "banana"
 	}
 	match = uarray.AllMatch(slice, predicate)
 	if match {
@@ -227,8 +227,8 @@ func TestAnyMatch(t *testing.T) {
 	slice := []string{"apple", "banana", "orange"}
 
 	// Test case for matching predicate
-	predicate := func(v *string) bool {
-		return len(*v) > 5
+	predicate := func(v string) bool {
+		return len(v) > 5
 	}
 	match := uarray.AnyMatch(slice, predicate)
 	if !match {
@@ -236,8 +236,8 @@ func TestAnyMatch(t *testing.T) {
 	}
 
 	// Test case for non-matching predicate
-	predicate = func(v *string) bool {
-		return len(*v) > 10
+	predicate = func(v string) bool {
+		return len(v) > 10
 	}
 	match = uarray.AnyMatch(slice, predicate)
 	if match {
@@ -314,8 +314,8 @@ func TestHas(t *testing.T) {
 
 func TestFilter(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
-	filtered := uarray.Filter(values, func(v *int) bool {
-		return *v%2 == 0
+	filtered := uarray.Filter(values, func(v int) bool {
+		return v%2 == 0
 	})
 	if !reflect.DeepEqual(filtered, []int{2, 4}) {
 		t.Error("Filter function failed")
@@ -324,8 +324,8 @@ func TestFilter(t *testing.T) {
 
 func TestFilterOut(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
-	filteredOut := uarray.FilterOut(values, func(v *int) bool {
-		return *v%2 == 0 // filter out even numbers
+	filteredOut := uarray.FilterOut(values, func(v int) bool {
+		return v%2 == 0 // filter out even numbers
 	})
 	expected := []int{1, 3, 5} // odd numbers should remain
 
@@ -336,8 +336,8 @@ func TestFilterOut(t *testing.T) {
 
 func TestFilterAll(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
-	matching, nonMatching := uarray.FilterAll(values, func(v *int) bool {
-		return *v%2 == 0
+	matching, nonMatching := uarray.FilterAll(values, func(v int) bool {
+		return v%2 == 0
 	})
 	if !reflect.DeepEqual(matching, []int{2, 4}) || !reflect.DeepEqual(nonMatching, []int{1, 3, 5}) {
 		t.Error("FilterAll function failed")
@@ -468,8 +468,8 @@ func TestFind(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			found := uarray.Find(test.values, func(v *int) bool {
-				return *v == test.target
+			found := uarray.Find(test.values, func(v int) bool {
+				return v == test.target
 			})
 			assert.Equal(t, test.expected, found, "Find returned an unexpected result")
 		})
@@ -533,8 +533,8 @@ func TestSortFind(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			found := uarray.SortFind(test.values, test.less, func(v *int) bool {
-				return *v == test.target
+			found := uarray.SortFind(test.values, test.less, func(v int) bool {
+				return v == test.target
 			})
 			assert.Equal(t, test.expected, found, "SortFind returned the wrong value")
 		})
@@ -543,8 +543,8 @@ func TestSortFind(t *testing.T) {
 
 func TestMapAggr(t *testing.T) {
 	values := []int{1, 2, 3}
-	result := uarray.MapAggr(values, func(v *int) []string {
-		return []string{fmt.Sprintf("%d-item", *v)}
+	result := uarray.MapAggr(values, func(v int) []string {
+		return []string{fmt.Sprintf("%d-item", v)}
 	})
 	expected := []string{"1-item", "2-item", "3-item"}
 	if !reflect.DeepEqual(result, expected) {
@@ -554,8 +554,8 @@ func TestMapAggr(t *testing.T) {
 
 func TestMap(t *testing.T) {
 	values := []int{1, 2, 3}
-	result := uarray.Map(values, func(v *int) string {
-		return fmt.Sprintf("%d-item", *v)
+	result := uarray.Map(values, func(v int) string {
+		return fmt.Sprintf("%d-item", v)
 	})
 	expected := []string{"1-item", "2-item", "3-item"}
 	if !reflect.DeepEqual(result, expected) {
@@ -565,8 +565,8 @@ func TestMap(t *testing.T) {
 
 func TestFlatMap(t *testing.T) {
 	values := [][]int{{1, 2}, {3, 4}}
-	result := uarray.FlatMap(values, func(v *int) string {
-		return fmt.Sprintf("%d-item", *v)
+	result := uarray.FlatMap(values, func(v int) string {
+		return fmt.Sprintf("%d-item", v)
 	})
 	expected := []string{"1-item", "2-item", "3-item", "4-item"}
 	if !reflect.DeepEqual(result, expected) {
@@ -585,8 +585,8 @@ func TestFlat(t *testing.T) {
 
 func TestToMap(t *testing.T) {
 	values := []string{"apple", "banana"}
-	result := uarray.ToMap(values, func(v *string) (int, string) {
-		return len(*v), *v
+	result := uarray.ToMap(values, func(v string) (int, string) {
+		return len(v), v
 	})
 	expected := map[int]string{5: "apple", 6: "banana"}
 	if !reflect.DeepEqual(result, expected) {
@@ -596,8 +596,8 @@ func TestToMap(t *testing.T) {
 
 func TestToMultiMap(t *testing.T) {
 	values := []string{"apple", "banana", "cherry"}
-	result := uarray.ToMultiMap(values, func(v *string) (int, string) {
-		return len(*v), *v
+	result := uarray.ToMultiMap(values, func(v string) (int, string) {
+		return len(v), v
 	})
 	expected := map[int][]string{5: {"apple"}, 6: {"banana", "cherry"}}
 	if !reflect.DeepEqual(result, expected) {
@@ -607,8 +607,8 @@ func TestToMultiMap(t *testing.T) {
 
 func TestUniq(t *testing.T) {
 	values := []int{1, 2, 2, 3, 3, 3}
-	unique := uarray.Uniq(values, func(v *int) int {
-		return *v
+	unique := uarray.Uniq(values, func(v int) int {
+		return v
 	})
 	if !reflect.DeepEqual(unique, []int{1, 2, 3}) {
 		t.Error("Uniq function failed")
@@ -617,10 +617,10 @@ func TestUniq(t *testing.T) {
 
 func TestGroupBy(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
-	grouped := uarray.GroupBy(values, func(v *int) bool {
-		return (*v)%2 == 0
-	}, func(v1, v2 *int) int {
-		return *v1 + *v2
+	grouped := uarray.GroupBy(values, func(v int) bool {
+		return (v)%2 == 0
+	}, func(v1, v2 int) int {
+		return v1 + v2
 	})
 	sort.Slice(grouped, func(i, j int) bool {
 		return grouped[i] < grouped[j]
@@ -630,8 +630,8 @@ func TestGroupBy(t *testing.T) {
 
 func TestGroupToMapBy(t *testing.T) {
 	values := []string{"apple", "banana", "cherry"}
-	result := uarray.GroupToMapBy(values, func(v *string) int {
-		return len(*v)
+	result := uarray.GroupToMapBy(values, func(v string) int {
+		return len(v)
 	})
 	expected := map[int][]string{5: {"apple"}, 6: {"banana", "cherry"}}
 	if !reflect.DeepEqual(result, expected) {
@@ -647,8 +647,8 @@ func TestMapAndGroupToMapBy(t *testing.T) {
 		len("AVOCADO"): {"AVOCADO"},
 	}
 
-	result := uarray.MapAndGroupToMapBy(values, func(v *string) (int, string) {
-		return len(*v), strings.ToUpper(*v)
+	result := uarray.MapAndGroupToMapBy(values, func(v string) (int, string) {
+		return len(v), strings.ToUpper(v)
 	})
 	assert.Equal(t, expected, result, "MapAndGroupToMapBy function failed for strings mapped to uppercase")
 
@@ -657,8 +657,8 @@ func TestMapAndGroupToMapBy(t *testing.T) {
 		true:  {4, 16},    // even numbers squared
 		false: {1, 9, 25}, // odd numbers squared
 	}
-	intResult := uarray.MapAndGroupToMapBy(intValues, func(v *int) (bool, int) {
-		return *v%2 == 0, (*v) * (*v)
+	intResult := uarray.MapAndGroupToMapBy(intValues, func(v int) (bool, int) {
+		return v%2 == 0, (v) * (v)
 	})
 
 	assert.Equal(t, expectedInt, intResult, "MapAndGroupToMapBy function failed for integers squared")
@@ -733,8 +733,8 @@ func TestCopyWithoutIndexes(t *testing.T) {
 
 func TestCollectAsMap(t *testing.T) {
 	values := []string{"apple", "banana"}
-	result := uarray.CollectAsMap(values, func(v *string) int {
-		return len(*v)
+	result := uarray.CollectAsMap(values, func(v string) int {
+		return len(v)
 	}, func(v string) string {
 		return v
 	})
@@ -763,8 +763,8 @@ func TestEqualValues(t *testing.T) {
 func TestMerge(t *testing.T) {
 	t1 := []int{1, 2, 3}
 	t2 := []int{3, 4, 5}
-	merged := uarray.Merge(t1, t2, func(t1 *int) int {
-		return *t1
+	merged := uarray.Merge(t1, t2, func(t1 int) int {
+		return t1
 	})
 	expected := []int{1, 2, 3, 4, 5}
 	if !reflect.DeepEqual(merged, expected) {
@@ -813,8 +813,8 @@ func TestBestMatchBy(t *testing.T) {
 	t.Run("FindLargestInteger", func(t *testing.T) {
 		bestOne := 45
 		values := []int{10, 20, bestOne, 25, 15}
-		best := uarray.BestMatchBy(values, func(current, candidate *int) bool {
-			return *candidate > *current
+		best := uarray.BestMatchBy(values, func(current, candidate int) bool {
+			return candidate > current
 		})
 		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for non-empty slice")
 		assert.Equal(t, bestOne, *best, "BestMatchBy should return the largest integer")
@@ -823,8 +823,8 @@ func TestBestMatchBy(t *testing.T) {
 	t.Run("FindSmallestInteger", func(t *testing.T) {
 		bestOne := 10
 		values := []int{25, 20, 45, bestOne, 15}
-		best := uarray.BestMatchBy(values, func(current, candidate *int) bool {
-			return *candidate < *current
+		best := uarray.BestMatchBy(values, func(current, candidate int) bool {
+			return candidate < current
 		})
 		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for non-empty slice")
 		assert.Equal(t, bestOne, *best, "BestMatchBy should return the smallest integer")
@@ -832,8 +832,8 @@ func TestBestMatchBy(t *testing.T) {
 
 	t.Run("FindLongestString", func(t *testing.T) {
 		values := []string{"apple", "banana", "cherry", "watermelon"}
-		best := uarray.BestMatchBy(values, func(current, candidate *string) bool {
-			return len(*candidate) > len(*current)
+		best := uarray.BestMatchBy(values, func(current, candidate string) bool {
+			return len(candidate) > len(current)
 		})
 		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for non-empty slice")
 		assert.Equal(t, "watermelon", *best, "BestMatchBy should return the longest string")
@@ -841,8 +841,8 @@ func TestBestMatchBy(t *testing.T) {
 
 	t.Run("FindShortestString", func(t *testing.T) {
 		values := []string{"apple", "banana", "cherry", "fig"}
-		best := uarray.BestMatchBy(values, func(current, candidate *string) bool {
-			return len(*candidate) < len(*current)
+		best := uarray.BestMatchBy(values, func(current, candidate string) bool {
+			return len(candidate) < len(current)
 		})
 		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for non-empty slice")
 		assert.Equal(t, "fig", *best, "BestMatchBy should return the shortest string")
@@ -858,7 +858,7 @@ func TestBestMatchBy(t *testing.T) {
 			{ID: 2, Value: 200},
 			{ID: 3, Value: 150},
 		}
-		best := uarray.BestMatchBy(values, func(current, candidate *TestStruct) bool {
+		best := uarray.BestMatchBy(values, func(current, candidate TestStruct) bool {
 			return candidate.Value > current.Value
 		})
 		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for non-empty slice")
@@ -867,7 +867,7 @@ func TestBestMatchBy(t *testing.T) {
 
 	t.Run("EmptySlice", func(t *testing.T) {
 		values := []int{}
-		best := uarray.BestMatchBy(values, func(current, candidate *int) bool {
+		best := uarray.BestMatchBy(values, func(current, candidate int) bool {
 			return true // Arbitrary predicate
 		})
 		assert.Nil(t, best, "BestMatchBy should return nil for an empty slice")
@@ -875,7 +875,7 @@ func TestBestMatchBy(t *testing.T) {
 
 	t.Run("SingleElement", func(t *testing.T) {
 		values := []int{42}
-		best := uarray.BestMatchBy(values, func(current, candidate *int) bool {
+		best := uarray.BestMatchBy(values, func(current, candidate int) bool {
 			return true // Always true
 		})
 		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for a single-element slice")
@@ -884,8 +884,8 @@ func TestBestMatchBy(t *testing.T) {
 
 	t.Run("IdenticalElements", func(t *testing.T) {
 		values := []int{5, 5, 5, 5}
-		best := uarray.BestMatchBy(values, func(current, candidate *int) bool {
-			return *candidate > *current
+		best := uarray.BestMatchBy(values, func(current, candidate int) bool {
+			return candidate > current
 		})
 		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for a slice with identical elements")
 		assert.Equal(t, 5, *best, "BestMatchBy should return one of the identical elements")
@@ -893,8 +893,8 @@ func TestBestMatchBy(t *testing.T) {
 
 	t.Run("FindLargestAbsoluteValue", func(t *testing.T) {
 		values := []int{-10, -20, 15, 5, -30}
-		best := uarray.BestMatchBy(values, func(current, candidate *int) bool {
-			return umath.AbsVal(*candidate) > umath.AbsVal(*current)
+		best := uarray.BestMatchBy(values, func(current, candidate int) bool {
+			return umath.AbsVal(candidate) > umath.AbsVal(current)
 		})
 		assert.NotNil(t, best, "BestMatchBy should return a non-nil result for non-empty slice")
 		assert.Equal(t, -30, *best, "BestMatchBy should return the number with the largest absolute value")
@@ -1209,7 +1209,7 @@ func TestUnique(t *testing.T) {
 	tests := []struct {
 		name      string
 		input     []int
-		transform []func(v *int) int
+		transform []func(v int) int
 		expected  []int
 	}{
 		{
@@ -1239,7 +1239,7 @@ func TestUnique(t *testing.T) {
 		{
 			name:      "Using transform function (absolute value)",
 			input:     []int{-1, 1, -2, 2, 3},
-			transform: []func(v *int) int{func(v *int) int { return umath.AbsVal(*v) }},
+			transform: []func(v int) int{func(v int) int { return umath.AbsVal(v) }},
 			expected:  []int{-1, -2, 3},
 		},
 	}
@@ -1257,8 +1257,8 @@ func TestUnique_WithTransform_BothTransformed(t *testing.T) {
 	values := []string{"hello", "HELLO", "world", "WORLD", "golang"}
 	expected := []string{"hello", "world", "golang"}
 
-	transform := func(v *string) string {
-		return strings.ToLower(*v)
+	transform := func(v string) string {
+		return strings.ToLower(v)
 	}
 	result := uarray.Unique(values, transform)
 
