@@ -67,10 +67,11 @@ func (w *ParallelWatcher[T]) Watch(ctx context.Context) bool {
 			select {
 			case <-ctx.Done():
 				return
-			case v, ok := <-w.ch:
+			case orig, ok := <-w.ch:
 				if !ok {
 					return
 				}
+				v := orig
 				f := w.f.Load()
 				go (*f)(ctx, &v)
 			}
