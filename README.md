@@ -73,7 +73,7 @@ go get -u github.com/kordax/basic-utils/uqueue
 then...
 
 ```go
-import "github.com/kordax/basic-utils/uqueue"
+import "github.com/kordax/basic-utils/v2/uqueue"
 ```
 
 Then, refer to the individual documentation or code comments of each module for specific usage patterns.

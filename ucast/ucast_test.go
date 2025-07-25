@@ -3,7 +3,7 @@ package ucast_test
 import (
 	"testing"
 
-	"github.com/kordax/basic-utils/ucast"
+	"github.com/kordax/basic-utils/v2/ucast"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

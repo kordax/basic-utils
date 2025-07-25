@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/uarray"
-	"github.com/kordax/basic-utils/ustream"
+	"github.com/kordax/basic-utils/v2/uarray"
+	"github.com/kordax/basic-utils/v2/ustream"
 )
 
 func BenchmarkTerminalStream_ParallelExecute(b *testing.B) {
@@ -60,7 +60,7 @@ func BenchmarkTerminalStream_ParallelExecute_HigherOrder(b *testing.B) {
 func BenchmarkTerminalStream_ParallelExecuteWithTimeout(b *testing.B) {
 	timeout := time.Second
 	parallelisms := uarray.RangeWithStep(1, 40, 4)
-	fn := func(index int, value *int) { time.Sleep(time.Nanosecond * 10000) } // Emulates the load
+	fn := func(index int, value int) { time.Sleep(time.Nanosecond * 10000) } // Emulates the load
 
 	for _, parallelism := range parallelisms {
 		sliceSize := parallelism * 10
@@ -82,7 +82,7 @@ func BenchmarkTerminalStream_ParallelExecuteWithTimeout(b *testing.B) {
 func BenchmarkTerminalStream_ParallelExecuteWithTimeout_HigherOrder(b *testing.B) {
 	timeout := time.Second
 	parallelisms := uarray.RangeWithStep(1, 500, 100)
-	fn := func(index int, value *int) { time.Sleep(time.Nanosecond * 10000) } // Emulates the load
+	fn := func(index int, value int) { time.Sleep(time.Nanosecond * 10000) } // Emulates the load
 
 	for _, parallelism := range parallelisms {
 		sliceSize := parallelism * 10

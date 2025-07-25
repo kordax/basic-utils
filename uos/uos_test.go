@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/uos"
+	"github.com/kordax/basic-utils/v2/uos"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

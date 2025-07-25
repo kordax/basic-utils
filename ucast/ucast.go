@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/kordax/basic-utils/uconst"
+	"github.com/kordax/basic-utils/v2/uconst"
 )
 
 // String converts the input string to a value of type R.
@@ -63,109 +63,96 @@ func toString[V uconst.BasicType](v V) string {
 		}
 		return *val
 	case bool:
-		valPtr := &val
-		return BoolToString(valPtr)
+		return BoolToString(val)
 	case *bool:
 		if val == nil {
 			return ""
 		}
-		return BoolToString(val)
+		return BoolToString(*val)
 	case int:
-		valPtr := &val
-		return IntToString(valPtr)
+		return IntToString(val)
 	case *int:
 		if val == nil {
 			return ""
 		}
-		return IntToString(val)
+		return IntToString(*val)
 	case int8:
-		valPtr := &val
-		return Int8ToString(valPtr)
+		return Int8ToString(val)
 	case *int8:
 		if val == nil {
 			return ""
 		}
-		return Int8ToString(val)
+		return Int8ToString(*val)
 	case int16:
-		valPtr := &val
-		return Int16ToString(valPtr)
+		return Int16ToString(val)
 	case *int16:
 		if val == nil {
 			return ""
 		}
-		return Int16ToString(val)
+		return Int16ToString(*val)
 	case int32:
-		valPtr := &val
-		return Int32ToString(valPtr)
+		return Int32ToString(val)
 	case *int32:
 		if val == nil {
 			return ""
 		}
-		return Int32ToString(val)
+		return Int32ToString(*val)
 	case int64:
-		valPtr := &val
-		return Int64ToString(valPtr)
+		return Int64ToString(val)
 	case *int64:
 		if val == nil {
 			return ""
 		}
-		return Int64ToString(val)
+		return Int64ToString(*val)
 	case uint:
-		valPtr := &val
-		return UintToString(valPtr)
+		return UintToString(val)
 	case *uint:
 		if val == nil {
 			return ""
 		}
-		return UintToString(val)
+		return UintToString(*val)
 	case uint8:
-		valPtr := &val
-		return Uint8ToString(valPtr)
+		return Uint8ToString(val)
 	case *uint8:
 		if val == nil {
 			return ""
 		}
-		return Uint8ToString(val)
+		return Uint8ToString(*val)
 	case uint16:
-		valPtr := &val
-		return Uint16ToString(valPtr)
+		return Uint16ToString(val)
 	case *uint16:
 		if val == nil {
 			return ""
 		}
-		return Uint16ToString(val)
+		return Uint16ToString(*val)
 	case uint32:
-		valPtr := &val
-		return Uint32ToString(valPtr)
+		return Uint32ToString(val)
 	case *uint32:
 		if val == nil {
 			return ""
 		}
-		return Uint32ToString(val)
+		return Uint32ToString(*val)
 	case uint64:
-		valPtr := &val
-		return Uint64ToString(valPtr)
+		return Uint64ToString(val)
 	case *uint64:
 		if val == nil {
 			return ""
 		}
-		return Uint64ToString(val)
+		return Uint64ToString(*val)
 	case float32:
-		valPtr := &val
-		return Float32ToString(valPtr)
+		return Float32ToString(val)
 	case *float32:
 		if val == nil {
 			return ""
 		}
-		return Float32ToString(val)
+		return Float32ToString(*val)
 	case float64:
-		valPtr := &val
-		return Float64ToString(valPtr)
+		return Float64ToString(val)
 	case *float64:
 		if val == nil {
 			return ""
 		}
-		return Float64ToString(val)
+		return Float64ToString(*val)
 	default:
 		return ""
 	}
@@ -183,37 +170,35 @@ func fromString[U uconst.BasicType](s string) (U, error) {
 	var value interface{}
 	var err error
 
-	strPtr := &s
-
 	switch uType.Kind() {
 	case reflect.String:
 		value = s
 	case reflect.Bool:
-		value, err = StringToBool(strPtr)
+		value, err = StringToBool(s)
 	case reflect.Int:
-		value, err = StringToInt(strPtr)
+		value, err = StringToInt(s)
 	case reflect.Int8:
-		value, err = StringToInt8(strPtr)
+		value, err = StringToInt8(s)
 	case reflect.Int16:
-		value, err = StringToInt16(strPtr)
+		value, err = StringToInt16(s)
 	case reflect.Int32:
-		value, err = StringToInt32(strPtr)
+		value, err = StringToInt32(s)
 	case reflect.Int64:
-		value, err = StringToInt64(strPtr)
+		value, err = StringToInt64(s)
 	case reflect.Uint:
-		value, err = StringToUint(strPtr)
+		value, err = StringToUint(s)
 	case reflect.Uint8:
-		value, err = StringToUint8(strPtr)
+		value, err = StringToUint8(s)
 	case reflect.Uint16:
-		value, err = StringToUint16(strPtr)
+		value, err = StringToUint16(s)
 	case reflect.Uint32:
-		value, err = StringToUint32(strPtr)
+		value, err = StringToUint32(s)
 	case reflect.Uint64:
-		value, err = StringToUint64(strPtr)
+		value, err = StringToUint64(s)
 	case reflect.Float32:
-		value, err = StringToFloat32(strPtr)
+		value, err = StringToFloat32(s)
 	case reflect.Float64:
-		value, err = StringToFloat64(strPtr)
+		value, err = StringToFloat64(s)
 	default:
 		return zero, fmt.Errorf("unsupported target type: %v", uType)
 	}

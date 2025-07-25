@@ -61,7 +61,7 @@ func (w *BroadcastWatcher[T]) Watch(ctx context.Context) bool {
 					if !ok {
 						return
 					}
-					w.broadcast(ctx, &msg)
+					w.broadcast(ctx, msg)
 				}
 			}
 		}()
@@ -71,7 +71,7 @@ func (w *BroadcastWatcher[T]) Watch(ctx context.Context) bool {
 	}
 }
 
-func (w *BroadcastWatcher[T]) broadcast(ctx context.Context, msg *T) {
+func (w *BroadcastWatcher[T]) broadcast(ctx context.Context, msg T) {
 	w.m.Lock()
 	defer w.m.Unlock()
 

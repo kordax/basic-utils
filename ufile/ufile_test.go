@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/kordax/basic-utils/ufile"
+	"github.com/kordax/basic-utils/v2/ufile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

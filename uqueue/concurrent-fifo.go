@@ -11,7 +11,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/kordax/basic-utils/uopt"
+	"github.com/kordax/basic-utils/v2/uopt"
 )
 
 type node[T any] struct {

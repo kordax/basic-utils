@@ -11,8 +11,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/kordax/basic-utils/uarray"
-	"github.com/kordax/basic-utils/uevent"
+	"github.com/kordax/basic-utils/v2/uarray"
+	"github.com/kordax/basic-utils/v2/uevent"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,21 +31,21 @@ func TestBroadcastWatcher(t *testing.T) {
 	// Register listener 1
 	var received1 []int
 	wg1.Add(expectedCount)
-	watcher.Register(func(ctx context.Context, msg *int) {
+	watcher.Register(func(ctx context.Context, msg int) {
 		defer wg1.Done()
 		m.Lock()
 		defer m.Unlock()
-		received1 = append(received1, *msg)
+		received1 = append(received1, msg)
 	})
 
 	// Register listener 2
 	var received2 []int
 	wg2.Add(expectedCount)
-	watcher.Register(func(ctx context.Context, msg *int) {
+	watcher.Register(func(ctx context.Context, msg int) {
 		defer wg2.Done()
 		m.Lock()
 		defer m.Unlock()
-		received2 = append(received2, *msg)
+		received2 = append(received2, msg)
 	})
 
 	// Create a context with cancellation
@@ -112,9 +112,9 @@ func TestBroadcastWatcherContextCancel(t *testing.T) {
 	// Register listener 1
 	var received1 []int
 	wg.Add(expectedCount)
-	watcher.Register(func(ctx context.Context, msg *int) {
+	watcher.Register(func(ctx context.Context, msg int) {
 		defer wg.Done()
-		received1 = append(received1, *msg)
+		received1 = append(received1, msg)
 	})
 
 	// Create a context with cancellation

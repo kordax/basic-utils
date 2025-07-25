@@ -6,7 +6,7 @@
 
 package uset
 
-import "github.com/kordax/basic-utils/uconst"
+import "github.com/kordax/basic-utils/v2/uconst"
 
 // OrderedHashSet is a set implementation that preserves the order of elements as they were added.
 // This implementation is slower than a traditional HashSet or ComparableHashset, therefore it's recommended to use this

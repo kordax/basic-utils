@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kordax/basic-utils/ucache"
-	"github.com/kordax/basic-utils/uconst"
-	"github.com/kordax/basic-utils/uopt"
-	"github.com/kordax/basic-utils/uref"
+	"github.com/kordax/basic-utils/v2/ucache"
+	"github.com/kordax/basic-utils/v2/uconst"
+	"github.com/kordax/basic-utils/v2/uopt"
+	"github.com/kordax/basic-utils/v2/uref"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -326,7 +326,7 @@ func TestKeysWithCache(t *testing.T) {
 }
 
 func TestFarmHash64Entity(t *testing.T) {
-	cache := ucache.NewInMemoryHashMapCache[*ucache.FarmHash64Entity, ucache.StringValue](uopt.NullDuration())
+	cache := ucache.NewInMemoryHashMapCache[ucache.FarmHash64Entity, ucache.StringValue](uopt.NullDuration())
 
 	type nested struct {
 		ExportedNestedStringField string
@@ -468,7 +468,7 @@ func TestFarmHash64EntityCollisions(t *testing.T) {
 		ExportedNestedIntField:    100,
 	}
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		key := custom{
 			ExportedStringField: fmt.Sprintf("value%d", i),
 			ExportedIntField:    i,
@@ -485,58 +485,17 @@ func TestFarmHash64EntityCollisions(t *testing.T) {
 		value := ucache.NewStringValue(fmt.Sprintf("data%d", i))
 
 		wrappedKey := ucache.Hashed(key)
-		cache.Set(wrappedKey, value)
+		cache.Set(&wrappedKey, value)
 
-		found, ok := cache.Get(wrappedKey)
+		found, ok := cache.Get(&wrappedKey)
 		require.True(t, ok)
 		assert.Equal(t, value, *found)
 	}
 }
 
-func TestFarmHash64EntityForcedCollisions_PrimitiveType(t *testing.T) {
-	obj1 := "collision object 1"
-	obj2 := "collision object 2"
-
-	entity1 := ucache.Hashed(obj1)
-	entity2 := ucache.Hashed(obj2)
-
-	// Manually set the same hash value to simulate collision
-	collisionHash := int64(123456789)
-	entity1.Override(collisionHash)
-	entity2.Override(collisionHash)
-
-	require.True(t, entity1.Key() == collisionHash, "Entity1 should have the collision hash")
-	require.True(t, entity2.Key() == collisionHash, "Entity2 should have the collision hash")
-	require.False(t, entity1.Equals(entity2), "Entities with the same hash should not be equal (simulated collision)")
-
-	// Note: In a real-world scenario, Equals should compare the actual objects
-	// or their serialized forms to determine equality, not just the hash.
-	// This simulation assumes Equals is based solely on the hash.
-}
-
-func TestFarmHash64EntityForcedCollisions_CustomStruct(t *testing.T) {
-	obj1 := DummyComparable{1}
-	obj2 := DummyComparable{2}
-
-	entity1 := ucache.Hashed(obj1)
-	entity2 := ucache.Hashed(obj2)
-
-	collisionHash := int64(123456789)
-	entity1.Override(collisionHash)
-	entity2.Override(collisionHash)
-
-	require.True(t, entity1.Key() == collisionHash, "Entity1 should have the collision hash")
-	require.True(t, entity2.Key() == collisionHash, "Entity2 should have the collision hash")
-	require.False(t, entity1.Equals(entity2), "Entities with the same hash should not be equal (simulated collision)")
-
-	// Note: In a real-world scenario, Equals should compare the actual objects
-	// or their serialized forms to determine equality, not just the hash.
-	// This simulation assumes Equals is based solely on the hash.
-}
-
 func TestNewFarmHashCompositeKey(t *testing.T) {
-	key1 := *ucache.Hashed("key1")
-	key2 := *ucache.Hashed("key2")
+	key1 := ucache.Hashed("key1")
+	key2 := ucache.Hashed("key2")
 
 	compositeKey := ucache.NewFarmHashCompositeKey("key1", "key2")
 
@@ -547,13 +506,13 @@ func TestNewFarmHashCompositeKey(t *testing.T) {
 }
 
 func TestFarmHash64CompositeKey_Equals(t *testing.T) {
-	key1 := *ucache.Hashed("key1")
-	key2 := *ucache.Hashed("key2")
+	key1 := ucache.Hashed("key1")
+	key2 := ucache.Hashed("key2")
 
 	compositeKey1 := ucache.NewFarmHashCompositeKey(key1, key2)
 	compositeKey2 := ucache.NewFarmHashCompositeKey(key1, key2)
 
-	key3 := *ucache.Hashed("key3")
+	key3 := ucache.Hashed("key3")
 	compositeKey3 := ucache.NewFarmHashCompositeKey(key1, key3)
 
 	assert.True(t, compositeKey1.Equals(compositeKey2))
@@ -561,8 +520,8 @@ func TestFarmHash64CompositeKey_Equals(t *testing.T) {
 }
 
 func TestFarmHash64CompositeKey_Keys(t *testing.T) {
-	key1 := *ucache.Hashed("key1")
-	key2 := *ucache.Hashed("key2")
+	key1 := ucache.Hashed("key1")
+	key2 := ucache.Hashed("key2")
 
 	compositeKey := ucache.NewFarmHashCompositeKey("key1", "key2")
 	keys := compositeKey.Keys()

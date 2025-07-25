@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kordax/basic-utils/uconst"
+	"github.com/kordax/basic-utils/v2/uconst"
 )
 
 type ValueType int
