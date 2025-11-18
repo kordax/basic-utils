@@ -14,22 +14,22 @@ type HashSet[T comparable] struct {
 	m map[T]dummy
 }
 
-// NewHashSet creates a new instance of HashSet with the default size
+// NewHashSet creates a new instance of HashSet with initial capacity equal to values length.
 func NewHashSet[T comparable](values ...T) *HashSet[T] {
-	m := make(map[T]dummy)
+	m := make(map[T]dummy, len(values))
 	for _, v := range values {
-		m[v] = dummy{}
+		m[v] = def
 	}
 
 	return &HashSet[T]{m: m}
 }
 
-// NewHashSetWithSize creates a new instance of HashSet with a specified initial size
+// NewHashSetWithSize creates a new instance of HashSet with a specified initial size.
 func NewHashSetWithSize[T comparable](size int) *HashSet[T] {
 	return &HashSet[T]{m: make(map[T]dummy, size)}
 }
 
-// Add inserts a value into the set and returns true if the value was not already present
+// Add inserts a value into the set and returns true if the value was not already present.
 func (s *HashSet[T]) Add(value T) bool {
 	if s.m == nil {
 		s.m = make(map[T]dummy)
@@ -43,40 +43,41 @@ func (s *HashSet[T]) Add(value T) bool {
 	return true
 }
 
-// Contains checks if a value is present in the set
+// Contains checks if a value is present in the set.
 func (s *HashSet[T]) Contains(value T) bool {
 	if s.m == nil {
-		s.m = make(map[T]dummy)
+		return false
 	}
 
 	_, exists := s.m[value]
 	return exists
 }
 
-// Remove deletes a value from the set and returns true if the value was present
+// Remove deletes a value from the set and returns true if the value was present.
 func (s *HashSet[T]) Remove(value T) bool {
 	if s.m == nil {
-		s.m = make(map[T]dummy)
+		return false
 	}
 
 	if _, exists := s.m[value]; exists {
 		delete(s.m, value)
 		return true
 	}
+
 	return false
 }
 
-// Size returns the number of elements in the set
+// Size returns the number of elements in the set.
 func (s *HashSet[T]) Size() int {
 	return len(s.m)
 }
 
-// Clear returns the number of elements in the set
+// Clear removes all elements from the set.
 func (s *HashSet[T]) Clear() {
-	s.m = make(map[T]dummy)
+	s.m = nil
 }
 
-// Values retrieves all the values
+// Values retrieves all the values.
 func (s *HashSet[T]) Values() []T {
 	return umap.Keys(s.m)
 }

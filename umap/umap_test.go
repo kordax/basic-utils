@@ -29,7 +29,7 @@ func TestContainsPredicate(t *testing.T) {
 	predicate := func(k int, v *MyStruct) bool {
 		return v.Name == "Jane"
 	}
-	result := umap.ContainsPredicate(predicate, m1)
+	result := umap.ContainsPredicate(m1, predicate)
 	expected := &MyStruct{ID: 2, Name: "Jane"}
 	if result == nil || *result != *expected {
 		t.Errorf("Test case 1 failed: Expected %v, but got %v", expected, result)
@@ -44,7 +44,7 @@ func TestContainsPredicate(t *testing.T) {
 	predicate2 := func(k int, v *MyStruct) bool {
 		return v.Name == "Alice"
 	}
-	result2 := umap.ContainsPredicate(predicate2, m2)
+	result2 := umap.ContainsPredicate(m2, predicate2)
 	if result2 != nil {
 		t.Errorf("Test case 2 failed: Expected nil, but got %v", result2)
 	}
@@ -79,7 +79,7 @@ func TestContains(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result := umap.Contains(test.element, test.values)
+		result := umap.Contains(test.values, test.element)
 		if (result == nil && test.expected != nil) || (result != nil && test.expected == nil) || (result != nil && *result != *test.expected) {
 			t.Errorf("Expected %v for element %d in map %v, but got %v", test.expected, test.element, test.values, result)
 		}
