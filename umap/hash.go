@@ -46,6 +46,6 @@ func writeHashData(h hash.Hash, val reflect.Value) {
 			writeHashData(h, val.Elem())
 		}
 	default:
-		h.Write([]byte(fmt.Sprintf("%v", val.Interface())))
+		_, _ = fmt.Fprintf(h, "%v", val.Interface())
 	}
 }
