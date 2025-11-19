@@ -8,141 +8,185 @@ package uset
 
 import (
 	"sync"
-	"sync/atomic"
-	"unsafe"
 
 	"github.com/dgryski/go-farm"
-	"github.com/kordax/basic-utils/v2/uref"
 	"github.com/kordax/basic-utils/v2/usrlz"
 )
 
-type node[T comparable] struct {
-	value T
-	next  unsafe.Pointer
+type concurrentShard[T comparable] struct {
+	mu sync.RWMutex
+	m  map[T]struct{}
 }
 
-// ConcurrentHashSet is a work-in-progress experimental thread-safe set implementation that uses atomic operations and sync.Map.
-// !!! This implementation is not yet optimized and may contain bugs. For stable usage, prefer SynchronizedHashSet.
-// Deprecated, use SynchronizedHashSet instead.
+// ConcurrentHashSet is a concurrent-safe hash set implementation that uses sharding.
+// Each shard is protected by its own RWMutex which allows high concurrency for
+// operations on different keys.
 type ConcurrentHashSet[T comparable] struct {
-	buckets sync.Map
-
-	hash func(value T) uint64
+	hash   func(T) uint64
+	shards []concurrentShard[T]
 }
 
-// NewCustomConcurrentHashSet creates a new instance of ConcurrentHashSet with specific hashing implementation
-func NewCustomConcurrentHashSet[T comparable](hash func(value T) uint64) *ConcurrentHashSet[T] {
+const defaultConcurrentHashSetShards = 32
+
+func newConcurrentHashSetWithHash[T comparable](hash func(T) uint64, shardCount int) *ConcurrentHashSet[T] {
+	if shardCount <= 0 {
+		shardCount = defaultConcurrentHashSetShards
+	}
+
+	shards := make([]concurrentShard[T], shardCount)
+	for i := range shards {
+		shards[i].m = make(map[T]struct{})
+	}
+
 	return &ConcurrentHashSet[T]{
-		hash: hash,
+		hash:   hash,
+		shards: shards,
 	}
 }
 
-// NewConcurrentHashSet creates a new instance of ConcurrentHashSet with default Farm64 hash implementation
+// NewConcurrentHashSet creates a ConcurrentHashSet with a default Farm64-based hash
+// and a default number of shards.
 func NewConcurrentHashSet[T comparable]() *ConcurrentHashSet[T] {
-	return NewCustomConcurrentHashSet[T](func(value T) uint64 {
+	defaultHash := func(value T) uint64 {
 		return farm.Hash64(usrlz.ToBytes(&value))
-	})
+	}
+
+	return newConcurrentHashSetWithHash[T](defaultHash, defaultConcurrentHashSetShards)
 }
 
-// Add inserts a value into the set
+// NewConcurrentHashSetWithHash creates a ConcurrentHashSet with a custom hash
+// function and a default number of shards.
+func NewConcurrentHashSetWithHash[T comparable](hash func(T) uint64) *ConcurrentHashSet[T] {
+	return newConcurrentHashSetWithHash[T](hash, defaultConcurrentHashSetShards)
+}
+
+// NewConcurrentHashSetWithHashAndShards creates a ConcurrentHashSet with a custom
+// hash function and a custom number of shards.
+func NewConcurrentHashSetWithHashAndShards[T comparable](hash func(T) uint64, shardCount int) *ConcurrentHashSet[T] {
+	return newConcurrentHashSetWithHash[T](hash, shardCount)
+}
+
+// NewCustomConcurrentHashSet is kept for backward compatibility.
+// It is equivalent to NewConcurrentHashSetWithHash with the default shard count.
+func NewCustomConcurrentHashSet[T comparable](hash func(T) uint64) *ConcurrentHashSet[T] {
+	return NewConcurrentHashSetWithHash(hash)
+}
+
+func (s *ConcurrentHashSet[T]) shardFor(value T) *concurrentShard[T] {
+	if len(s.shards) == 0 {
+		return nil
+	}
+
+	idx := s.hash(value) % uint64(len(s.shards))
+	return &s.shards[idx]
+}
+
+// Add inserts a value into the set and returns true if the value was not already present.
 func (s *ConcurrentHashSet[T]) Add(value T) bool {
-	index := s.hash(value)
-	bval, ok := s.buckets.Load(index)
-
-	var head *node[T]
-	newNode := &node[T]{value: value}
-	if ok {
-		ptr := bval.(*unsafe.Pointer)
-		head = (*node[T])(atomic.LoadPointer(ptr))
-		for n := head; n != nil; n = (*node[T])(atomic.LoadPointer(&n.next)) {
-			if n.value == value {
-				return false
-			}
-		}
-
-		for {
-			newNode.next = unsafe.Pointer(head)
-			if atomic.CompareAndSwapPointer(ptr, unsafe.Pointer(head), unsafe.Pointer(newNode)) {
-				return true
-			}
-			head = (*node[T])(atomic.LoadPointer(ptr))
-		}
-	} else {
-		s.buckets.Store(index, uref.Ref(unsafe.Pointer(newNode)))
-		return true
+	sh := s.shardFor(value)
+	if sh == nil {
+		return false
 	}
+
+	sh.mu.Lock()
+	defer sh.mu.Unlock()
+
+	if sh.m == nil {
+		sh.m = make(map[T]struct{})
+	}
+
+	if _, exists := sh.m[value]; exists {
+		return false
+	}
+
+	sh.m[value] = struct{}{}
+	return true
 }
 
-// Contains checks if a value is present in the set
+// Contains checks if a value is present in the set.
 func (s *ConcurrentHashSet[T]) Contains(value T) bool {
-	index := s.hash(value)
-	bval, ok := s.buckets.Load(index)
-
-	if ok {
-		head := (*node[T])(atomic.LoadPointer(bval.(*unsafe.Pointer)))
-
-		for n := head; n != nil; n = (*node[T])(atomic.LoadPointer(&n.next)) {
-			if n.value == value {
-				return true
-			}
-		}
+	sh := s.shardFor(value)
+	if sh == nil {
+		return false
 	}
 
-	return false
+	sh.mu.RLock()
+	defer sh.mu.RUnlock()
+
+	if sh.m == nil {
+		return false
+	}
+
+	_, exists := sh.m[value]
+	return exists
 }
 
-// Remove deletes a value from the set
+// Remove deletes a value from the set and returns true if the value was present.
 func (s *ConcurrentHashSet[T]) Remove(value T) bool {
-	index := s.hash(value)
-	bval, _ := s.buckets.Load(index)
-	ptr := bval.(*unsafe.Pointer)
-	head := (*node[T])(atomic.LoadPointer(ptr))
+	sh := s.shardFor(value)
+	if sh == nil {
+		return false
+	}
 
-	var prev *node[T]
-	for n := head; n != nil; n = (*node[T])(atomic.LoadPointer(&n.next)) {
-		if n.value == value {
-			if prev == nil {
-				return atomic.CompareAndSwapPointer(ptr, unsafe.Pointer(n), n.next)
-			}
-			return atomic.CompareAndSwapPointer(&prev.next, unsafe.Pointer(n), n.next)
-		}
-		prev = n
+	sh.mu.Lock()
+	defer sh.mu.Unlock()
+
+	if sh.m == nil {
+		return false
+	}
+
+	if _, exists := sh.m[value]; exists {
+		delete(sh.m, value)
+		return true
 	}
 
 	return false
 }
 
-// Size returns the number of elements in the set
+// Size returns the number of elements in the set.
 func (s *ConcurrentHashSet[T]) Size() int {
-	size := 0
-	s.buckets.Range(func(k, v interface{}) bool {
-		head := (*node[T])(atomic.LoadPointer(v.(*unsafe.Pointer)))
-		for n := head; n != nil; n = (*node[T])(atomic.LoadPointer(&n.next)) {
-			size++
-		}
+	total := 0
+	for i := range s.shards {
+		sh := &s.shards[i]
+		sh.mu.RLock()
+		total += len(sh.m)
+		sh.mu.RUnlock()
+	}
 
-		return true
-	})
-
-	return size
+	return total
 }
 
-// Clear removes all elements from the set
+// Clear removes all elements from the set.
 func (s *ConcurrentHashSet[T]) Clear() {
-	s.buckets.Range(func(k, v interface{}) bool {
-		atomic.StorePointer(v.(*unsafe.Pointer), nil)
-		return true
-	})
+	for i := range s.shards {
+		sh := &s.shards[i]
+		sh.mu.Lock()
+		sh.m = make(map[T]struct{})
+		sh.mu.Unlock()
+	}
 }
 
-// Values retrieves all the values
+// Values retrieves all values from the set.
+// The snapshot is not atomic across shards but is safe to call concurrently.
 func (s *ConcurrentHashSet[T]) Values() []T {
-	values := make([]T, 0, s.Size())
+	// First, estimate the total size.
+	total := 0
+	for i := range s.shards {
+		sh := &s.shards[i]
+		sh.mu.RLock()
+		total += len(sh.m)
+		sh.mu.RUnlock()
+	}
 
-	s.buckets.Range(func(_, v interface{}) bool {
-		values = append(values, v.(T))
-		return true
-	})
+	result := make([]T, 0, total)
+	for i := range s.shards {
+		sh := &s.shards[i]
+		sh.mu.RLock()
+		for v := range sh.m {
+			result = append(result, v)
+		}
+		sh.mu.RUnlock()
+	}
 
-	return values
+	return result
 }

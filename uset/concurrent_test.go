@@ -226,3 +226,52 @@ func TestConcurrentHashSet_ConcurrentAddAndSize(t *testing.T) {
 	expectedSize := numGoroutines * numElements
 	assert.Equal(t, expectedSize, set.Size(), "Expected size does not match actual size")
 }
+
+func TestConcurrentHashSet_Values(t *testing.T) {
+	set := uset.NewConcurrentHashSet[int]()
+
+	vals := set.Values()
+	assert.Len(t, vals, 0)
+
+	set.Add(1)
+	set.Add(2)
+	set.Add(3)
+
+	vals = set.Values()
+	assert.Len(t, vals, 3)
+	assert.ElementsMatch(t, []int{1, 2, 3}, vals)
+}
+
+func TestConcurrentHashSet_WithHashAndShards(t *testing.T) {
+	hasher := func(v int) uint64 {
+		return uint64(v) * 17
+	}
+
+	set := uset.NewConcurrentHashSetWithHashAndShards(hasher, 8)
+
+	assert.True(t, set.Add(10))
+	assert.True(t, set.Add(20))
+	assert.False(t, set.Add(10))
+
+	assert.True(t, set.Contains(10))
+	assert.True(t, set.Contains(20))
+	assert.False(t, set.Contains(30))
+
+	assert.Equal(t, 2, set.Size())
+}
+
+func TestConcurrentHashSet_WithInvalidShardCount(t *testing.T) {
+	hasher := func(v int) uint64 {
+		return uint64(v)
+	}
+
+	set := uset.NewConcurrentHashSetWithHashAndShards(hasher, 0)
+
+	assert.True(t, set.Add(1))
+	assert.True(t, set.Contains(1))
+	assert.Equal(t, 1, set.Size())
+
+	set.Clear()
+	assert.Equal(t, 0, set.Size())
+	assert.False(t, set.Contains(1))
+}

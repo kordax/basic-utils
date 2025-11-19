@@ -45,9 +45,9 @@ type Indexed[T any] interface {
 // ContainsPredicate checks if slice contains specified struct element by using a predicate.
 // Returns its index and value if found, -1 and nil otherwise.
 func ContainsPredicate[T any](values []T, predicate func(v T) bool) (int, *T) {
-	for i, v := range values {
-		if predicate(v) {
-			return i, &v
+	for i := range values {
+		if predicate(values[i]) {
+			return i, &values[i]
 		}
 	}
 
@@ -57,9 +57,9 @@ func ContainsPredicate[T any](values []T, predicate func(v T) bool) (int, *T) {
 // ContainsStruct checks if slice contains specified struct element.
 // Returns its index and value if found, -1 and nil otherwise.
 func ContainsStruct[K comparable, V Indexed[K]](values []V, val V) (int, *V) {
-	for i, v := range values {
-		if equals(v.GetIndex(), val.GetIndex()) {
-			return i, &v
+	for i := range values {
+		if equals(values[i].GetIndex(), val.GetIndex()) {
+			return i, &values[i]
 		}
 	}
 
@@ -117,7 +117,6 @@ func Has[T comparable](values []T, val T) bool {
 }
 
 // Filter filters values slice and returns a copy with filtered elements matching a predicate.
-// Returns its index if found, -1 otherwise.
 func Filter[V any](values []V, filter func(v V) bool) []V {
 	if len(values) == 0 {
 		return []V{}
@@ -133,7 +132,6 @@ func Filter[V any](values []V, filter func(v V) bool) []V {
 }
 
 // FilterAll filters values slice and returns a copy with filtered elements matching a predicate and elements that do not match any filter.
-// Returns its index if found, -1 otherwise.
 func FilterAll[V any](values []V, filter func(v V) bool) ([]V, []V) {
 	if len(values) == 0 {
 		return []V{}, []V{}
@@ -153,7 +151,6 @@ func FilterAll[V any](values []V, filter func(v V) bool) ([]V, []V) {
 }
 
 // FilterBySet filters values slice and returns a copy with filtered elements matching values from filter.
-// Returns its index if found, -1 otherwise.
 func FilterBySet[V comparable](values []V, filter ...V) []V {
 	if len(values) == 0 || len(filter) == 0 {
 		return []V{}
@@ -182,7 +179,6 @@ func FilterOut[V any](values []V, filter func(v V) bool) []V {
 }
 
 // FilterOutBySet filters out values slice and returns a copy without filtered elements matching values from filter.
-// Returns its index if found, -1 otherwise.
 func FilterOutBySet[V comparable](values []V, filter ...V) []V {
 	if len(values) == 0 || len(filter) == 0 {
 		return values
@@ -219,7 +215,6 @@ func SortFind[V any](values []V, less func(a, b V) bool, filter func(V) bool) *V
 		return nil
 	}
 
-	// Sort the copy using the provided less function
 	sort.Slice(values, func(i, j int) bool {
 		return less(values[i], values[j])
 	})
@@ -227,11 +222,11 @@ func SortFind[V any](values []V, less func(a, b V) bool, filter func(V) bool) *V
 	return FindBinary(values, filter)
 }
 
-// Find finds the first match in a  slice using simple looping.
+// Find finds the first match in a slice using simple looping.
 func Find[V any](values []V, filter func(v V) bool) *V {
 	for i := range values {
 		if filter(values[i]) {
-			return &values[i] // Return a pointer to the found element
+			return &values[i]
 		}
 	}
 	return nil
@@ -245,7 +240,6 @@ func FindBinary[V any](values []V, filter func(v V) bool) *V {
 	for start <= end {
 		mid := start + (end-start)/2
 		if filter(values[mid]) {
-			// if we are at the first element then we don't have to iterate more.
 			if mid == 0 || !filter(values[mid-1]) {
 				return &values[mid]
 			}
@@ -301,12 +295,11 @@ func Flat[V any](values [][]V) []V {
 }
 
 // ToMap collects elements of a slice into a map using a collector function.
-// Note:
 //
-//	If the mapping function produces the same key for multiple elements, the resulting
-//	map will contain only the last value associated with that key, as the map does not
-//	behave like a multimap. Each key in the returned map corresponds to a single value,
-//	and any previous value for the same key will be overwritten.
+// If the mapping function produces the same key for multiple elements, the resulting
+// map will contain only the last value associated with that key, as the map does not
+// behave like a multimap. Each key in the returned map corresponds to a single value,
+// and any previous value for the same key will be overwritten.
 func ToMap[V any, K comparable, R any](values []V, m func(v V) (K, R)) map[K]R {
 	result := make(map[K]R)
 	for _, v := range values {
@@ -321,16 +314,16 @@ func ToMap[V any, K comparable, R any](values []V, m func(v V) (K, R)) map[K]R {
 func ToMultiMap[V any, K comparable, R any](values []V, m func(v V) (K, R)) map[K][]R {
 	result := make(map[K][]R)
 	for _, v := range values {
-		k, v := m(v)
-		result[k] = append(result[k], v)
+		k, vv := m(v)
+		result[k] = append(result[k], vv)
 	}
 
 	return result
 }
 
-// Uniq filters unique elements by predicate that returns any comparable value
+// Uniq filters unique elements by predicate that returns any comparable value.
 func Uniq[V any, F comparable](values []V, getter func(v V) F) []V {
-	set := make(map[F]struct{}) // Use map as a Set
+	set := make(map[F]struct{})
 	result := make([]V, 0)
 
 	for _, v := range values {
@@ -345,30 +338,8 @@ func Uniq[V any, F comparable](values []V, getter func(v V) F) []V {
 }
 
 // Unique filters unique elements from a slice.
-//
-// The function accepts an optional list of transform functions.
-// Each transform function can modify the elements before comparing them.
-// If no transform functions are provided, elements are compared directly.
-//
-// Parameters:
-// - values: The slice of comparable elements to filter.
-// - transform: A variadic list of functions that take a pointer to a value and return the transformed value.
-// All transform functions are applied in provided order.
-//
-// Returns:
-// - A slice of unique elements from the input, based on the provided transform functions (if any).
-//
-// Example:
-//
-//	values := []int{1, 2, 2, 3, 4, 4}
-//	uniqueValues := Unique(values) // Output: [1, 2, 3, 4]
-//
-//	// Using a transform function to compare absolute values
-//	valuesWithNegatives := []int{-1, 1, -2, 2, 3}
-//	uniqueAbsValues := Unique(valuesWithNegatives, func(v int) int { return abs(v) })
-//	// Output: [-1, -2, 3]
 func Unique[V comparable](values []V, transform ...func(v V) V) []V {
-	set := make(map[V]struct{}) // Set to track unique values
+	set := make(map[V]struct{})
 	result := make([]V, 0)
 
 	for _, v := range values {
@@ -386,7 +357,7 @@ func Unique[V comparable](values []V, transform ...func(v V) V) []V {
 	return result
 }
 
-// GroupBy groups and aggregates elements with aggregator method func
+// GroupBy groups and aggregates elements with aggregator method func.
 func GroupBy[V any, G comparable](values []V, group func(v V) G, aggregator func(v1, v2 V) V) []V {
 	result := make(map[G]V)
 	for _, v := range values {
@@ -401,7 +372,7 @@ func GroupBy[V any, G comparable](values []V, group func(v V) G, aggregator func
 	return maps.Values(result)
 }
 
-// GroupToMapBy groups elements with group method func
+// GroupToMapBy groups elements with group method func.
 func GroupToMapBy[V any, G comparable](values []V, group func(v V) G) map[G][]V {
 	result := make(map[G][]V)
 	for _, v := range values {
@@ -423,7 +394,7 @@ func MapAndGroupToMapBy[V any, G comparable, R any](values []V, group func(v V) 
 	return result
 }
 
-// CopyWithoutIndex copies a slice while ignoring an element at specific index
+// CopyWithoutIndex copies a slice while ignoring an element at specific index.
 func CopyWithoutIndex[T any](src []T, index int) []T {
 	cpy := make([]T, 0)
 	cpy = append(cpy, src[:index]...)
@@ -465,7 +436,7 @@ func CollectAsMap[K comparable, V, R any](values []V, key func(v V) K, val func(
 	return result
 }
 
-// EqualsWithOrder compares two slices taking into consideration elements order
+// EqualsWithOrder compares two slices taking into consideration elements order.
 func EqualsWithOrder[T comparable](left []T, right []T) bool {
 	if len(left) != len(right) {
 		return false
@@ -480,7 +451,7 @@ func EqualsWithOrder[T comparable](left []T, right []T) bool {
 	return true
 }
 
-// EqualsCompareWithOrder compares two slices taking into consideration elements order
+// EqualsCompareWithOrder compares two slices taking into consideration elements order.
 func EqualsCompareWithOrder[T any](left []T, right []T, compare func(t1 T, t2 T) bool) bool {
 	if len(left) != len(right) {
 		return false
@@ -495,7 +466,7 @@ func EqualsCompareWithOrder[T any](left []T, right []T, compare func(t1 T, t2 T)
 	return true
 }
 
-// EqualValues compares values of two slices regardless of elements order
+// EqualValues compares values of two slices regardless of elements order.
 func EqualValues[T constraints.Ordered](left []T, right []T) bool {
 	if len(left) != len(right) {
 		return false
@@ -517,7 +488,7 @@ func EqualValues[T constraints.Ordered](left []T, right []T) bool {
 	return true
 }
 
-// EqualValuesCompare compares values of two slices regardless of elements order
+// EqualValuesCompare compares values of two slices regardless of elements order.
 func EqualValuesCompare[T any](left []T, right []T, compare func(t1, t2 T) bool, less func(t1, t2 T) bool) bool {
 	if len(left) != len(right) {
 		return false
@@ -575,17 +546,6 @@ func Range[T uconst.Integer](from, to T) []T {
 }
 
 // RangeWithStep generates a slice of integers starting from 'from' up to and including 'to' with a specified step.
-// The 'from' argument specifies the starting value (inclusive).
-// The 'to' argument specifies the ending value (inclusive).
-// The 'step' argument specifies the interval between generated elements.
-// The function returns a slice of integers with elements generated using the specified step.
-// Example usage: result := uarray.RangeWithStep(1, 9, 2) generates []int{1, 3, 5, 7, 9}.
-// Example usage: result := uarray.RangeWithStep(1, 9, 100) generates []int{1, 101} when step > range.
-//
-// Note: The 'to' argument is inclusive to ensure that the last element specified by 'to' is included in the result.
-// When the 'step' value is larger than the range (i.e., 'to - from'), the function generates a slice with only two elements:
-// the starting value 'from' and the incremented value 'from + step'.
-// This behavior is intentional to handle cases where the step is larger than the range and still provide a predictable result.
 func RangeWithStep(from, to, step int) []int {
 	if step <= 0 {
 		panic("RangeWithStep step must be a positive value")
@@ -612,14 +572,14 @@ func BestMatchBy[T any](values []T, predicate func(currentBest, candidate T) boo
 		return nil
 	}
 
-	var bestMatch = values[0]
+	bestIdx := 0
 	for i := 1; i < len(values); i++ {
-		if predicate(bestMatch, values[i]) {
-			bestMatch = values[i]
+		if predicate(values[bestIdx], values[i]) {
+			bestIdx = i
 		}
 	}
 
-	return &bestMatch
+	return &values[bestIdx]
 }
 
 // Split divides a slice into multiple smaller slices (chunks) of a specified size and returns a slice of these chunks.

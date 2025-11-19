@@ -16,9 +16,9 @@ type ComparableHashSet[T uconst.UniqueKey[K], K comparable] struct {
 	m map[K]T
 }
 
-// NewComparableHashSet creates a new instance of HashSet with the default size
+// NewComparableHashSet creates a new instance of HashSet with initial capacity equal to values length.
 func NewComparableHashSet[T uconst.UniqueKey[K], K comparable](values ...T) *ComparableHashSet[T, K] {
-	m := make(map[K]T)
+	m := make(map[K]T, len(values))
 	for _, v := range values {
 		m[v.Key()] = v
 	}
@@ -26,12 +26,12 @@ func NewComparableHashSet[T uconst.UniqueKey[K], K comparable](values ...T) *Com
 	return &ComparableHashSet[T, K]{m: m}
 }
 
-// NewComparableHashSetWithSize creates a new instance of HashSet with a specified initial size
+// NewComparableHashSetWithSize creates a new instance of HashSet with a specified initial size.
 func NewComparableHashSetWithSize[T uconst.UniqueKey[K], K comparable](size int) *ComparableHashSet[T, K] {
 	return &ComparableHashSet[T, K]{m: make(map[K]T, size)}
 }
 
-// Add inserts a value into the set and returns true if the value was not already present
+// Add inserts a value into the set and returns true if the value was not already present.
 func (s *ComparableHashSet[T, K]) Add(value T) bool {
 	if s.m == nil {
 		s.m = make(map[K]T)
@@ -46,20 +46,20 @@ func (s *ComparableHashSet[T, K]) Add(value T) bool {
 	return true
 }
 
-// Contains checks if a value is present in the set
+// Contains checks if a value is present in the set.
 func (s *ComparableHashSet[T, K]) Contains(value T) bool {
 	if s.m == nil {
-		s.m = make(map[K]T)
+		return false
 	}
 
 	_, exists := s.m[value.Key()]
 	return exists
 }
 
-// Remove deletes a value from the set and returns true if the value was present
+// Remove deletes a value from the set and returns true if the value was present.
 func (s *ComparableHashSet[T, K]) Remove(value T) bool {
 	if s.m == nil {
-		s.m = make(map[K]T)
+		return false
 	}
 
 	key := value.Key()
@@ -67,17 +67,18 @@ func (s *ComparableHashSet[T, K]) Remove(value T) bool {
 		delete(s.m, key)
 		return true
 	}
+
 	return false
 }
 
-// Size returns the number of elements in the set
+// Size returns the number of elements in the set.
 func (s *ComparableHashSet[T, K]) Size() int {
 	return len(s.m)
 }
 
-// Clear returns the number of elements in the set
+// Clear removes all elements from the set.
 func (s *ComparableHashSet[T, K]) Clear() {
-	s.m = make(map[K]T)
+	s.m = nil
 }
 
 func (s *ComparableHashSet[T, K]) Values() []T {
