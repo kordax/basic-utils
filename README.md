@@ -58,7 +58,7 @@ This is due to the usage of features and packages introduced in this version.
 Make sure you have Go installed on your machine. Then, use `go get` to install the package:
 
 ```shell
-go get -u github.com/kordax/basic-utils
+go get -u github.com/kordax/basic-utils/v2
 ```
 
 ## Usage
