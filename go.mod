@@ -1,13 +1,13 @@
 module github.com/kordax/basic-utils/v2
 
-go 1.24
+go 1.25
 
 require (
 	github.com/dgryski/go-farm v0.0.0-20240924180020-3414d57e47da
-	github.com/go-sql-driver/mysql v1.8.1
+	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/uuid v1.6.0
-	github.com/stretchr/testify v1.10.0
-	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d
+	github.com/stretchr/testify v1.11.1
+	golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6
 )
 
 require (

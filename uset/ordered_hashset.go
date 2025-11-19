@@ -9,8 +9,8 @@ package uset
 import "github.com/kordax/basic-utils/v2/uconst"
 
 // OrderedHashSet is a set implementation that preserves the order of elements as they were added.
-// This implementation is slower than a traditional HashSet or ComparableHashset, therefore it's recommended to use this
-// only in cases you need to retrieve the items in their original order.
+// This implementation is slower than a traditional HashSet or ComparableHashSet, therefore it's
+// recommended to use this only in cases you need to retrieve the items in their original order.
 type OrderedHashSet[T uconst.UniqueKey[K], K comparable] struct {
 	m    map[K]T
 	list []T
@@ -18,7 +18,7 @@ type OrderedHashSet[T uconst.UniqueKey[K], K comparable] struct {
 
 // NewOrderedHashSet creates a new instance of OrderedHashSet.
 func NewOrderedHashSet[T uconst.UniqueKey[K], K comparable](values ...T) *OrderedHashSet[T, K] {
-	m := make(map[K]T)
+	m := make(map[K]T, len(values))
 	list := make([]T, 0, len(values))
 
 	for _, v := range values {
@@ -51,17 +51,17 @@ func (s *OrderedHashSet[T, K]) Add(value T) bool {
 // Contains checks if a value is present in the set.
 func (s *OrderedHashSet[T, K]) Contains(value T) bool {
 	if s.m == nil {
-		s.m = make(map[K]T)
+		return false
 	}
 
 	_, exists := s.m[value.Key()]
 	return exists
 }
 
-// Get retrieves the element by unique key
+// Get retrieves the element by unique key.
 func (s *OrderedHashSet[T, K]) Get(key K) *T {
 	if s.m == nil {
-		s.m = make(map[K]T)
+		return nil
 	}
 
 	v, exists := s.m[key]
@@ -69,26 +69,29 @@ func (s *OrderedHashSet[T, K]) Get(key K) *T {
 		return nil
 	}
 
+	// Return pointer to a copy; caller must not rely on mutating it affecting the set.
 	return &v
 }
 
 // Delete deletes a value from the set by unique key and returns true if the value was present.
 func (s *OrderedHashSet[T, K]) Delete(key K) bool {
 	if s.m == nil {
-		s.m = make(map[K]T)
+		return false
 	}
 
-	if _, exists := s.m[key]; exists {
-		delete(s.m, key)
-		for i, v := range s.list {
-			if v.Key() == key {
-				s.list = append(s.list[:i], s.list[i+1:]...)
-				break
-			}
-		}
-		return true
+	if _, exists := s.m[key]; !exists {
+		return false
 	}
-	return false
+
+	delete(s.m, key)
+	for i, v := range s.list {
+		if v.Key() == key {
+			s.list = append(s.list[:i], s.list[i+1:]...)
+			break
+		}
+	}
+
+	return true
 }
 
 // Remove deletes a value from the set and returns true if the value was present.
@@ -103,8 +106,8 @@ func (s *OrderedHashSet[T, K]) Size() int {
 
 // Clear removes all elements from the set.
 func (s *OrderedHashSet[T, K]) Clear() {
-	s.m = make(map[K]T)
-	s.list = []T{}
+	s.m = nil
+	s.list = nil
 }
 
 // OrderedList returns a slice of all elements in the set, in the order they were added.

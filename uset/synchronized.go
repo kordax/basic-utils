@@ -6,14 +6,11 @@
 
 package uset
 
-import (
-	"sync"
-)
+import "sync"
 
 // SynchronizedHashSet is a thread-safe wrapper around HashSet that ensures concurrent safety.
 type SynchronizedHashSet[T comparable] struct {
-	hs *HashSet[T]
-
+	hs  *HashSet[T]
 	mtx sync.RWMutex
 }
 
@@ -55,7 +52,9 @@ func (s *SynchronizedHashSet[T]) Clear() {
 	s.hs.Clear()
 }
 
-// Values retrieves all the values
+// Values retrieves all the values.
 func (s *SynchronizedHashSet[T]) Values() []T {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 	return s.hs.Values()
 }

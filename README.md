@@ -67,7 +67,7 @@ You can import each module individually or import the main module and it depends
 queue library:
 
 ```shell
-go get -u github.com/kordax/basic-utils/uqueue
+go get -u github.com/kordax/basic-utils/v2/uqueue
 ```
 
 then...

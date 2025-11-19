@@ -538,12 +538,8 @@ func (e FarmHash64Entity) Equals(other uconst.Comparable) bool {
 	default:
 		return false
 	}
-
-	if e.calculateHash() != o.calculateHash() {
-		return false
-	}
-
-	return true
+	
+	return e.calculateHash() == o.calculateHash()
 }
 
 func (e FarmHash64Entity) Key() int64 {
