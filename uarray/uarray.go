@@ -11,8 +11,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kordax/basic-utils/v2/ucast"
-	"github.com/kordax/basic-utils/v2/uconst"
+	"git.casinomodule.org/kordax/basic-utils/v2/ucast"
+	"git.casinomodule.org/kordax/basic-utils/v2/uconst"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/maps"
 )

@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/v2/ustream"
+	"git.casinomodule.org/kordax/basic-utils/v2/ustream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

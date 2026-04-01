@@ -10,7 +10,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/kordax/basic-utils/v2/unumber"
+	"git.casinomodule.org/kordax/basic-utils/v2/unumber"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

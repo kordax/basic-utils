@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/v2/ucache"
-	"github.com/kordax/basic-utils/v2/uopt"
+	"git.casinomodule.org/kordax/basic-utils/v2/ucache"
+	"git.casinomodule.org/kordax/basic-utils/v2/uopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

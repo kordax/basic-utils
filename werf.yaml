@@ -1,0 +1,31 @@
+project: shard-lib
+configVersion: 1
+---
+
+image: golangci-lint
+from: golang:1.26-alpine
+{{- if eq (env "NOCACHE") "true" }}
+fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
+{{- end }}
+imageSpec:
+  WORKDIR: /app
+shell:
+  beforeInstall:
+    - apk --no-cache add git openssh-client
+    - wget -O- -nv https://golangci-lint.run/install.sh | sh -s v2.11.4
+    - mkdir -p /root/.ssh && echo -e 'Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile=/dev/null' > /root/.ssh/config
+  install:
+    - cd /app
+    - go env -w GOPRIVATE=git.casinomodule.org
+    - go mod download -x
+git:
+  - add: /
+    to: /app
+    stageDependencies:
+      install:
+        - "go.mod"
+        - "go.sum"
+mount:
+  - from: build_dir
+    to: /go/pkg/mod
+---

@@ -9,8 +9,8 @@ package uset
 import (
 	"sync"
 
+	"git.casinomodule.org/kordax/basic-utils/v2/usrlz"
 	"github.com/dgryski/go-farm"
-	"github.com/kordax/basic-utils/v2/usrlz"
 )
 
 type concurrentShard[T comparable] struct {

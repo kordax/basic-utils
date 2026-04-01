@@ -9,7 +9,7 @@ package uset_test
 import (
 	"testing"
 
-	"github.com/kordax/basic-utils/v2/uset"
+	"git.casinomodule.org/kordax/basic-utils/v2/uset"
 )
 
 func Test_Implements(t *testing.T) {

@@ -3,7 +3,7 @@ package umap_test
 import (
 	"testing"
 
-	"github.com/kordax/basic-utils/v2/umap"
+	"git.casinomodule.org/kordax/basic-utils/v2/umap"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

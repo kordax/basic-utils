@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"git.casinomodule.org/kordax/basic-utils/v2/ucache"
+	"git.casinomodule.org/kordax/basic-utils/v2/uconst"
+	"git.casinomodule.org/kordax/basic-utils/v2/uopt"
+	"git.casinomodule.org/kordax/basic-utils/v2/uref"
 	"github.com/google/uuid"
-	"github.com/kordax/basic-utils/v2/ucache"
-	"github.com/kordax/basic-utils/v2/uconst"
-	"github.com/kordax/basic-utils/v2/uopt"
-	"github.com/kordax/basic-utils/v2/uref"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

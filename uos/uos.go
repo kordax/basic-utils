@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kordax/basic-utils/v2/uarray"
-	basicutils "github.com/kordax/basic-utils/v2/uconst"
-	"github.com/kordax/basic-utils/v2/umath"
+	"git.casinomodule.org/kordax/basic-utils/v2/uarray"
+	basicutils "git.casinomodule.org/kordax/basic-utils/v2/uconst"
+	"git.casinomodule.org/kordax/basic-utils/v2/umath"
 )
 
 // GetCPUs calculates and returns the number of CPU cores available to the application.

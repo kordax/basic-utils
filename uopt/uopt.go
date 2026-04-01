@@ -14,8 +14,8 @@ import (
 	"strconv"
 	"time"
 
-	basicutils "github.com/kordax/basic-utils/v2/uconst"
-	"github.com/kordax/basic-utils/v2/uref"
+	basicutils "git.casinomodule.org/kordax/basic-utils/v2/uconst"
+	"git.casinomodule.org/kordax/basic-utils/v2/uref"
 )
 
 // Opt represents a generic container for optional values.

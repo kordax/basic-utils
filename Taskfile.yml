@@ -1,0 +1,38 @@
+version: '3'
+
+vars:
+  GOBIN:
+    sh: 'echo $(go env GOPATH)/bin'
+
+tasks:
+  test:
+    desc: "Testing all submodules"
+    cmds:
+      - echo "Testing all submodules..."
+      - go test ./...
+    sources:
+      - "**/*.go"
+
+  integration-test:
+    desc: "Testing all submodules with integration tests"
+    cmds:
+      - echo "Testing all submodules..."
+      - go test ./... -tags=integration_test
+    sources:
+      - "**/*.go"
+      - "integration/docker-compose.yaml"
+
+  check:
+    desc: "Running golint"
+    cmds:
+      - golangci-lint run
+    sources:
+      - "**/*.go"
+
+  check-coverage:
+    desc: "Checking test coverage"
+    cmds:
+      - go test ./... -tags=integration_test -coverprofile=./coverage.out -covermode=atomic -coverpkg=./...
+      - go tool cover -func=coverage.out
+    sources:
+      - "**/*.go"

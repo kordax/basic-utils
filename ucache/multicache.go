@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
+	"git.casinomodule.org/kordax/basic-utils/v2/uarray"
+	"git.casinomodule.org/kordax/basic-utils/v2/uconst"
+	"git.casinomodule.org/kordax/basic-utils/v2/umap"
+	"git.casinomodule.org/kordax/basic-utils/v2/uopt"
 	"github.com/dgryski/go-farm"
-	"github.com/kordax/basic-utils/v2/uarray"
-	"github.com/kordax/basic-utils/v2/uconst"
-	"github.com/kordax/basic-utils/v2/umap"
-	"github.com/kordax/basic-utils/v2/uopt"
 )
 
 type container[K CompositeKey, T uconst.Comparable] struct {

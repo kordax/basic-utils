@@ -1,0 +1,9 @@
+config:
+  goTemplateRendering:
+    allowEnvVariables:
+    - NOCACHE
+    - CI_JOB_STARTED_AT
+  stapel:
+    mount:
+      allowBuildDir: true
+giterminismConfigVersion: 1

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"git.casinomodule.org/kordax/basic-utils/v2/uarray"
+	"git.casinomodule.org/kordax/basic-utils/v2/uconst"
 	"github.com/dgryski/go-farm"
-	"github.com/kordax/basic-utils/v2/uarray"
-	"github.com/kordax/basic-utils/v2/uconst"
 )
 
 type UIntKey uint64
@@ -538,7 +538,7 @@ func (e FarmHash64Entity) Equals(other uconst.Comparable) bool {
 	default:
 		return false
 	}
-	
+
 	return e.calculateHash() == o.calculateHash()
 }
 

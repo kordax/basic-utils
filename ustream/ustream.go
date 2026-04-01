@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kordax/basic-utils/v2/uarray"
+	"git.casinomodule.org/kordax/basic-utils/v2/uarray"
 )
 
 type parallelTask[T any] struct {
