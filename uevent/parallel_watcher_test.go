@@ -11,8 +11,8 @@ import (
 	"sync"
 	"testing"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/uarray"
-	"git.casinomodule.org/kordax/basic-utils/v2/uevent"
+	"git.casinomodule.org/kordax/basic-utils/uarray"
+	"git.casinomodule.org/kordax/basic-utils/uevent"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

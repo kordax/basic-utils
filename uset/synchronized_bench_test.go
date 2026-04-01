@@ -9,7 +9,7 @@ package uset_test
 import (
 	"testing"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/uset"
+	"git.casinomodule.org/kordax/basic-utils/uset"
 )
 
 func BenchmarkSynchronizedHashSet_Add(b *testing.B) {

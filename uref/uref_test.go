@@ -9,7 +9,7 @@ package uref_test
 import (
 	"testing"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/uref"
+	"git.casinomodule.org/kordax/basic-utils/uref"
 	"github.com/stretchr/testify/assert"
 )
 

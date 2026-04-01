@@ -9,7 +9,7 @@ package unumber
 import (
 	"errors"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/uconst"
+	"git.casinomodule.org/kordax/basic-utils/uconst"
 )
 
 type denominated interface {

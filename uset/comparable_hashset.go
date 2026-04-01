@@ -7,8 +7,8 @@
 package uset
 
 import (
-	"git.casinomodule.org/kordax/basic-utils/v2/uconst"
-	"git.casinomodule.org/kordax/basic-utils/v2/umap"
+	"git.casinomodule.org/kordax/basic-utils/uconst"
+	"git.casinomodule.org/kordax/basic-utils/umap"
 )
 
 // ComparableHashSet is the same as HashSet, but allows for custom UniqueKey definition.

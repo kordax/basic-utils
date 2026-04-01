@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/uset"
+	"git.casinomodule.org/kordax/basic-utils/uset"
 	"github.com/stretchr/testify/assert"
 )
 

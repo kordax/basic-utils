@@ -11,7 +11,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/umap"
+	"git.casinomodule.org/kordax/basic-utils/umap"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

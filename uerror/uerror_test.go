@@ -10,7 +10,7 @@ import (
 	"errors"
 	"testing"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/uerror"
+	"git.casinomodule.org/kordax/basic-utils/uerror"
 	"github.com/stretchr/testify/assert"
 )
 

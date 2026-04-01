@@ -6,7 +6,7 @@
 
 package upair
 
-import "git.casinomodule.org/kordax/basic-utils/v2/uconst"
+import "git.casinomodule.org/kordax/basic-utils/uconst"
 
 type Pair[L, R any] struct {
 	Left  L

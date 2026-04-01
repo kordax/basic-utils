@@ -1,4 +1,4 @@
-module git.casinomodule.org/kordax/basic-utils/v2
+module git.casinomodule.org/kordax/basic-utils
 
 go 1.25
 

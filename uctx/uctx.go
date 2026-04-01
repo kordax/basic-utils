@@ -9,7 +9,7 @@ package uctx
 import (
 	"sync"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/uonce"
+	"git.casinomodule.org/kordax/basic-utils/uonce"
 )
 
 var getGlobalContext = uonce.Once(func() *UContext {

@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/ucache"
-	"git.casinomodule.org/kordax/basic-utils/v2/uopt"
+	"git.casinomodule.org/kordax/basic-utils/ucache"
+	"git.casinomodule.org/kordax/basic-utils/uopt"
 )
 
 func BenchmarkFarmHash64Entity(b *testing.B) {

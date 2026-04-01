@@ -37,8 +37,7 @@ Test:
     - ssh-add <(echo "$SSH_PRIVATE_KEY")
   script:
     - set -x
-    - type trdl && source $(trdl use werf 1.2 ea)
-    - type werf && source $(werf ci-env gitlab --as-file --verbose)
+    - *werf_init
     - export WERF_DOCKER_OPTIONS="-v ${SSH_AUTH_SOCK}:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent"
     - werf run -- go test ./... || { exit_code=$?; ssh-agent -k; exit $exit_code; }
     - ssh-agent -k
@@ -49,8 +48,7 @@ Cleanup:
   stage: cleanup
   script:
     - set -x
-    - type trdl && source $(trdl use werf 2 stable)
-    - type werf && source $(werf ci-env gitlab --as-file --verbose)
+    - *werf_init
     - docker login -u nobody -p ${WERF_IMAGES_CLEANUP_PASSWORD} ${WERF_REPO}
     - werf cleanup
   only: [ schedules ]

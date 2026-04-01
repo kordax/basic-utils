@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/uconst"
+	"git.casinomodule.org/kordax/basic-utils/uconst"
 )
 
 type ValueType int

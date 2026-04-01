@@ -10,7 +10,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/usrlz"
+	"git.casinomodule.org/kordax/basic-utils/usrlz"
 	"github.com/stretchr/testify/assert"
 )
 

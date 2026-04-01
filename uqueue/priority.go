@@ -10,7 +10,7 @@ import (
 	"container/heap"
 	"time"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/uopt"
+	"git.casinomodule.org/kordax/basic-utils/uopt"
 )
 
 // container represents an individual item in the priority queue.

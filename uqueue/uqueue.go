@@ -9,7 +9,7 @@ package uqueue
 import (
 	"time"
 
-	"git.casinomodule.org/kordax/basic-utils/v2/uopt"
+	"git.casinomodule.org/kordax/basic-utils/uopt"
 )
 
 type Queue[T any] interface {
