@@ -7,8 +7,9 @@ from: golang:1.26-alpine
 {{- if eq (env "NOCACHE") "true" }}
 fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
 {{- end }}
-docker:
-  WORKDIR: /app
+imageSpec:
+  config:
+    workingDir: /app
 shell:
   beforeInstall:
     - apk --no-cache add git openssh-client
