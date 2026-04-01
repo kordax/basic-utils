@@ -7,7 +7,7 @@ from: golang:1.26-alpine
 {{- if eq (env "NOCACHE") "true" }}
 fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
 {{- end }}
-imageSpec:
+docker:
   WORKDIR: /app
 shell:
   beforeInstall:
