@@ -11,7 +11,7 @@ import (
 	"time"
 	"unsafe"
 
-	"git.casinomodule.org/kordax/basic-utils/uopt"
+	"git.casinomodule.org/casino27/basic-utils/uopt"
 )
 
 type node[T any] struct {

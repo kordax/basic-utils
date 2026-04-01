@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"git.casinomodule.org/kordax/basic-utils/ucache"
-	"git.casinomodule.org/kordax/basic-utils/uconst"
-	"git.casinomodule.org/kordax/basic-utils/uopt"
+	"git.casinomodule.org/casino27/basic-utils/ucache"
+	"git.casinomodule.org/casino27/basic-utils/uconst"
+	"git.casinomodule.org/casino27/basic-utils/uopt"
 	"github.com/stretchr/testify/assert"
 )
 

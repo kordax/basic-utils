@@ -6,7 +6,7 @@
 
 package uset
 
-import "git.casinomodule.org/kordax/basic-utils/uconst"
+import "git.casinomodule.org/casino27/basic-utils/uconst"
 
 // Set that contains unique elements.
 type Set[T comparable] interface {

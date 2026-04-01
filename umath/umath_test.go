@@ -10,7 +10,7 @@ import (
 	"math"
 	"testing"
 
-	"git.casinomodule.org/kordax/basic-utils/umath"
+	"git.casinomodule.org/casino27/basic-utils/umath"
 	"github.com/stretchr/testify/assert"
 )
 

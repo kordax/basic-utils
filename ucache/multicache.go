@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"git.casinomodule.org/kordax/basic-utils/uarray"
-	"git.casinomodule.org/kordax/basic-utils/uconst"
-	"git.casinomodule.org/kordax/basic-utils/umap"
-	"git.casinomodule.org/kordax/basic-utils/uopt"
+	"git.casinomodule.org/casino27/basic-utils/uarray"
+	"git.casinomodule.org/casino27/basic-utils/uconst"
+	"git.casinomodule.org/casino27/basic-utils/umap"
+	"git.casinomodule.org/casino27/basic-utils/uopt"
 	"github.com/dgryski/go-farm"
 )
 

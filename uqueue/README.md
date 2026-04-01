@@ -47,7 +47,7 @@ value handling.
 ```go
 package myprogram
 
-import "git.casinomodule.org/kordax/basic-utils/queue"
+import "git.casinomodule.org/casino27/basic-utils/queue"
 
 // To use the FIFO queue:
 q := queue.NewFIFOQueue[int](1, 2, 3)
@@ -61,7 +61,7 @@ item := q.Poll(5 * time.Second)
 ```go
 package myprogram
 
-import "git.casinomodule.org/kordax/basic-utils/queue"
+import "git.casinomodule.org/casino27/basic-utils/queue"
 
 pq := queue.NewPrioritizedPriorityQueueint
 pq.Queue(1, 3) // The number 3 here is the priority

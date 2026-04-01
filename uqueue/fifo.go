@@ -9,7 +9,7 @@ package uqueue
 import (
 	"time"
 
-	"git.casinomodule.org/kordax/basic-utils/uopt"
+	"git.casinomodule.org/casino27/basic-utils/uopt"
 )
 
 // FIFOQueueImpl represents a generic implementation of a First-In-First-Out (FIFO) data structure.

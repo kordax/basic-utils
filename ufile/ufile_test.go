@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"testing"
 
-	"git.casinomodule.org/kordax/basic-utils/ufile"
+	"git.casinomodule.org/casino27/basic-utils/ufile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

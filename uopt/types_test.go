@@ -9,7 +9,7 @@ package uopt_test
 import (
 	"testing"
 
-	"git.casinomodule.org/kordax/basic-utils/uopt"
+	"git.casinomodule.org/casino27/basic-utils/uopt"
 	"github.com/stretchr/testify/assert"
 )
 

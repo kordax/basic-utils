@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"sync"
 
-	"git.casinomodule.org/kordax/basic-utils/uarray"
+	"git.casinomodule.org/casino27/basic-utils/uarray"
 )
 
 // AsyncTask represents an asynchronous task that can be executed in the background.

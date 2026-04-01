@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"git.casinomodule.org/kordax/basic-utils/uconst"
+	"git.casinomodule.org/casino27/basic-utils/uconst"
 )
 
 // String converts the input string to a value of type R.

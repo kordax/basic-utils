@@ -13,9 +13,9 @@ import (
 	"strings"
 	"testing"
 
-	"git.casinomodule.org/kordax/basic-utils/uarray"
-	"git.casinomodule.org/kordax/basic-utils/ucast"
-	"git.casinomodule.org/kordax/basic-utils/umath"
+	"git.casinomodule.org/casino27/basic-utils/uarray"
+	"git.casinomodule.org/casino27/basic-utils/ucast"
+	"git.casinomodule.org/casino27/basic-utils/umath"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

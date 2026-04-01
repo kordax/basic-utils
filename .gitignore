@@ -14,4 +14,4 @@
 # GoLand run/debug configurations
 *.iml
 
-.keys/
+keys/

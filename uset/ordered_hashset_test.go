@@ -9,7 +9,7 @@ package uset_test
 import (
 	"testing"
 
-	"git.casinomodule.org/kordax/basic-utils/uset"
+	"git.casinomodule.org/casino27/basic-utils/uset"
 	"github.com/stretchr/testify/assert"
 )
 

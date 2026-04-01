@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"git.casinomodule.org/kordax/basic-utils/uarray"
-	"git.casinomodule.org/kordax/basic-utils/ustream"
+	"git.casinomodule.org/casino27/basic-utils/uarray"
+	"git.casinomodule.org/casino27/basic-utils/ustream"
 )
 
 func BenchmarkTerminalStream_ParallelExecute(b *testing.B) {

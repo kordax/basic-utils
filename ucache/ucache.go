@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"git.casinomodule.org/kordax/basic-utils/uconst"
-	"git.casinomodule.org/kordax/basic-utils/umap"
-	"git.casinomodule.org/kordax/basic-utils/uopt"
-	"git.casinomodule.org/kordax/basic-utils/uset"
+	"git.casinomodule.org/casino27/basic-utils/uconst"
+	"git.casinomodule.org/casino27/basic-utils/umap"
+	"git.casinomodule.org/casino27/basic-utils/uopt"
+	"git.casinomodule.org/casino27/basic-utils/uset"
 )
 
 type BaseCache[K, T any] interface {
