@@ -1,4 +1,6 @@
-project: basic-utils
+{{ $projectName := "basic-utils" }}
+
+project: {{ $projectName }}
 configVersion: 1
 ---
 
