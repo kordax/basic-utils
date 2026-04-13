@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/uconst"
-	"git.casinomodule.org/casino27/basic-utils/umap"
-	"git.casinomodule.org/casino27/basic-utils/uopt"
-	"git.casinomodule.org/casino27/basic-utils/uset"
+	"git.casinomodule.org/casino27/basic-utils/v2/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v2/umap"
+	"git.casinomodule.org/casino27/basic-utils/v2/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v2/uset"
 )
 
 type BaseCache[K, T any] interface {

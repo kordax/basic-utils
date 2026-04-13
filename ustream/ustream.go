@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/uarray"
+	"git.casinomodule.org/casino27/basic-utils/v2/uarray"
 )
 
 type parallelTask[T any] struct {

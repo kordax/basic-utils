@@ -11,8 +11,8 @@ import (
 	"sort"
 	"strings"
 
-	"git.casinomodule.org/casino27/basic-utils/ucast"
-	"git.casinomodule.org/casino27/basic-utils/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v2/ucast"
+	"git.casinomodule.org/casino27/basic-utils/v2/uconst"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/maps"
 )

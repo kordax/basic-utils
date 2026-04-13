@@ -9,8 +9,8 @@ package umap_test
 import (
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/uarray"
-	"git.casinomodule.org/casino27/basic-utils/umap"
+	"git.casinomodule.org/casino27/basic-utils/v2/uarray"
+	"git.casinomodule.org/casino27/basic-utils/v2/umap"
 	"github.com/stretchr/testify/assert"
 )
 

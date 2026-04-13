@@ -9,7 +9,7 @@ package uset
 import (
 	"sync"
 
-	"git.casinomodule.org/casino27/basic-utils/usrlz"
+	"git.casinomodule.org/casino27/basic-utils/v2/usrlz"
 	"github.com/dgryski/go-farm"
 )
 

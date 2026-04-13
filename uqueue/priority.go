@@ -10,7 +10,7 @@ import (
 	"container/heap"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v2/uopt"
 )
 
 // container represents an individual item in the priority queue.

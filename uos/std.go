@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/uref"
+	"git.casinomodule.org/casino27/basic-utils/v2/uref"
 )
 
 // MappingFunc is a type for functions that convert a string to a pointer of type T, returning an error if the conversion fails.
