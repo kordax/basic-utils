@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/uarray"
-	"git.casinomodule.org/casino27/basic-utils/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v2/uarray"
+	"git.casinomodule.org/casino27/basic-utils/v2/uconst"
 	"github.com/dgryski/go-farm"
 )
 

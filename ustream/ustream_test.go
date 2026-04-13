@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/ustream"
+	"git.casinomodule.org/casino27/basic-utils/v2/ustream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

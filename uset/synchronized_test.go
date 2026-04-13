@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/uset"
+	"git.casinomodule.org/casino27/basic-utils/v2/uset"
 	"github.com/stretchr/testify/assert"
 )
 

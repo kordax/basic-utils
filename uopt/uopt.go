@@ -14,8 +14,8 @@ import (
 	"strconv"
 	"time"
 
-	basicutils "git.casinomodule.org/casino27/basic-utils/uconst"
-	"git.casinomodule.org/casino27/basic-utils/uref"
+	basicutils "git.casinomodule.org/casino27/basic-utils/v2/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v2/uref"
 )
 
 // Opt represents a generic container for optional values.

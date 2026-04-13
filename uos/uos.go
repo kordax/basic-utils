@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/uarray"
-	basicutils "git.casinomodule.org/casino27/basic-utils/uconst"
-	"git.casinomodule.org/casino27/basic-utils/umath"
+	"git.casinomodule.org/casino27/basic-utils/v2/uarray"
+	basicutils "git.casinomodule.org/casino27/basic-utils/v2/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v2/umath"
 )
 
 // GetCPUs calculates and returns the number of CPU cores available to the application.

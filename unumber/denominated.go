@@ -9,7 +9,7 @@ package unumber
 import (
 	"errors"
 
-	"git.casinomodule.org/casino27/basic-utils/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v2/uconst"
 )
 
 type denominated interface {

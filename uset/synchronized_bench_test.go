@@ -9,7 +9,7 @@ package uset_test
 import (
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/uset"
+	"git.casinomodule.org/casino27/basic-utils/v2/uset"
 )
 
 func BenchmarkSynchronizedHashSet_Add(b *testing.B) {

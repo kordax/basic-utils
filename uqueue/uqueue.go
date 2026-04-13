@@ -9,7 +9,7 @@ package uqueue
 import (
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v2/uopt"
 )
 
 type Queue[T any] interface {

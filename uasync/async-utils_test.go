@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/uasync"
+	"git.casinomodule.org/casino27/basic-utils/v2/uasync"
 	"github.com/stretchr/testify/require"
 )
 

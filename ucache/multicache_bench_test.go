@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/uconst"
-	"git.casinomodule.org/casino27/basic-utils/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v2/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v2/uopt"
 )
 
 const (
