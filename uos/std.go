@@ -9,11 +9,14 @@ package uos
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
+	basicutils "github.com/kordax/basic-utils/v2/uconst"
 	"github.com/kordax/basic-utils/v2/uref"
 )
 
@@ -201,4 +204,64 @@ func MapStringToBool(value string) (*bool, error) {
 	}
 
 	return &b, nil
+}
+
+// MapStringToNumeric tries to map any numeric value to a corresponding expected type.
+func MapStringToNumeric[T basicutils.Numeric](value string) (*T, error) {
+	var result any
+	var err error
+
+	switch reflect.TypeFor[T]().Kind() {
+	case reflect.Int:
+		var parsed int64
+		parsed, err = strconv.ParseInt(value, 10, 0)
+		result = int(parsed)
+	case reflect.Int8:
+		var parsed int64
+		parsed, err = strconv.ParseInt(value, 10, 8)
+		result = int8(parsed)
+	case reflect.Int16:
+		var parsed int64
+		parsed, err = strconv.ParseInt(value, 10, 16)
+		result = int16(parsed)
+	case reflect.Int32:
+		var parsed int64
+		parsed, err = strconv.ParseInt(value, 10, 32)
+		result = int32(parsed)
+	case reflect.Int64:
+		result, err = strconv.ParseInt(value, 10, 64)
+	case reflect.Uint:
+		var parsed uint64
+		parsed, err = strconv.ParseUint(value, 10, 0)
+		result = uint(parsed)
+	case reflect.Uint8:
+		var parsed uint64
+		parsed, err = strconv.ParseUint(value, 10, 8)
+		result = uint8(parsed)
+	case reflect.Uint16:
+		var parsed uint64
+		parsed, err = strconv.ParseUint(value, 10, 16)
+		result = uint16(parsed)
+	case reflect.Uint32:
+		var parsed uint64
+		parsed, err = strconv.ParseUint(value, 10, 32)
+		result = uint32(parsed)
+	case reflect.Uint64:
+		result, err = strconv.ParseUint(value, 10, 64)
+	case reflect.Float32:
+		var parsed float64
+		parsed, err = strconv.ParseFloat(value, 32)
+		result = float32(parsed)
+	case reflect.Float64:
+		result, err = strconv.ParseFloat(value, 64)
+	default:
+		return nil, fmt.Errorf("unsupported numeric type: %s", reflect.TypeFor[T]().Kind())
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	v := result.(T)
+	return &v, nil
 }
