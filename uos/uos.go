@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
@@ -72,66 +71,7 @@ func GetCPUs() int {
 // or if `T` is not an integer type. It uses the appropriate bit size for parsing to ensure
 // values fit into the specified type without overflow.
 func RequireEnvNumeric[T basicutils.Numeric](key string) T {
-	value := os.Getenv(key)
-	if value == "" {
-		panic(fmt.Errorf("expected environment variable '%s' was not found", key))
-	}
-
-	var result any
-	var err error
-
-	switch reflect.TypeFor[T]().Kind() {
-	case reflect.Int:
-		var parsed int64
-		parsed, err = strconv.ParseInt(value, 10, 0)
-		result = int(parsed)
-	case reflect.Int8:
-		var parsed int64
-		parsed, err = strconv.ParseInt(value, 10, 8)
-		result = int8(parsed)
-	case reflect.Int16:
-		var parsed int64
-		parsed, err = strconv.ParseInt(value, 10, 16)
-		result = int16(parsed)
-	case reflect.Int32:
-		var parsed int64
-		parsed, err = strconv.ParseInt(value, 10, 32)
-		result = int32(parsed)
-	case reflect.Int64:
-		result, err = strconv.ParseInt(value, 10, 64)
-	case reflect.Uint:
-		var parsed uint64
-		parsed, err = strconv.ParseUint(value, 10, 0)
-		result = uint(parsed)
-	case reflect.Uint8:
-		var parsed uint64
-		parsed, err = strconv.ParseUint(value, 10, 8)
-		result = uint8(parsed)
-	case reflect.Uint16:
-		var parsed uint64
-		parsed, err = strconv.ParseUint(value, 10, 16)
-		result = uint16(parsed)
-	case reflect.Uint32:
-		var parsed uint64
-		parsed, err = strconv.ParseUint(value, 10, 32)
-		result = uint32(parsed)
-	case reflect.Uint64:
-		result, err = strconv.ParseUint(value, 10, 64)
-	case reflect.Float32:
-		var parsed float64
-		parsed, err = strconv.ParseFloat(value, 32)
-		result = float32(parsed)
-	case reflect.Float64:
-		result, err = strconv.ParseFloat(value, 64)
-	default:
-		panic(fmt.Errorf("failed to parse environment variable '%s', unsupported type for Numeric: %s", key, reflect.TypeFor[T]().Kind()))
-	}
-
-	if err != nil {
-		panic(fmt.Errorf("failed to parse environment variable '%s' as type %s: %s", key, reflect.TypeOf(*new(T)).Kind(), err))
-	}
-
-	return result.(T)
+	return RequireEnvAs(key, MapStringToNumeric[T])
 }
 
 // RequireEnv is an alias to RequireEnvAs[string](key, MapString)
@@ -334,6 +274,33 @@ func RequireEnvOrDefault[T any](key string, f MappingFunc[T], def T) (result T) 
 		}
 	}()
 	return RequireEnvAs[T](key, f)
+}
+
+// RequireEnvNumericOrDefault retrieves an environment variable specified by `key`
+// and converts it to the specified basicutils.Numeric type `T`.
+//
+// If the environment variable is not set or cannot be converted,
+// the function returns the provided default value `def`.
+func RequireEnvNumericOrDefault[T basicutils.Numeric](key string, def T) T {
+	return RequireEnvOrDefault(key, MapStringToNumeric[T], def)
+}
+
+// RequireEnvBoolOrDefault retrieves an environment variable specified by `key`
+// and converts it to a bool value.
+//
+// If the environment variable is not set or cannot be parsed,
+// the function returns the provided default value `def`.
+func RequireEnvBoolOrDefault(key string, def bool) bool {
+	return RequireEnvOrDefault(key, MapStringToBool, def)
+}
+
+// RequireEnvDurationOrDefault retrieves an environment variable specified by `key`
+// and converts it to a time.Duration value.
+//
+// If the environment variable is not set or cannot be parsed,
+// the function returns the provided default value `def`.
+func RequireEnvDurationOrDefault(key string, def time.Duration) time.Duration {
+	return RequireEnvOrDefault(key, MapStringToDuration, def)
 }
 
 func getCGroupCPUs() (int, error) { // coverage-ignore
