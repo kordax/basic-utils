@@ -548,3 +548,179 @@ func TestRequireEnvOrDefault(t *testing.T) {
 		assert.Equal(t, defaultValue, result)
 	})
 }
+
+func TestRequireEnvNumericOrDefault(t *testing.T) {
+	require.NoError(t, os.Setenv("TEST_INT", "12345"))
+	require.NoError(t, os.Setenv("TEST_INT8", "123"))
+	require.NoError(t, os.Setenv("TEST_INT16", "12345"))
+	require.NoError(t, os.Setenv("TEST_INT32", "1234567890"))
+	require.NoError(t, os.Setenv("TEST_INT64", "123456789012345"))
+	require.NoError(t, os.Setenv("TEST_UINT", "12345"))
+	require.NoError(t, os.Setenv("TEST_UINT8", "123"))
+	require.NoError(t, os.Setenv("TEST_UINT16", "12345"))
+	require.NoError(t, os.Setenv("TEST_UINT32", "1234567890"))
+	require.NoError(t, os.Setenv("TEST_UINT64", "123456789012345"))
+	require.NoError(t, os.Setenv("TEST_FLOAT32", "12345.6789"))
+	require.NoError(t, os.Setenv("TEST_FLOAT64", "123456.789"))
+	require.NoError(t, os.Setenv("TEST_INVALID_INT", "invalid_int"))
+	require.NoError(t, os.Setenv("TEST_OVERFLOW_INT8", "128"))
+	require.NoError(t, os.Setenv("TEST_INVALID_FLOAT", "invalid_float"))
+
+	defer t.Cleanup(func() {
+		_ = os.Unsetenv("TEST_INT")
+		_ = os.Unsetenv("TEST_INT8")
+		_ = os.Unsetenv("TEST_INT16")
+		_ = os.Unsetenv("TEST_INT32")
+		_ = os.Unsetenv("TEST_INT64")
+		_ = os.Unsetenv("TEST_UINT")
+		_ = os.Unsetenv("TEST_UINT8")
+		_ = os.Unsetenv("TEST_UINT16")
+		_ = os.Unsetenv("TEST_UINT32")
+		_ = os.Unsetenv("TEST_UINT64")
+		_ = os.Unsetenv("TEST_FLOAT32")
+		_ = os.Unsetenv("TEST_FLOAT64")
+		_ = os.Unsetenv("TEST_INVALID_INT")
+		_ = os.Unsetenv("TEST_OVERFLOW_INT8")
+		_ = os.Unsetenv("TEST_INVALID_FLOAT")
+	})
+
+	t.Run("Int", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[int]("TEST_INT", 777)
+		assert.Equal(t, 12345, result)
+	})
+
+	t.Run("Int8", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[int8]("TEST_INT8", int8(77))
+		assert.Equal(t, int8(123), result)
+	})
+
+	t.Run("Int16", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[int16]("TEST_INT16", int16(777))
+		assert.Equal(t, int16(12345), result)
+	})
+
+	t.Run("Int32", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[int32]("TEST_INT32", int32(777))
+		assert.Equal(t, int32(1234567890), result)
+	})
+
+	t.Run("Int64", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[int64]("TEST_INT64", int64(777))
+		assert.Equal(t, int64(123456789012345), result)
+	})
+
+	t.Run("Uint", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[uint]("TEST_UINT", uint(777))
+		assert.Equal(t, uint(12345), result)
+	})
+
+	t.Run("Uint8", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[uint8]("TEST_UINT8", uint8(77))
+		assert.Equal(t, uint8(123), result)
+	})
+
+	t.Run("Uint16", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[uint16]("TEST_UINT16", uint16(777))
+		assert.Equal(t, uint16(12345), result)
+	})
+
+	t.Run("Uint32", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[uint32]("TEST_UINT32", uint32(777))
+		assert.Equal(t, uint32(1234567890), result)
+	})
+
+	t.Run("Uint64", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[uint64]("TEST_UINT64", uint64(777))
+		assert.Equal(t, uint64(123456789012345), result)
+	})
+
+	t.Run("Float32", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[float32]("TEST_FLOAT32", float32(777))
+		assert.Equal(t, float32(12345.6789), result)
+	})
+
+	t.Run("Float64", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[float64]("TEST_FLOAT64", 777.0)
+		assert.Equal(t, 123456.789, result)
+	})
+
+	t.Run("MissingEnvVar", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[int]("NON_EXISTENT_NUMERIC", 555)
+		assert.Equal(t, 555, result)
+	})
+
+	t.Run("InvalidInt", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[int]("TEST_INVALID_INT", 555)
+		assert.Equal(t, 555, result)
+	})
+
+	t.Run("OverflowInt8", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[int8]("TEST_OVERFLOW_INT8", int8(55))
+		assert.Equal(t, int8(55), result)
+	})
+
+	t.Run("InvalidFloat", func(t *testing.T) {
+		result := uos.RequireEnvNumericOrDefault[float64]("TEST_INVALID_FLOAT", 555.5)
+		assert.Equal(t, 555.5, result)
+	})
+}
+
+func TestRequireEnvBoolOrDefault(t *testing.T) {
+	require.NoError(t, os.Setenv("TEST_BOOL_TRUE", "true"))
+	require.NoError(t, os.Setenv("TEST_BOOL_FALSE", "false"))
+	require.NoError(t, os.Setenv("TEST_BOOL_INVALID", "invalid_bool"))
+
+	defer t.Cleanup(func() {
+		_ = os.Unsetenv("TEST_BOOL_TRUE")
+		_ = os.Unsetenv("TEST_BOOL_FALSE")
+		_ = os.Unsetenv("TEST_BOOL_INVALID")
+	})
+
+	t.Run("BoolTrue", func(t *testing.T) {
+		result := uos.RequireEnvBoolOrDefault("TEST_BOOL_TRUE", false)
+		assert.True(t, result)
+	})
+
+	t.Run("BoolFalse", func(t *testing.T) {
+		result := uos.RequireEnvBoolOrDefault("TEST_BOOL_FALSE", true)
+		assert.False(t, result)
+	})
+
+	t.Run("MissingEnvVar", func(t *testing.T) {
+		result := uos.RequireEnvBoolOrDefault("NON_EXISTENT_BOOL", true)
+		assert.True(t, result)
+	})
+
+	t.Run("InvalidValue", func(t *testing.T) {
+		result := uos.RequireEnvBoolOrDefault("TEST_BOOL_INVALID", true)
+		assert.True(t, result)
+	})
+}
+
+func TestRequireEnvDurationOrDefault(t *testing.T) {
+	require.NoError(t, os.Setenv("TEST_DURATION", "2h45m"))
+	require.NoError(t, os.Setenv("TEST_INVALID_DURATION", "invalid-duration"))
+
+	defer t.Cleanup(func() {
+		_ = os.Unsetenv("TEST_DURATION")
+		_ = os.Unsetenv("TEST_INVALID_DURATION")
+	})
+
+	t.Run("Duration", func(t *testing.T) {
+		expectedDuration, _ := time.ParseDuration(os.Getenv("TEST_DURATION"))
+		result := uos.RequireEnvDurationOrDefault("TEST_DURATION", time.Minute)
+		assert.Equal(t, expectedDuration, result)
+	})
+
+	t.Run("MissingEnvVar", func(t *testing.T) {
+		defaultValue := 15 * time.Second
+		result := uos.RequireEnvDurationOrDefault("NON_EXISTENT_DURATION", defaultValue)
+		assert.Equal(t, defaultValue, result)
+	})
+
+	t.Run("InvalidValue", func(t *testing.T) {
+		defaultValue := 30 * time.Second
+		result := uos.RequireEnvDurationOrDefault("TEST_INVALID_DURATION", defaultValue)
+		assert.Equal(t, defaultValue, result)
+	})
+}
