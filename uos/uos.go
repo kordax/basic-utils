@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"git.casinomodule.org/casino27/basic-utils/v2/uarray"
-	basicutils "git.casinomodule.org/casino27/basic-utils/v2/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v2/uconst"
 	"git.casinomodule.org/casino27/basic-utils/v2/umath"
 )
 
@@ -70,7 +70,7 @@ func GetCPUs() int {
 // The function panics if the environment variable is not set, cannot be converted to type `T`,
 // or if `T` is not an integer type. It uses the appropriate bit size for parsing to ensure
 // values fit into the specified type without overflow.
-func RequireEnvNumeric[T basicutils.Numeric](key string) T {
+func RequireEnvNumeric[T uconst.Numeric](key string) T {
 	return RequireEnvAs(key, MapStringToNumeric[T])
 }
 
@@ -281,7 +281,7 @@ func RequireEnvOrDefault[T any](key string, f MappingFunc[T], def T) (result T) 
 //
 // If the environment variable is not set or cannot be converted,
 // the function returns the provided default value `def`.
-func RequireEnvNumericOrDefault[T basicutils.Numeric](key string, def T) T {
+func RequireEnvNumericOrDefault[T uconst.Numeric](key string, def T) T {
 	return RequireEnvOrDefault(key, MapStringToNumeric[T], def)
 }
 
