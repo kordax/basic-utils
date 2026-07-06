@@ -20,7 +20,6 @@ tasks:
       - go test -race ./... -tags=integration_test
     sources:
       - "**/*.go"
-      - "integration/docker-compose.yaml"
 
   check:
     desc: "Running golint"

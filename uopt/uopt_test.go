@@ -21,6 +21,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type sqlJSONPayload struct {
+	Name  string   `json:"name"`
+	Items []string `json:"items"`
+}
+
 // TestPresent tests the Present method.
 func TestPresent(t *testing.T) {
 	// Test when value is present
@@ -717,6 +722,46 @@ func TestOpt_Value(t *testing.T) {
 	}
 }
 
+func TestOpt_ValueJSONTypes(t *testing.T) {
+	payload := sqlJSONPayload{Name: "test", Items: []string{"a", "b"}}
+
+	tests := []struct {
+		name     string
+		value    driver.Valuer
+		expected string
+	}{
+		{
+			name:     "map",
+			value:    uopt.Of(map[string]any{"name": "test"}),
+			expected: `{"name":"test"}`,
+		},
+		{
+			name:     "slice",
+			value:    uopt.Of([]string{"a", "b"}),
+			expected: `["a","b"]`,
+		},
+		{
+			name:     "struct",
+			value:    uopt.Of(payload),
+			expected: `{"name":"test","items":["a","b"]}`,
+		},
+		{
+			name:     "raw message",
+			value:    uopt.Of(json.RawMessage(`{"name":"raw"}`)),
+			expected: `{"name":"raw"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			value, err := tt.value.Value()
+			require.NoError(t, err)
+			require.IsType(t, []byte{}, value)
+			assert.JSONEq(t, tt.expected, string(value.([]byte)))
+		})
+	}
+}
+
 func TestOpt_Scan(t *testing.T) {
 	// Test for integer type
 	optInt := uopt.Opt[int]{}
@@ -954,6 +999,89 @@ func TestOpt_Scan(t *testing.T) {
 	if err != nil || !optFloat64Float32.Present() || math.Abs(*optFloat64Float32.Get()-3.1415926535) <= 1e-16 {
 		t.Errorf("Scan method failed for float64 type with float64 input: %v", err)
 	}
+}
+
+func TestOpt_ScanSQLJSONTypes(t *testing.T) {
+	t.Run("map from bytes", func(t *testing.T) {
+		var opt uopt.Opt[map[string]any]
+		require.NoError(t, opt.Scan([]byte(`{"name":"test","count":2}`)))
+		require.True(t, opt.Present())
+		assert.Equal(t, "test", (*opt.Get())["name"])
+		assert.EqualValues(t, 2, (*opt.Get())["count"])
+	})
+
+	t.Run("struct from string", func(t *testing.T) {
+		var opt uopt.Opt[sqlJSONPayload]
+		require.NoError(t, opt.Scan(`{"name":"test","items":["a","b"]}`))
+		require.True(t, opt.Present())
+		assert.Equal(t, sqlJSONPayload{Name: "test", Items: []string{"a", "b"}}, *opt.Get())
+	})
+
+	t.Run("raw message from bytes", func(t *testing.T) {
+		var opt uopt.Opt[json.RawMessage]
+		require.NoError(t, opt.Scan([]byte(`{"name":"raw"}`)))
+		require.True(t, opt.Present())
+		assert.JSONEq(t, `{"name":"raw"}`, string(*opt.Get()))
+	})
+
+	t.Run("slice from postgres json text", func(t *testing.T) {
+		var opt uopt.Opt[[]string]
+		require.NoError(t, opt.Scan(`["a","b"]`))
+		require.True(t, opt.Present())
+		assert.Equal(t, []string{"a", "b"}, *opt.Get())
+	})
+
+	t.Run("slice from postgres array text", func(t *testing.T) {
+		var opt uopt.Opt[[]string]
+		require.NoError(t, opt.Scan(`{a,b}`))
+		require.True(t, opt.Present())
+		assert.Equal(t, []string{"a", "b"}, *opt.Get())
+	})
+
+	t.Run("slice from quoted postgres array text", func(t *testing.T) {
+		var opt uopt.Opt[[]string]
+		require.NoError(t, opt.Scan(`{"a,b","c\"d","path\\to"}`))
+		require.True(t, opt.Present())
+		assert.Equal(t, []string{"a,b", `c"d`, `path\to`}, *opt.Get())
+	})
+
+	t.Run("int slice from postgres array text", func(t *testing.T) {
+		var opt uopt.Opt[[]int]
+		require.NoError(t, opt.Scan(`{1,2,3}`))
+		require.True(t, opt.Present())
+		assert.Equal(t, []int{1, 2, 3}, *opt.Get())
+	})
+
+	t.Run("bool slice from postgres array text", func(t *testing.T) {
+		var opt uopt.Opt[[]bool]
+		require.NoError(t, opt.Scan(`{t,false,1,0}`))
+		require.True(t, opt.Present())
+		assert.Equal(t, []bool{true, false, true, false}, *opt.Get())
+	})
+}
+
+func TestOpt_ScanSQLDriverTypes(t *testing.T) {
+	t.Run("time from mysql text", func(t *testing.T) {
+		var opt uopt.Opt[time.Time]
+		require.NoError(t, opt.Scan([]byte("2024-01-02 03:04:05")))
+		require.True(t, opt.Present())
+		assert.Equal(t, 2024, opt.Get().Year())
+		assert.Equal(t, time.January, opt.Get().Month())
+	})
+
+	t.Run("bool from mysql tinyint bytes", func(t *testing.T) {
+		var opt uopt.Opt[bool]
+		require.NoError(t, opt.Scan([]byte("1")))
+		require.True(t, opt.Present())
+		assert.True(t, *opt.Get())
+	})
+
+	t.Run("bytes from postgres bytea", func(t *testing.T) {
+		var opt uopt.Opt[[]byte]
+		require.NoError(t, opt.Scan([]byte{1, 2, 3}))
+		require.True(t, opt.Present())
+		assert.Equal(t, []byte{1, 2, 3}, *opt.Get())
+	})
 }
 
 // mockValuer is a mock type that implements the driver.Valuer interface.

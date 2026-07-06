@@ -7,11 +7,13 @@
 package uopt
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	basicutils "git.casinomodule.org/casino27/basic-utils/v2/uconst"
@@ -223,46 +225,11 @@ func (o Opt[T]) MarshalJSON() ([]byte, error) {
 
 // Value implements the driver.Valuer interface for the Opt type, converting its value to a SQL value.
 func (o Opt[T]) Value() (driver.Value, error) {
-	if o.v != nil {
-		switch p := any(o.v).(type) {
-		case *int:
-			return int64(*p), nil
-		case *int8:
-			return int64(*p), nil
-		case *int16:
-			return int64(*p), nil
-		case *int32:
-			return int64(*p), nil
-		case *uint:
-			return int64(*p), nil
-		case *uint8:
-			return int64(*p), nil
-		case *uint16:
-			return int64(*p), nil
-		case *uint32:
-			return int64(*p), nil
-		case *uint64:
-			return int64(*p), nil
-		case *float32:
-			return float64(*p), nil
-		case *float64:
-			return *p, nil
-		case *time.Time:
-			return *p, nil
-		case *[]byte:
-			return *p, nil
-		case *string:
-			return *p, nil
-		case *bool:
-			return *p, nil
-		case map[string]any, []any:
-			return json.Marshal(o.v)
-		case driver.Valuer:
-			return p.Value()
-		}
-		return driver.Value(*o.v), nil
+	if o.v == nil {
+		return nil, nil
 	}
-	return nil, nil
+
+	return sqlValue(*o.v, o.v)
 }
 
 // Scan implements the sql.Scanner interface for the Opt type, reading a SQL value into the Opt.
@@ -272,283 +239,577 @@ func (o *Opt[T]) Scan(src interface{}) error {
 		return nil
 	}
 
-	var v *T
-	switch src.(type) {
-	case []uint8:
-		switch ptr := any(&v).(type) {
-		case **string:
-			*ptr = uref.Ref(string(src.([]uint8)))
-		case **uint:
-			val, err := strconv.ParseUint(string(src.([]uint8)), 10, 32)
-			*ptr = uref.Ref(uint(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
-			}
-		case **uint8:
-			val, err := strconv.ParseUint(string(src.([]uint8)), 10, 8)
-			*ptr = uref.Ref(uint8(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
-			}
-		case **uint16:
-			val, err := strconv.ParseUint(string(src.([]uint8)), 10, 16)
-			*ptr = uref.Ref(uint16(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
-			}
-		case **uint32:
-			val, err := strconv.ParseUint(string(src.([]uint8)), 10, 32)
-			*ptr = uref.Ref(uint32(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
-			}
-		case **uint64:
-			val, err := strconv.ParseUint(string(src.([]uint8)), 10, 64)
-			*ptr = uref.Ref(val)
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
-			}
-		case **int:
-			val, err := strconv.ParseInt(string(src.([]uint8)), 10, 32)
-			*ptr = uref.Ref(int(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
-			}
-		case **int8:
-			val, err := strconv.ParseInt(string(src.([]uint8)), 10, 8)
-			*ptr = uref.Ref(int8(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
-			}
-		case **int16:
-			val, err := strconv.ParseInt(string(src.([]uint8)), 10, 16)
-			*ptr = uref.Ref(int16(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
-			}
-		case **int32:
-			val, err := strconv.ParseInt(string(src.([]uint8)), 10, 32)
-			*ptr = uref.Ref(int32(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
-			}
-		case **int64:
-			val, err := strconv.ParseInt(string(src.([]uint8)), 10, 64)
-			*ptr = uref.Ref(val)
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to numeric opt: %s", err)
-			}
-		case **float32:
-			val, err := strconv.ParseFloat(string(src.([]uint8)), 32)
-			*ptr = uref.Ref(float32(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to float opt: %s", err)
-			}
-		case **float64:
-			val, err := strconv.ParseFloat(string(src.([]uint8)), 64)
-			*ptr = uref.Ref(val)
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to float opt: %s", err)
-			}
-		case **bool:
-			val, err := strconv.ParseBool(string(src.([]uint8)))
-			*ptr = uref.Ref(val)
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to bool opt: %s", err)
-			}
-		case **complex64:
-			val, err := strconv.ParseComplex(string(src.([]uint8)), 64)
-			*ptr = uref.Ref(complex64(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to complex opt: %s", err)
-			}
-		case **complex128:
-			val, err := strconv.ParseComplex(string(src.([]uint8)), 128)
-			*ptr = uref.Ref(val)
-			if err != nil {
-				return fmt.Errorf("failed to parse bytes/blob sql value to complex opt: %s", err)
-			}
-		case **T:
-			err := json.Unmarshal(src.([]byte), &ptr)
-			if err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", *new(T), reflect.TypeOf(src))
-		}
-	case string:
-		switch ptr := any(&v).(type) {
-		case **string:
-			if src != "" {
-				*ptr = uref.Ref(src.(string))
-			}
-		case **uint:
-			val, err := strconv.ParseUint(src.(string), 10, 32)
-			*ptr = uref.Ref(uint(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
-			}
-		case **uint8:
-			val, err := strconv.ParseUint(src.(string), 10, 8)
-			*ptr = uref.Ref(uint8(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
-			}
-		case **uint16:
-			val, err := strconv.ParseUint(src.(string), 10, 16)
-			*ptr = uref.Ref(uint16(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
-			}
-		case **uint32:
-			val, err := strconv.ParseUint(src.(string), 10, 32)
-			*ptr = uref.Ref(uint32(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
-			}
-		case **uint64:
-			val, err := strconv.ParseUint(src.(string), 10, 64)
-			*ptr = uref.Ref(val)
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
-			}
-		case **int:
-			val, err := strconv.ParseInt(src.(string), 10, 32)
-			*ptr = uref.Ref(int(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
-			}
-		case **int8:
-			val, err := strconv.ParseInt(src.(string), 10, 8)
-			*ptr = uref.Ref(int8(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
-			}
-		case **int16:
-			val, err := strconv.ParseInt(src.(string), 10, 16)
-			*ptr = uref.Ref(int16(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
-			}
-		case **int32:
-			val, err := strconv.ParseInt(src.(string), 10, 32)
-			*ptr = uref.Ref(int32(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
-			}
-		case **int64:
-			val, err := strconv.ParseInt(src.(string), 10, 64)
-			*ptr = uref.Ref(val)
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to numeric opt: %s", err)
-			}
-		case **float32:
-			val, err := strconv.ParseFloat(src.(string), 32)
-			*ptr = uref.Ref(float32(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to float opt: %s", err)
-			}
-		case **float64:
-			val, err := strconv.ParseFloat(src.(string), 64)
-			*ptr = uref.Ref(val)
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to float opt: %s", err)
-			}
-		case **bool:
-			val, err := strconv.ParseBool(src.(string))
-			*ptr = uref.Ref(val)
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to bool opt: %s", err)
-			}
-		case **complex64:
-			val, err := strconv.ParseComplex(src.(string), 64)
-			*ptr = uref.Ref(complex64(val))
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to complex opt: %s", err)
-			}
-		case **complex128:
-			val, err := strconv.ParseComplex(src.(string), 128)
-			*ptr = uref.Ref(val)
-			if err != nil {
-				return fmt.Errorf("failed to parse varchar sql value to complex opt: %s", err)
-			}
-		default:
-			return fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", *new(T), reflect.TypeOf(src))
-		}
+	v, err := scanSQLValue[T](src)
+	if err != nil {
+		return err
+	}
+	*o = Of(v)
+
+	return nil
+}
+
+func sqlValue[T any](value T, valuePtr *T) (driver.Value, error) {
+	if valuer, ok := any(value).(driver.Valuer); ok {
+		return valuer.Value()
+	}
+	if valuer, ok := any(valuePtr).(driver.Valuer); ok {
+		return valuer.Value()
+	}
+
+	switch v := any(value).(type) {
+	case int:
+		return int64(v), nil
+	case int8:
+		return int64(v), nil
+	case int16:
+		return int64(v), nil
+	case int32:
+		return int64(v), nil
 	case int64:
-		switch ptr := any(&v).(type) {
-		case **string:
-			*ptr = uref.Ref(strconv.FormatInt(src.(int64), 10))
-		case **uint:
-			*ptr = uref.Ref(uint(src.(int64)))
-		case **uint8:
-			*ptr = uref.Ref(uint8(src.(int64)))
-		case **uint16:
-			*ptr = uref.Ref(uint16(src.(int64)))
-		case **uint32:
-			*ptr = uref.Ref(uint32(src.(int64)))
-		case **uint64:
-			*ptr = uref.Ref(uint64(src.(int64)))
-		case **int:
-			*ptr = uref.Ref(int(src.(int64)))
-		case **int8:
-			*ptr = uref.Ref(int8(src.(int64)))
-		case **int16:
-			*ptr = uref.Ref(int16(src.(int64)))
-		case **int32:
-			*ptr = uref.Ref(int32(src.(int64)))
-		case **int64:
-			*ptr = uref.Ref(src.(int64))
-		case **bool:
-			if src.(int64) >= 1 {
-				*ptr = uref.Ref(true)
-			} else {
-				*ptr = uref.Ref(false)
-			}
-		default:
-			return fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", *new(T), reflect.TypeOf(src))
-		}
+		return v, nil
+	case uint:
+		return uintToInt64(uint64(v))
+	case uint8:
+		return int64(v), nil
+	case uint16:
+		return int64(v), nil
+	case uint32:
+		return int64(v), nil
+	case uint64:
+		return uintToInt64(v)
 	case float32:
-		switch ptr := any(&v).(type) {
-		case **string:
-			*ptr = uref.Ref(strconv.FormatFloat(float64(src.(float32)), 'f', -1, 32))
-		case **float32:
-			*ptr = uref.Ref(src.(float32))
-		case **float64:
-			*ptr = uref.Ref(float64(src.(float32)))
-		default:
-			return fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", *new(T), reflect.TypeOf(src))
-		}
+		return float64(v), nil
 	case float64:
-		switch ptr := any(&v).(type) {
-		case **string:
-			*ptr = uref.Ref(strconv.FormatFloat(src.(float64), 'f', -1, 64))
-		case **float32:
-			*ptr = uref.Ref(float32(src.(float64)))
-		case **float64:
-			*ptr = uref.Ref(src.(float64))
-		default:
-			return fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", *new(T), reflect.TypeOf(src))
-		}
-	case nil:
-		return nil
-	case driver.Valuer:
-		valSql, err := src.(driver.Valuer).Value()
-		if err != nil {
-			return fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", *new(T), reflect.TypeOf(src))
-		}
-		v = valSql.(*T)
+		return v, nil
+	case bool:
+		return v, nil
+	case string:
+		return v, nil
+	case []byte:
+		return v, nil
+	case time.Time:
+		return v, nil
+	case time.Duration:
+		return int64(v), nil
+	case json.RawMessage:
+		return []byte(v), nil
+	}
+
+	rv := reflect.ValueOf(value)
+	if !rv.IsValid() {
+		return nil, nil
+	}
+	switch rv.Kind() {
+	case reflect.Map, reflect.Struct, reflect.Slice, reflect.Array:
+		return json.Marshal(value)
 	default:
-		// Try to directly assign if types are compatible
-		if val, ok := src.(T); ok {
-			*o = Of(val)
-			return nil
-		} else {
-			return fmt.Errorf("incompatible type for Opt[%T]: %T", *new(T), src)
+		if driver.IsValue(value) {
+			return value, nil
+		}
+		return json.Marshal(value)
+	}
+}
+
+func uintToInt64(v uint64) (driver.Value, error) {
+	const maxInt64 = uint64(1<<63 - 1)
+	if v > maxInt64 {
+		return nil, fmt.Errorf("uint value %d overflows int64 SQL value", v)
+	}
+	return int64(v), nil
+}
+
+func scanSQLValue[T any](src any) (T, error) {
+	var zero T
+	if valuer, ok := src.(driver.Valuer); ok {
+		value, err := valuer.Value()
+		if err != nil {
+			return zero, fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", zero, reflect.TypeOf(src))
+		}
+		src = value
+	}
+	if src == nil {
+		return zero, nil
+	}
+
+	var result T
+	if scanner, ok := any(&result).(sql.Scanner); ok {
+		if err := scanner.Scan(src); err != nil {
+			return zero, err
+		}
+		return result, nil
+	}
+
+	if converted, ok := directConvert[T](src); ok {
+		return converted, nil
+	}
+
+	target := reflect.TypeOf((*T)(nil)).Elem()
+	if target == reflect.TypeOf(time.Time{}) {
+		value, err := scanTime(src)
+		if err != nil {
+			return zero, err
+		}
+		return any(value).(T), nil
+	}
+
+	if target == reflect.TypeOf(time.Duration(0)) {
+		value, err := scanDuration(src)
+		if err != nil {
+			return zero, err
+		}
+		return any(value).(T), nil
+	}
+
+	if converted, ok, err := scanScalar[T](src, target); ok || err != nil {
+		return converted, err
+	}
+
+	if text, ok := sqlText(src); ok {
+		return scanText[T](text, target, src)
+	}
+
+	return zero, fmt.Errorf("incompatible type for Opt[%T]: %T", zero, src)
+}
+
+func directConvert[T any](src any) (T, bool) {
+	var zero T
+	target := reflect.TypeOf((*T)(nil)).Elem()
+	source := reflect.ValueOf(src)
+	if !source.IsValid() {
+		return zero, false
+	}
+	if target.Kind() == reflect.String && source.Kind() != reflect.String {
+		return zero, false
+	}
+	var result T
+	resultValue := reflect.ValueOf(&result).Elem()
+	if source.Type().AssignableTo(target) {
+		resultValue.Set(source)
+		return result, true
+	}
+	if source.Type().ConvertibleTo(target) {
+		resultValue.Set(source.Convert(target))
+		return result, true
+	}
+	return zero, false
+}
+
+func scanScalar[T any](src any, target reflect.Type) (T, bool, error) {
+	var zero T
+	source := reflect.ValueOf(src)
+	if !source.IsValid() {
+		return zero, false, nil
+	}
+
+	switch target.Kind() {
+	case reflect.String:
+		value, ok := scalarString(source)
+		if !ok {
+			return zero, false, nil
+		}
+		return any(value).(T), true, nil
+	case reflect.Bool:
+		value, ok := scalarBool(source)
+		if !ok {
+			return zero, false, nil
+		}
+		return reflect.ValueOf(value).Convert(target).Interface().(T), true, nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		value, ok := scalarInt(source)
+		if !ok {
+			return zero, false, nil
+		}
+		result := reflect.New(target).Elem()
+		if result.OverflowInt(value) {
+			return zero, true, fmt.Errorf("value %d overflows Opt[%T]", value, zero)
+		}
+		result.SetInt(value)
+		return result.Interface().(T), true, nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		value, ok := scalarUint(source)
+		if !ok {
+			return zero, false, nil
+		}
+		result := reflect.New(target).Elem()
+		if result.OverflowUint(value) {
+			return zero, true, fmt.Errorf("value %d overflows Opt[%T]", value, zero)
+		}
+		result.SetUint(value)
+		return result.Interface().(T), true, nil
+	case reflect.Float32, reflect.Float64:
+		value, ok := scalarFloat(source)
+		if !ok {
+			return zero, false, nil
+		}
+		result := reflect.New(target).Elem()
+		if result.OverflowFloat(value) {
+			return zero, true, fmt.Errorf("value %f overflows Opt[%T]", value, zero)
+		}
+		result.SetFloat(value)
+		return result.Interface().(T), true, nil
+	default:
+		return zero, false, nil
+	}
+}
+
+func scalarString(value reflect.Value) (string, bool) {
+	switch value.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(value.Int(), 10), true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return strconv.FormatUint(value.Uint(), 10), true
+	case reflect.Float32:
+		return strconv.FormatFloat(value.Float(), 'f', -1, 32), true
+	case reflect.Float64:
+		return strconv.FormatFloat(value.Float(), 'f', -1, 64), true
+	case reflect.Bool:
+		return strconv.FormatBool(value.Bool()), true
+	default:
+		return "", false
+	}
+}
+
+func scalarBool(value reflect.Value) (bool, bool) {
+	switch value.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return value.Int() != 0, true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return value.Uint() != 0, true
+	case reflect.Float32, reflect.Float64:
+		return value.Float() != 0, true
+	default:
+		return false, false
+	}
+}
+
+func scalarInt(value reflect.Value) (int64, bool) {
+	switch value.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return value.Int(), true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		uintValue := value.Uint()
+		const maxInt64 = uint64(1<<63 - 1)
+		return int64(uintValue), uintValue <= maxInt64
+	case reflect.Float32, reflect.Float64:
+		return int64(value.Float()), true
+	default:
+		return 0, false
+	}
+}
+
+func scalarUint(value reflect.Value) (uint64, bool) {
+	switch value.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		intValue := value.Int()
+		return uint64(intValue), intValue >= 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return value.Uint(), true
+	case reflect.Float32, reflect.Float64:
+		floatValue := value.Float()
+		return uint64(floatValue), floatValue >= 0
+	default:
+		return 0, false
+	}
+}
+
+func scalarFloat(value reflect.Value) (float64, bool) {
+	switch value.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return float64(value.Int()), true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return float64(value.Uint()), true
+	case reflect.Float32, reflect.Float64:
+		return value.Float(), true
+	default:
+		return 0, false
+	}
+}
+
+func scanText[T any](text string, target reflect.Type, src any) (T, error) {
+	var zero T
+	switch target.Kind() {
+	case reflect.String:
+		return any(text).(T), nil
+	case reflect.Bool:
+		value, err := parseSQLBool(text)
+		if err != nil {
+			return zero, parseError(src, "bool", err)
+		}
+		return reflect.ValueOf(value).Convert(target).Interface().(T), nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		value, err := strconv.ParseInt(text, 10, target.Bits())
+		if err != nil {
+			return zero, parseError(src, "numeric", err)
+		}
+		return reflect.ValueOf(value).Convert(target).Interface().(T), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		value, err := strconv.ParseUint(text, 10, target.Bits())
+		if err != nil {
+			return zero, parseError(src, "numeric", err)
+		}
+		return reflect.ValueOf(value).Convert(target).Interface().(T), nil
+	case reflect.Float32, reflect.Float64:
+		value, err := strconv.ParseFloat(text, target.Bits())
+		if err != nil {
+			return zero, parseError(src, "float", err)
+		}
+		return reflect.ValueOf(value).Convert(target).Interface().(T), nil
+	case reflect.Complex64, reflect.Complex128:
+		value, err := strconv.ParseComplex(text, target.Bits())
+		if err != nil {
+			return zero, parseError(src, "complex", err)
+		}
+		return reflect.ValueOf(value).Convert(target).Interface().(T), nil
+	case reflect.Slice, reflect.Array:
+		if value, ok, err := scanPostgresArrayText[T](text, target); ok || err != nil {
+			return value, err
+		}
+
+		var result T
+		if err := json.Unmarshal([]byte(text), &result); err != nil {
+			return zero, err
+		}
+		return result, nil
+	case reflect.Map, reflect.Struct, reflect.Pointer, reflect.Interface:
+		var result T
+		if err := json.Unmarshal([]byte(text), &result); err != nil {
+			return zero, err
+		}
+		return result, nil
+	default:
+		return zero, fmt.Errorf("incompatible type for Opt[%T]: %T, failed to retrieve value", zero, reflect.TypeOf(src))
+	}
+}
+
+type postgresArrayElement struct {
+	value string
+	null  bool
+}
+
+func scanPostgresArrayText[T any](text string, target reflect.Type) (T, bool, error) {
+	var zero T
+	text = strings.TrimSpace(text)
+	if !strings.HasPrefix(text, "{") {
+		return zero, false, nil
+	}
+
+	elements, err := parsePostgresArrayElements(text)
+	if err != nil {
+		return zero, true, err
+	}
+
+	if target.Kind() == reflect.Array && len(elements) != target.Len() {
+		return zero, true, fmt.Errorf("postgres array length %d does not match Opt[%T] array length", len(elements), zero)
+	}
+
+	elemType := target.Elem()
+	resultType := target
+	if target.Kind() == reflect.Array {
+		resultType = reflect.SliceOf(elemType)
+	}
+	result := reflect.MakeSlice(resultType, len(elements), len(elements))
+	for i, element := range elements {
+		value, err := scanPostgresArrayElement(element, elemType)
+		if err != nil {
+			return zero, true, err
+		}
+		result.Index(i).Set(value)
+	}
+
+	if target.Kind() == reflect.Array {
+		array := reflect.New(target).Elem()
+		reflect.Copy(array.Slice(0, target.Len()), result)
+		return array.Interface().(T), true, nil
+	}
+
+	return result.Interface().(T), true, nil
+}
+
+func parsePostgresArrayElements(text string) ([]postgresArrayElement, error) {
+	if len(text) < 2 || text[0] != '{' || text[len(text)-1] != '}' {
+		return nil, fmt.Errorf("invalid postgres array literal %q", text)
+	}
+	if text == "{}" {
+		return []postgresArrayElement{}, nil
+	}
+
+	var elements []postgresArrayElement
+	var builder strings.Builder
+	quoted := false
+	wasQuoted := false
+	escaped := false
+	for i := 1; i < len(text)-1; i++ {
+		ch := text[i]
+		switch {
+		case escaped:
+			builder.WriteByte(ch)
+			escaped = false
+		case quoted && ch == '\\':
+			escaped = true
+		case ch == '"':
+			quoted = !quoted
+			wasQuoted = true
+		case !quoted && ch == ',':
+			elements = append(elements, postgresArrayElement{
+				value: builder.String(),
+				null:  !wasQuoted && builder.String() == "NULL",
+			})
+			builder.Reset()
+			wasQuoted = false
+		default:
+			builder.WriteByte(ch)
+		}
+	}
+	if quoted || escaped {
+		return nil, fmt.Errorf("invalid postgres array literal %q", text)
+	}
+	elements = append(elements, postgresArrayElement{
+		value: builder.String(),
+		null:  !wasQuoted && builder.String() == "NULL",
+	})
+
+	return elements, nil
+}
+
+func scanPostgresArrayElement(element postgresArrayElement, target reflect.Type) (reflect.Value, error) {
+	result := reflect.New(target).Elem()
+	if element.null {
+		return result, nil
+	}
+
+	if target == reflect.TypeOf(time.Time{}) {
+		value, err := scanTime(element.value)
+		if err != nil {
+			return result, err
+		}
+		result.Set(reflect.ValueOf(value))
+		return result, nil
+	}
+
+	switch target.Kind() {
+	case reflect.String:
+		result.SetString(element.value)
+	case reflect.Bool:
+		value, err := parseSQLBool(element.value)
+		if err != nil {
+			return result, err
+		}
+		result.SetBool(value)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		value, err := strconv.ParseInt(element.value, 10, target.Bits())
+		if err != nil {
+			return result, err
+		}
+		result.SetInt(value)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		value, err := strconv.ParseUint(element.value, 10, target.Bits())
+		if err != nil {
+			return result, err
+		}
+		result.SetUint(value)
+	case reflect.Float32, reflect.Float64:
+		value, err := strconv.ParseFloat(element.value, target.Bits())
+		if err != nil {
+			return result, err
+		}
+		result.SetFloat(value)
+	case reflect.Interface:
+		result.Set(reflect.ValueOf(element.value))
+	case reflect.Pointer:
+		value, err := scanPostgresArrayElement(element, target.Elem())
+		if err != nil {
+			return result, err
+		}
+		pointer := reflect.New(target.Elem())
+		pointer.Elem().Set(value)
+		result.Set(pointer)
+	default:
+		if err := json.Unmarshal([]byte(element.value), result.Addr().Interface()); err != nil {
+			return result, err
 		}
 	}
 
-	*o = OfNullable(v)
+	return result, nil
+}
 
-	return nil
+func sqlText(src any) (string, bool) {
+	switch value := src.(type) {
+	case string:
+		return value, true
+	case []byte:
+		return string(value), true
+	default:
+		return "", false
+	}
+}
+
+func parseSQLBool(text string) (bool, error) {
+	switch strings.ToLower(strings.TrimSpace(text)) {
+	case "1", "t", "true", "y", "yes", "on":
+		return true, nil
+	case "0", "f", "false", "n", "no", "off":
+		return false, nil
+	default:
+		return strconv.ParseBool(text)
+	}
+}
+
+func scanTime(src any) (time.Time, error) {
+	if value, ok := src.(time.Time); ok {
+		return value, nil
+	}
+	text, ok := sqlText(src)
+	if !ok {
+		return time.Time{}, fmt.Errorf("incompatible type for Opt[%T]: %T", time.Time{}, src)
+	}
+	for _, layout := range []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02 15:04:05.999999999-07:00",
+		"2006-01-02 15:04:05.999999999",
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+		time.DateOnly,
+		time.DateTime,
+	} {
+		value, err := time.Parse(layout, text)
+		if err == nil {
+			return value, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("failed to parse sql time value %q", text)
+}
+
+func scanDuration(src any) (time.Duration, error) {
+	switch value := src.(type) {
+	case int64:
+		return time.Duration(value), nil
+	case float64:
+		return time.Duration(value), nil
+	}
+	text, ok := sqlText(src)
+	if !ok {
+		return 0, fmt.Errorf("incompatible type for Opt[%T]: %T", time.Duration(0), src)
+	}
+	if value, err := time.ParseDuration(text); err == nil {
+		return value, nil
+	}
+	value, err := strconv.ParseInt(text, 10, 64)
+	if err != nil {
+		return 0, parseError(src, "numeric", err)
+	}
+	return time.Duration(value), nil
+}
+
+func parseError(src any, kind string, err error) error {
+	if _, ok := src.([]byte); ok {
+		if kind == "float" {
+			return fmt.Errorf("failed to parse bytes/blob sql value to float opt: %s", err)
+		}
+		return fmt.Errorf("failed to parse bytes/blob sql value to %s opt: %s", kind, err)
+	}
+	if kind == "float" {
+		return fmt.Errorf("failed to parse varchar sql value to float opt: %s", err)
+	}
+	return fmt.Errorf("failed to parse varchar sql value to %s opt: %s", kind, err)
 }
