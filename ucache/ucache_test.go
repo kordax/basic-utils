@@ -473,13 +473,11 @@ func TestComparableMapCache_PutQuietly(t *testing.T) {
 	assert.Equal(t, *result, val)
 }
 
-func TestComparableMapCache_SetBufferedWait(t *testing.T) {
-	c := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+func TestBufferedComparableMapCache_SetWait(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
 	defer c.CloseBuffered()
 
-	ok := c.SetBuffered("key", 42)
-	require.True(t, ok)
-
+	c.Set("key", 42)
 	c.Wait()
 
 	value, exists := c.GetValue("key")
@@ -488,13 +486,11 @@ func TestComparableMapCache_SetBufferedWait(t *testing.T) {
 	assert.ElementsMatch(t, []string{"key"}, c.Changes())
 }
 
-func TestComparableMapCache_SetQuietlyBufferedWait(t *testing.T) {
-	c := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+func TestBufferedComparableMapCache_SetQuietlyWait(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
 	defer c.CloseBuffered()
 
-	ok := c.SetQuietlyBuffered("key", 42)
-	require.True(t, ok)
-
+	c.SetQuietly("key", 42)
 	c.Wait()
 
 	value, exists := c.GetValue("key")
@@ -503,11 +499,11 @@ func TestComparableMapCache_SetQuietlyBufferedWait(t *testing.T) {
 	assert.Empty(t, c.Changes())
 }
 
-func TestComparableMapCache_DropKeyRemovesBufferedValue(t *testing.T) {
-	c := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+func TestBufferedComparableMapCache_DropKeyRemovesBufferedValue(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
 	defer c.CloseBuffered()
 
-	c.SetBuffered("key", 42)
+	c.Set("key", 42)
 	c.DropKey("key")
 	c.Wait()
 
@@ -515,11 +511,11 @@ func TestComparableMapCache_DropKeyRemovesBufferedValue(t *testing.T) {
 	assert.False(t, exists)
 }
 
-func TestComparableMapCache_DropRemovesBufferedValues(t *testing.T) {
-	c := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+func TestBufferedComparableMapCache_DropRemovesBufferedValues(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
 	defer c.CloseBuffered()
 
-	c.SetBuffered("key", 42)
+	c.Set("key", 42)
 	c.Drop()
 	c.Wait()
 
@@ -527,22 +523,27 @@ func TestComparableMapCache_DropRemovesBufferedValues(t *testing.T) {
 	assert.Empty(t, c.Changes())
 }
 
-func TestComparableMapCache_CloseBufferedRejectsWrites(t *testing.T) {
-	c := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+func TestBufferedComparableMapCache_CloseRejectsWrites(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
 
-	require.True(t, c.SetBuffered("key", 42))
+	c.Set("key", 42)
 	c.CloseBuffered()
+	c.Set("next", 100)
+	c.SetQuietly("quiet", 100)
+	c.Wait()
 
-	assert.False(t, c.SetBuffered("next", 100))
-	assert.False(t, c.SetQuietlyBuffered("quiet", 100))
+	_, ok := c.GetValue("next")
+	assert.False(t, ok)
+	_, ok = c.GetValue("quiet")
+	assert.False(t, ok)
 }
 
-func TestComparableMapCache_SetQuietlyBufferedWithTTL(t *testing.T) {
+func TestBufferedComparableMapCache_SetQuietlyWithTTL(t *testing.T) {
 	ttl := 50 * time.Millisecond
-	c := ucache.NewInMemoryComparableMapCache[string, int](uopt.Of(ttl))
+	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Of(ttl))
 	defer c.CloseBuffered()
 
-	require.True(t, c.SetQuietlyBuffered("key", 42))
+	c.SetQuietly("key", 42)
 	c.Wait()
 
 	value, ok := c.GetValue("key")
@@ -553,6 +554,89 @@ func TestComparableMapCache_SetQuietlyBufferedWithTTL(t *testing.T) {
 
 	_, ok = c.GetValue("key")
 	assert.False(t, ok)
+}
+
+func TestBufferedComparableMapCache_ImplementsInterfaces(t *testing.T) {
+	var _ ucache.ComparableCache[string, int] = (*ucache.InMemoryComparableMapCache[string, int])(nil)
+	var _ ucache.ComparableCache[string, int] = (*ucache.InMemoryBufferedComparableMapCache[string, int])(nil)
+}
+
+func TestBufferedComparableMapCache_SetUsesBufferedAdmission(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: 1,
+	})
+	defer c.CloseBuffered()
+
+	c.Set("key1", 1)
+	c.Set("key2", 2)
+	c.Wait()
+
+	value, ok := c.GetValue("key1")
+	require.True(t, ok)
+	assert.Equal(t, 1, value)
+	_, ok = c.GetValue("key2")
+	assert.False(t, ok)
+	assert.ElementsMatch(t, []string{"key1"}, c.Changes())
+}
+
+func TestBufferedComparableMapCache_SetQuietlyUsesBufferedAdmission(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: 1,
+	})
+	defer c.CloseBuffered()
+
+	c.SetQuietly("key1", 1)
+	c.SetQuietly("key2", 2)
+	c.Wait()
+
+	value, ok := c.GetValue("key1")
+	require.True(t, ok)
+	assert.Equal(t, 1, value)
+	_, ok = c.GetValue("key2")
+	assert.False(t, ok)
+	assert.Empty(t, c.Changes())
+}
+
+func TestComparableMapCache_BufferedMaxKeysRejectsNewKeys(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: 2,
+	})
+	defer c.CloseBuffered()
+
+	c.SetQuietly("key1", 1)
+	c.SetQuietly("key2", 2)
+	c.SetQuietly("key3", 3)
+	c.SetQuietly("key1", 10)
+
+	c.Wait()
+
+	value, ok := c.GetValue("key1")
+	require.True(t, ok)
+	assert.Equal(t, 10, value)
+	_, ok = c.GetValue("key3")
+	assert.False(t, ok)
+	assert.Len(t, c.Keys(), 2)
+}
+
+func TestComparableMapCache_BufferedMaxKeysDropKeyFreesSlot(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: 1,
+	})
+	defer c.CloseBuffered()
+
+	c.SetQuietly("key1", 1)
+	c.Wait()
+
+	c.DropKey("key1")
+
+	c.SetQuietly("key2", 2)
+	c.Wait()
+
+	_, ok := c.GetValue("key1")
+	assert.False(t, ok)
+	value, ok := c.GetValue("key2")
+	require.True(t, ok)
+	assert.Equal(t, 2, value)
 }
 
 func TestComparableMapCache_TTLExpiry(t *testing.T) {

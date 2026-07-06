@@ -62,25 +62,29 @@ func BenchmarkUCacheComparableSetQuietly(b *testing.B) {
 	}
 }
 
-func BenchmarkUCacheComparableSetBuffered(b *testing.B) {
-	cache := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+func BenchmarkUCacheBufferedComparableSetBounded(b *testing.B) {
+	cache := ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: int64(numItems),
+	})
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cache.SetBuffered("key-"+strconv.Itoa(i), i)
+		cache.Set("key-"+strconv.Itoa(i), i)
 	}
 	cache.Wait()
 	cache.CloseBuffered()
 }
 
-func BenchmarkUCacheComparableSetQuietlyBuffered(b *testing.B) {
-	cache := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+func BenchmarkUCacheBufferedComparableSetQuietlyBounded(b *testing.B) {
+	cache := ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: int64(numItems),
+	})
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cache.SetQuietlyBuffered("key-"+strconv.Itoa(i), i)
+		cache.SetQuietly("key-"+strconv.Itoa(i), i)
 	}
 	cache.Wait()
 	cache.CloseBuffered()

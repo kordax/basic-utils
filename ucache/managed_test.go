@@ -232,6 +232,26 @@ func TestManagedCache_StopIdempotent(t *testing.T) {
 	managedCache.Stop()
 }
 
+func TestManagedCache_UsesBufferedComparableImplementation(t *testing.T) {
+	cache := ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: 1,
+	})
+	managedCache := ucache.NewManagedCache[string, int](cache, time.Hour)
+	defer managedCache.Stop()
+	defer cache.CloseBuffered()
+
+	managedCache.Set("key", 42)
+	managedCache.Set("rejected", 100)
+
+	cache.Wait()
+
+	value, ok := managedCache.GetValue("key")
+	require.True(t, ok)
+	assert.Equal(t, 42, value)
+	_, ok = managedCache.GetValue("rejected")
+	assert.False(t, ok)
+}
+
 func TestManagedCache_MemoryLeaks(t *testing.T) {
 	ttl := time.Nanosecond
 	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Of(ttl))

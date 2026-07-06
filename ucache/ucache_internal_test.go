@@ -26,10 +26,12 @@ func TestInMemoryComparableMapCacheOptions_CustomBufferedSettings(t *testing.T) 
 		TTL:               uopt.Of(time.Minute),
 		BufferedWorkers:   2,
 		BufferedQueueSize: 1024,
+		BufferedMaxKeys:   128,
 	})
 
 	assert.Equal(t, 2, c.bufferWorkers)
 	assert.Equal(t, 1024, c.bufferQueueSize)
+	assert.Equal(t, int64(128), c.bufferedMaxKeys)
 	assert.Equal(t, time.Minute, c.ttl())
 }
 
@@ -37,8 +39,10 @@ func TestInMemoryComparableMapCacheOptions_InvalidBufferedSettingsUseDefaults(t 
 	c := NewInMemoryComparableMapCacheWithOptions[string, int](InMemoryComparableMapCacheOptions{
 		BufferedWorkers:   -1,
 		BufferedQueueSize: 0,
+		BufferedMaxKeys:   -1,
 	})
 
 	assert.Equal(t, defaultComparableMapCacheBufferedWorkers, c.bufferWorkers)
 	assert.Equal(t, defaultComparableMapCacheBufferedQueueSize, c.bufferQueueSize)
+	assert.Zero(t, c.bufferedMaxKeys)
 }
