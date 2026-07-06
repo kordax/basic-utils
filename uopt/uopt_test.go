@@ -149,6 +149,39 @@ func TestOfNumeric(t *testing.T) {
 	}
 }
 
+// TestOfDuration tests the OfDuration method.
+func TestOfDuration(t *testing.T) {
+	o := uopt.OfDuration(time.Second)
+	if !o.Present() {
+		t.Error("Expected OfDuration to create an Opt with a value")
+	}
+	if *o.Get() != time.Second {
+		assert.Fail(t, fmt.Sprintf("Expected OfDuration to create an Opt with value %v, but got %v", time.Second, *o.Get()))
+	}
+
+	o = uopt.OfDuration(0)
+	if o.Present() {
+		t.Error("Expected OfDuration to create an Opt without a value")
+	}
+}
+
+// TestOfTime tests the OfTime method.
+func TestOfTime(t *testing.T) {
+	now := time.Now()
+	o := uopt.OfTime(now)
+	if !o.Present() {
+		t.Error("Expected OfTime to create an Opt with a value")
+	}
+	if !o.Get().Equal(now) {
+		assert.Fail(t, fmt.Sprintf("Expected OfTime to create an Opt with value %v, but got %v", now, *o.Get()))
+	}
+
+	o = uopt.OfTime(time.Time{})
+	if o.Present() {
+		t.Error("Expected OfTime to create an Opt without a value")
+	}
+}
+
 // TestOfCond tests the OfCond method.
 func TestOfCond(t *testing.T) {
 	// Test with a value that matches the condition

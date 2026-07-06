@@ -133,6 +133,28 @@ func OfNumeric[T basicutils.Numeric](v T) Opt[T] {
 	}
 }
 
+// OfDuration creates an Opt containing a time.Duration, or a null Opt if the duration is 0.
+func OfDuration(v time.Duration) Opt[time.Duration] {
+	if v == 0 {
+		return Null[time.Duration]()
+	}
+
+	return Opt[time.Duration]{
+		v: &v,
+	}
+}
+
+// OfTime creates an Opt containing a time.Time, or a null Opt if the time is zero.
+func OfTime(v time.Time) Opt[time.Time] {
+	if v.IsZero() {
+		return Null[time.Time]()
+	}
+
+	return Opt[time.Time]{
+		v: &v,
+	}
+}
+
 // OfCond creates an Opt containing a value if a given condition is met.
 func OfCond[T any](v T, cond func(v T) bool) Opt[T] {
 	if cond(v) {
