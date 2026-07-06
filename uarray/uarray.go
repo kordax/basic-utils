@@ -622,7 +622,7 @@ func Split[T any](slice []T, chunkSize int) [][]T {
 	return chunks
 }
 
-// AsString converts any supported numeric value to a string and joins them with the specified delimiter.
+// AsString converts any supported stringable value to a string and joins them with the specified delimiter.
 func AsString[T uconst.Stringable](delimiter string, values ...T) string {
 	var parts []string
 	for _, v := range values {
@@ -638,6 +638,8 @@ func AsString[T uconst.Stringable](delimiter string, values ...T) string {
 			s = ucast.Int32ToString(val)
 		case int64:
 			s = ucast.Int64ToString(val)
+		case uint:
+			s = ucast.UintToString(val)
 		case uint8:
 			s = ucast.Uint8ToString(val)
 		case uint16:
@@ -652,6 +654,8 @@ func AsString[T uconst.Stringable](delimiter string, values ...T) string {
 			s = ucast.Float64ToString(val)
 		case bool:
 			s = ucast.BoolToString(val)
+		case string:
+			s = val
 		}
 		parts = append(parts, s)
 	}

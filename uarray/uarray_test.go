@@ -1063,6 +1063,12 @@ func TestAsString(t *testing.T) {
 			expected:  "10000,20000,30000",
 		},
 		{
+			name:      "Multiple uints",
+			delimiter: ",",
+			input:     []uint{1, 2, 3},
+			expected:  "1,2,3",
+		},
+		{
 			name:      "Multiple uint8s",
 			delimiter: ",",
 			input:     []uint8{255, 128, 64},
@@ -1105,6 +1111,12 @@ func TestAsString(t *testing.T) {
 			expected:  "true,false,true",
 		},
 		{
+			name:      "Multiple strings",
+			delimiter: "/",
+			input:     []string{"api", "v1", "users"},
+			expected:  "api/v1/users",
+		},
+		{
 			name:      "Mixed types with different delimiters",
 			delimiter: "-",
 			input:     []int{1, 2, 3},
@@ -1127,6 +1139,8 @@ func TestAsString(t *testing.T) {
 				result = uarray.AsString(tt.delimiter, input...)
 			case []int64:
 				result = uarray.AsString(tt.delimiter, input...)
+			case []uint:
+				result = uarray.AsString(tt.delimiter, input...)
 			case []uint8:
 				result = uarray.AsString(tt.delimiter, input...)
 			case []uint16:
@@ -1140,6 +1154,8 @@ func TestAsString(t *testing.T) {
 			case []float64:
 				result = uarray.AsString(tt.delimiter, input...)
 			case []bool:
+				result = uarray.AsString(tt.delimiter, input...)
+			case []string:
 				result = uarray.AsString(tt.delimiter, input...)
 			default:
 				t.Fatalf("Unsupported input type: %T", tt.input)
