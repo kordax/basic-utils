@@ -1,13 +1,14 @@
 # Queues Library
 
-This library provides a rich set of data structures for queuing in Go. It includes implementations for both a FIFO (
-First-In-First-Out) queue and a priority queue.
+This library provides generic queue data structures for Go. It includes FIFO, lock-free concurrent FIFO, and priority
+queue implementations.
 
 ## Features
 
-- Generic Implementation: Both the FIFO and priority queues are implemented using Go's new generics feature, allowing
+- Generic Implementation: FIFO and priority queues are implemented using Go generics, allowing
   you to queue items of any type.
-- Thread-Safety: Built with concurrency in mind, you can safely use the queues across multiple goroutines.
+- Thread-Safety: Queue operations are safe across multiple goroutines. `ConcurrentFIFOQueueImpl` provides a lock-free
+  FIFO implementation for high-concurrency FIFO workloads.
 - Timeouts for Polling: The `Poll` function allows consumers to wait for items with a timeout.
 
 ## Structures
@@ -19,6 +20,17 @@ A standard FIFO (First-In-First-Out) queue implementation.
 #### Methods
 
 - `NewFIFOQueue`: Initializes a new FIFO queue with optional initial elements.
+- `Queue`: Enqueues an item to the back of the queue.
+- `Fetch`: Dequeues an item from the front of the queue without waiting.
+- `Poll`: Dequeues an item from the front of the queue or waits for a specified timeout.
+
+### ConcurrentFIFOQueueImpl
+
+A lock-free FIFO queue implementation based on the Michael-Scott queue algorithm.
+
+#### Methods
+
+- `NewConcurrentFIFOQueueImpl`: Initializes a new concurrent FIFO queue.
 - `Queue`: Enqueues an item to the back of the queue.
 - `Fetch`: Dequeues an item from the front of the queue without waiting.
 - `Poll`: Dequeues an item from the front of the queue or waits for a specified timeout.
@@ -42,29 +54,36 @@ value handling.
 
 ## Usage
 
-#### First, import the `queue` package in your Go code:
+#### FIFO queue:
 
 ```go
 package myprogram
 
-import "git.casinomodule.org/casino27/basic-utils/v2/queue"
+import (
+	"time"
 
-// To use the FIFO queue:
-q := queue.NewFIFOQueue[int](1, 2, 3)
+	"git.casinomodule.org/casino27/basic-utils/v2/uqueue"
+)
+
+q := uqueue.NewFIFOQueue[int](1, 2, 3)
 q.Queue(4)
 item := q.Poll(5 * time.Second)
 
 ```
 
-#### For the priority queue:
+#### Priority queue:
 
 ```go
 package myprogram
 
-import "git.casinomodule.org/casino27/basic-utils/v2/queue"
+import (
+	"time"
 
-pq := queue.NewPrioritizedPriorityQueueint
-pq.Queue(1, 3) // The number 3 here is the priority
+	"git.casinomodule.org/casino27/basic-utils/v2/uqueue"
+)
+
+pq := uqueue.NewPriorityQueue[int]()
+pq.Queue(1, 3) // The number 3 here is the priority.
 pq.Queue(2, 1)
 item := pq.Poll(5 * time.Second)
 ```

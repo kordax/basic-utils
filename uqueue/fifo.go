@@ -7,6 +7,8 @@
 package uqueue
 
 import (
+	"slices"
+	"sync"
 	"time"
 
 	"git.casinomodule.org/casino27/basic-utils/v2/uopt"
@@ -19,67 +21,76 @@ import (
 // Fields:
 // - queue: Slice holding the actual elements. It grows dynamically as new elements are added.
 //
-//   - ch: A communication channel utilized in the Poll() method. The channel is used to help
-//     in fetching elements with a specified timeout. When a new item is queued and the channel
-//     is not full, the new item's pointer is sent into the channel.
-//
-// Note: This implementation isn't thread-safe. If concurrent access is required please use ConcurrentFIFOQueueImpl.
+//   - ch: A communication channel utilized in the Poll() method. The channel is used to notify
+//     waiting pollers when queue state changes.
 type FIFOQueueImpl[T any] struct {
+	mu    sync.Mutex
 	queue []T
-	ch    chan *T
+	ch    chan struct{}
 }
 
 func NewFIFOQueue[T any](elements ...T) *FIFOQueueImpl[T] {
 	return &FIFOQueueImpl[T]{
-		queue: elements,
-		ch:    make(chan *T),
+		queue: slices.Clone(elements),
+		ch:    make(chan struct{}, 1),
 	}
 }
 
-// Queue queues an item. This operation is not thread-safe, and a synchronization wrapper should be provided in case
-// consistent results are required in an async environment.
+// Queue queues an item.
 func (q *FIFOQueueImpl[T]) Queue(t T) {
+	q.mu.Lock()
 	q.queue = append(q.queue, t)
+	q.mu.Unlock()
 
-	select {
-	case q.ch <- &t:
-	default:
-	}
+	q.notify()
 }
 
 func (q *FIFOQueueImpl[T]) Fetch() uopt.Opt[T] {
-	if len(q.queue) > 0 {
-		first := q.queue[0]
-		q.queue = q.queue[1:]
+	q.mu.Lock()
+	defer q.mu.Unlock()
 
-		return uopt.Of(first)
-	} else {
+	if len(q.queue) == 0 {
 		return uopt.Null[T]()
 	}
+
+	first := q.queue[0]
+	var zero T
+	q.queue[0] = zero
+	q.queue = q.queue[1:]
+	if len(q.queue) > 0 {
+		defer q.notify()
+	}
+
+	return uopt.Of(first)
 }
 
 func (q *FIFOQueueImpl[T]) Poll(timeout time.Duration) uopt.Opt[T] {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
-	for len(q.queue) == 0 {
+	for {
+		if result := q.Fetch(); result.Present() {
+			return result
+		}
+
 		select {
 		case <-timer.C:
 			return uopt.Null[T]()
 		case <-q.ch:
-			return q.Fetch()
 		}
 	}
-
-	var result *T
-	if len(q.queue) > 0 {
-		result = &q.queue[0]
-		q.queue = q.queue[1:]
-	}
-
-	return uopt.OfNullable(result)
 }
 
 func (q *FIFOQueueImpl[T]) Len() uint64 {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
 	return uint64(len(q.queue))
+}
+
+func (q *FIFOQueueImpl[T]) notify() {
+	select {
+	case q.ch <- struct{}{}:
+	default:
+	}
 }

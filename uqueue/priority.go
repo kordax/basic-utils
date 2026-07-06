@@ -8,6 +8,7 @@ package uqueue
 
 import (
 	"container/heap"
+	"sync"
 	"time"
 
 	"git.casinomodule.org/casino27/basic-utils/v2/uopt"
@@ -37,16 +38,12 @@ type container[T any] struct {
 // Fields:
 // - queue: The underlying heap structure (prioritizedQueue) that manages the prioritized items.
 //
-//   - ch: A communication channel utilized in the Poll() method. The channel is used to assist
-//     in fetching elements with a specified timeout. When a new item is queued and the channel
-//     is not full, the new item's pointer is sent into the channel.
-//
-// Note: This implementation isn't inherently thread-safe. If concurrent access is anticipated,
-//
-//	external synchronization mechanisms should be used, or you can use ConcurrentFIFOQueueImpl.
+//   - ch: A communication channel utilized in the Poll() method. The channel is used to notify
+//     waiting pollers when queue state changes.
 type PriorityQueueImpl[T any] struct {
+	mu    sync.Mutex
 	queue *prioritizedQueue[T]
-	ch    chan *T
+	ch    chan struct{}
 }
 
 func NewPriorityQueue[T any]() *PriorityQueueImpl[T] {
@@ -54,24 +51,26 @@ func NewPriorityQueue[T any]() *PriorityQueueImpl[T] {
 	heap.Init(pq)
 	return &PriorityQueueImpl[T]{
 		queue: pq,
-		ch:    make(chan *T),
+		ch:    make(chan struct{}, 1),
 	}
 }
 
 func (q *PriorityQueueImpl[T]) Queue(t T, priority int) {
+	q.mu.Lock()
 	heap.Push(q.queue, &container[T]{
 		t:        &t,
 		priority: priority,
 		index:    q.queue.Len(),
 	})
+	q.mu.Unlock()
 
-	select {
-	case q.ch <- &t:
-	default:
-	}
+	q.notify()
 }
 
 func (q *PriorityQueueImpl[T]) Fetch() uopt.Opt[T] {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
 	if q.queue.Len() == 0 {
 		return uopt.Null[T]()
 	}
@@ -79,30 +78,43 @@ func (q *PriorityQueueImpl[T]) Fetch() uopt.Opt[T] {
 	r := heap.Pop(q.queue)
 	if r == nil {
 		return uopt.Null[T]()
-	} else {
-		return uopt.OfNullable[T](r.(*container[T]).t)
 	}
+	if q.queue.Len() > 0 {
+		defer q.notify()
+	}
+
+	return uopt.OfNullable[T](r.(*container[T]).t)
 }
 
 func (q *PriorityQueueImpl[T]) Poll(timeout time.Duration) uopt.Opt[T] {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
-	r := q.Fetch()
-	for !r.Present() {
+	for {
+		if result := q.Fetch(); result.Present() {
+			return result
+		}
+
 		select {
 		case <-timer.C:
 			return uopt.Null[T]()
 		case <-q.ch:
-			return q.Fetch()
 		}
 	}
-
-	return r
 }
 
 func (q *PriorityQueueImpl[T]) Len() uint64 {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
 	return uint64(q.queue.Len())
+}
+
+func (q *PriorityQueueImpl[T]) notify() {
+	select {
+	case q.ch <- struct{}{}:
+	default:
+	}
 }
 
 type prioritizedQueue[T any] struct {

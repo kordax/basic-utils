@@ -23,7 +23,7 @@ type node[T any] struct {
 type ConcurrentFIFOQueueImpl[T any] struct {
 	head unsafe.Pointer
 	tail unsafe.Pointer
-	ch   chan *T
+	ch   chan struct{}
 	l    atomic.Uint64
 }
 
@@ -32,7 +32,7 @@ func NewConcurrentFIFOQueueImpl[T any]() *ConcurrentFIFOQueueImpl[T] {
 	return &ConcurrentFIFOQueueImpl[T]{
 		head: unsafe.Pointer(n),
 		tail: unsafe.Pointer(n),
-		ch:   make(chan *T),
+		ch:   make(chan struct{}, 1),
 	}
 }
 
@@ -56,10 +56,7 @@ func (q *ConcurrentFIFOQueueImpl[T]) Queue(t T) {
 
 	q.l.Add(1)
 
-	select {
-	case q.ch <- &t:
-	default:
-	}
+	q.notify()
 }
 
 // Fetch fetches item in the finite time.
@@ -77,7 +74,9 @@ func (q *ConcurrentFIFOQueueImpl[T]) Fetch() uopt.Opt[T] {
 			} else {
 				value := next.value
 				if cas[T](&q.head, head, next) {
-					q.l.Add(^uint64(0))
+					if q.l.Add(^uint64(0)) > 0 {
+						q.notify()
+					}
 					return uopt.Of(value)
 				}
 			}
@@ -90,17 +89,17 @@ func (q *ConcurrentFIFOQueueImpl[T]) Poll(timeout time.Duration) uopt.Opt[T] {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
-	r := q.Fetch()
-	for !r.Present() {
+	for {
+		if result := q.Fetch(); result.Present() {
+			return result
+		}
+
 		select {
 		case <-timer.C:
 			return uopt.Null[T]()
 		case <-q.ch:
-			return q.Fetch()
 		}
 	}
-
-	return r
 }
 
 func (q *ConcurrentFIFOQueueImpl[T]) Len() uint64 {
@@ -113,4 +112,11 @@ func load[T any](ptr *unsafe.Pointer) *node[T] {
 
 func cas[T any](ptr *unsafe.Pointer, old, new *node[T]) bool {
 	return atomic.CompareAndSwapPointer(ptr, unsafe.Pointer(old), unsafe.Pointer(new))
+}
+
+func (q *ConcurrentFIFOQueueImpl[T]) notify() {
+	select {
+	case q.ch <- struct{}{}:
+	default:
+	}
 }

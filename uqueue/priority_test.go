@@ -7,10 +7,12 @@
 package uqueue
 
 import (
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPriorityQueueBasic(t *testing.T) {
@@ -113,4 +115,56 @@ func TestPriorityQueueImpl_Len(t *testing.T) {
 
 	assert.EqualValues(t, 0, q.Len())
 	assert.False(t, q.Fetch().Present())
+}
+
+func TestPriorityQueuePollWaitsForQueuedItem(t *testing.T) {
+	q := NewPriorityQueue[int]()
+	result := make(chan int, 1)
+
+	go func() {
+		result <- q.Poll(time.Second).OrElse(-1)
+	}()
+
+	time.Sleep(10 * time.Millisecond)
+	q.Queue(42, 10)
+
+	require.Eventually(t, func() bool {
+		return len(result) == 1
+	}, time.Second, time.Millisecond)
+	assert.Equal(t, 42, <-result)
+	assert.EqualValues(t, 0, q.Len())
+}
+
+func TestPriorityQueueConcurrentQueueAndPoll(t *testing.T) {
+	q := NewPriorityQueue[int]()
+	const n = 1000
+	results := make(chan int, n)
+	var wg sync.WaitGroup
+
+	for range n {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if v := q.Poll(time.Second); v.Present() {
+				results <- v.OrElse(-1)
+			}
+		}()
+	}
+
+	for i := range n {
+		q.Queue(i, i)
+	}
+
+	wg.Wait()
+	close(results)
+
+	seen := make(map[int]struct{}, n)
+	for v := range results {
+		if _, exists := seen[v]; exists {
+			t.Fatalf("duplicate value fetched: %d", v)
+		}
+		seen[v] = struct{}{}
+	}
+	require.Len(t, seen, n)
+	assert.EqualValues(t, 0, q.Len())
 }
