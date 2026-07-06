@@ -9,7 +9,7 @@ tasks:
     desc: "Testing all submodules"
     cmds:
       - echo "Testing all submodules..."
-      - go test ./...
+      - go test -race ./...
     sources:
       - "**/*.go"
 
@@ -17,7 +17,7 @@ tasks:
     desc: "Testing all submodules with integration tests"
     cmds:
       - echo "Testing all submodules..."
-      - go test ./... -tags=integration_test
+      - go test -race ./... -tags=integration_test
     sources:
       - "**/*.go"
       - "integration/docker-compose.yaml"
