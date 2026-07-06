@@ -602,3 +602,17 @@ func TestHashMapMultiCacheHighCollisionProbability(t *testing.T) {
 		assert.Contains(t, values, ucache.NewInt64Value(int64(i))) // Check if the expected value is present in the retrieved values
 	}
 }
+
+func TestManagedMultiCache_ForceCleanupPutQuietly(t *testing.T) {
+	cache := ucache.NewDefaultHashMapMultiCache[ucache.IntCompositeKey, ucache.Int64Value](uopt.Of(time.Nanosecond))
+	managed := ucache.NewManagedMultiCache[ucache.IntCompositeKey, ucache.Int64Value](cache, time.Hour)
+	defer managed.Stop()
+
+	key := ucache.NewIntCompositeKey(1, 2, 3)
+	managed.PutQuietly(key, ucache.NewInt64Value(1))
+
+	time.Sleep(time.Nanosecond)
+	managed.ForceCleanup()
+
+	assert.Empty(t, managed.Get(key))
+}

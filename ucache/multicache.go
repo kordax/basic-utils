@@ -53,6 +53,9 @@ type MultiCache[K CompositeKey, T any] interface {
 	// Cache changes will be updated only on modifying operations, meaning that in-fact, changes contain all the present keys.
 	Changes() []K
 
+	// Keys returns a snapshot of all currently stored keys.
+	Keys() []K
+
 	// Drop removes all entries from the cache.
 	// This is a complete reset of the cache, useful when you want to clear the cache and start fresh.
 	Drop()
@@ -111,11 +114,21 @@ func NewInMemoryTreeMultiCache[K CompositeKey, T uconst.Comparable](ttl uopt.Opt
 		changes:         make([]K, 0),
 		lastUpdatedKeys: make(map[string]time.Time),
 	}
-	ttl.IfPresent(func(t time.Duration) {
-		c.ttl = &t
-	})
+	c.SetTTL(ttl)
 
 	return c
+}
+
+func (c *InMemoryTreeMultiCache[K, T]) SetTTL(ttl uopt.Opt[time.Duration]) {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+
+	if ttl.Present() {
+		t := ttl.OrElse(0)
+		c.ttl = &t
+		return
+	}
+	c.ttl = nil
 }
 
 // Put inserts a new value(s) into the cache associated with the given key.
@@ -175,6 +188,21 @@ func (c *InMemoryTreeMultiCache[K, T]) Changes() []K {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	return c.changes
+}
+
+func (c *InMemoryTreeMultiCache[K, T]) Keys() []K {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+
+	pairs := c.getNodePairsFlat(c.values, make(map[int64][]uarray.Pair[K, T]))
+	resultByKey := make(map[string]K, len(pairs))
+	for _, bucket := range pairs {
+		for _, pair := range bucket {
+			resultByKey[keysAsString(pair.Left.Keys())] = pair.Left
+		}
+	}
+
+	return umap.Values(resultByKey)
 }
 
 // Drop removes all entries from the cache.
@@ -413,11 +441,21 @@ func NewInMemoryHashMapMultiCache[K CompositeKey, T any, H comparable](toHash fu
 		lastUpdatedKeys: make(map[string]keyContainer[K]),
 		toHash:          toHash,
 	}
-	ttl.IfPresent(func(t time.Duration) {
-		c.ttl = &t
-	})
+	c.SetTTL(ttl)
 
 	return c
+}
+
+func (c *InMemoryHashMapMultiCache[K, T, H]) SetTTL(ttl uopt.Opt[time.Duration]) {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+
+	if ttl.Present() {
+		t := ttl.OrElse(0)
+		c.ttl = &t
+		return
+	}
+	c.ttl = nil
 }
 
 // NewDefaultHashMapMultiCache creates a new instance of the InMemoryHashMapMultiCache using SHA256 as the hashing algorithm.
@@ -514,6 +552,18 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) Changes() []K {
 	return umap.Values(c.changes)
 }
 
+func (c *InMemoryHashMapMultiCache[K, T, H]) Keys() []K {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+
+	result := make([]K, 0, len(c.lastUpdatedKeys))
+	for _, key := range c.lastUpdatedKeys {
+		result = append(result, key.key)
+	}
+
+	return result
+}
+
 // Drop completely clears the cache, removing all entries. The operation is thread-safe.
 func (c *InMemoryHashMapMultiCache[K, T, H]) Drop() {
 	c.vMtx.Lock()
@@ -551,6 +601,29 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) Outdated(key uopt.Opt[K]) bool {
 			return time.Since(c.lastUpdated) > *c.ttl
 		}
 	}
+}
+
+func (c *InMemoryHashMapMultiCache[K, T, H]) RemoveOutdated() int {
+	c.vMtx.Lock()
+	defer c.vMtx.Unlock()
+
+	if c.ttl == nil {
+		return 0
+	}
+
+	var expired []K
+	for _, lu := range c.lastUpdatedKeys {
+		if time.Since(lu.updatedAt) > *c.ttl {
+			expired = append(expired, lu.key)
+		}
+	}
+	for _, key := range expired {
+		hash := c.dropKey(key.Keys())
+		delete(c.lastUpdatedKeys, keysAsString(key.Keys()))
+		delete(c.changes, hash)
+	}
+
+	return len(expired)
 }
 
 func (c *InMemoryHashMapMultiCache[K, T, H]) dropAll() {

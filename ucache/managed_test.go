@@ -193,6 +193,45 @@ func TestManagedCache_ForceCleanup(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestManagedCache_ForceCleanupSetQuietly(t *testing.T) {
+	ttl := time.Nanosecond
+	cache := ucache.NewInMemoryComparableMapCache[string, int](uopt.Of(ttl))
+	managedCache := ucache.NewManagedCache(cache, time.Hour)
+	defer managedCache.Stop()
+
+	managedCache.SetQuietly("quiet", 1)
+
+	time.Sleep(ttl)
+	managedCache.ForceCleanup()
+
+	_, ok := managedCache.Get("quiet")
+	assert.False(t, ok)
+}
+
+func TestManagedCache_WithOptionsAppliesTTL(t *testing.T) {
+	cache := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+	managedCache := ucache.NewManagedCacheWithOptions[string, int](cache, ucache.ManagedCacheOptions{
+		CleanupInterval: time.Hour,
+		TTL:             uopt.Of(time.Nanosecond),
+	})
+	defer managedCache.Stop()
+
+	managedCache.Set("key", 1)
+	time.Sleep(time.Nanosecond)
+	managedCache.ForceCleanup()
+
+	_, ok := managedCache.Get("key")
+	assert.False(t, ok)
+}
+
+func TestManagedCache_StopIdempotent(t *testing.T) {
+	cache := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+	managedCache := ucache.NewManagedCache(cache, time.Hour)
+
+	managedCache.Stop()
+	managedCache.Stop()
+}
+
 func TestManagedCache_MemoryLeaks(t *testing.T) {
 	ttl := time.Nanosecond
 	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Of(ttl))
