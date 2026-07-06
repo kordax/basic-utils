@@ -4,7 +4,8 @@ project: {{ $projectName }}
 configVersion: 1
 ---
 
-image: golangci-lint
+image: builder
+final: false
 from: golang:1.26.4-alpine
 {{- if eq (env "NOCACHE") "true" }}
 fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
@@ -15,12 +16,14 @@ imageSpec:
 shell:
   beforeInstall:
     - apk --no-cache add git openssh-client
-    - wget -O- -nv https://golangci-lint.run/install.sh | sh -s v2.11.4
     - mkdir -p /root/.ssh && echo -e 'Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile=/dev/null' > /root/.ssh/config
   install:
     - cd /app
     - go env -w GOPRIVATE=git.casinomodule.org
-    - go mod download -x
+    - go mod download
+  beforeSetup:
+    - cd /app
+    - go test -run '^$' ./...
 git:
   - add: /
     to: /app
@@ -28,7 +31,63 @@ git:
       install:
         - "go.mod"
         - "go.sum"
-mount:
-  - from: build_dir
-    to: /go/pkg/mod
+      beforeSetup:
+        - "**/*.go"
+---
+
+image: test
+fromImage: builder
+{{- if eq (env "NOCACHE") "true" }}
+fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
+{{- end }}
+---
+
+image: lint
+from: golang:1.26.4-alpine
+{{- if eq (env "NOCACHE") "true" }}
+fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
+{{- end }}
+imageSpec:
+  config:
+    workingDir: /app
+shell:
+  beforeInstall:
+    - apk --no-cache add curl git openssh-client
+    - go env -w GOPRIVATE=git.casinomodule.org
+    - curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.12.2
+    - mkdir -p /root/.ssh && echo -e 'Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile=/dev/null' > /root/.ssh/config
+  beforeSetup:
+    - test -f /app/go.mod
+git:
+  - add: /
+    to: /app
+    stageDependencies:
+      beforeSetup:
+        - "**/*"
+---
+
+image: security
+from: golang:1.26.4-alpine
+{{- if eq (env "NOCACHE") "true" }}
+fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
+{{- end }}
+imageSpec:
+  config:
+    workingDir: /app
+shell:
+  beforeInstall:
+    - apk --no-cache add git openssh-client
+    - go env -w GOPRIVATE=git.casinomodule.org
+    - go install golang.org/x/vuln/cmd/govulncheck@v1.5.0
+    - go install github.com/securego/gosec/v2/cmd/gosec@v2.27.1
+    - go install github.com/zricethezav/gitleaks/v8@v8.30.1
+    - mkdir -p /root/.ssh && echo -e 'Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile=/dev/null' > /root/.ssh/config
+  beforeSetup:
+    - test -f /app/go.mod
+git:
+  - add: /
+    to: /app
+    stageDependencies:
+      beforeSetup:
+        - "**/*"
 ---

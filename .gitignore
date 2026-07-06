@@ -1,17 +1,24 @@
-# Binaries for programs and plugins
-*.exe
-*.so
-
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# GoLand-specific (also applicable for other JetBrains IDEs)
-.idea/
-
-# GoLand run/debug configurations
-*.iml
-
-keys/
+/.idea/
+/target/
+/legacy.yaml
+/ci-deploy
+/.sonar`
+/.scannerwork
+.vs/
+.DS_Store
+tmp/
+w3-presets-data/
+*.xlsx
+*.qtpl.go
+.idea
+__pycache__/
+*.ckpt
+*.pth
+venv
+electron_cache/
+target/
+.werf_secret_key
+.helm/Chart.lock
+.helm/charts
+/.env
+.task/

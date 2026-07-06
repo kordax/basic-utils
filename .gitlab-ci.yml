@@ -16,7 +16,7 @@ variables:
   - type trdl && source $(trdl use werf 2 stable)
   - type werf && source $(werf ci-env gitlab --as-file --verbose)
 
-Lint:
+Build:
   stage: build
   before_script:
     - eval $(ssh-agent -s)
@@ -24,8 +24,25 @@ Lint:
   script:
     - set -x
     - *werf_init
+    - werf build builder || { exit_code=$?; ssh-agent -k; exit $exit_code; }
+    - ssh-agent -k
+  except: [ schedules, triggers ]
+  tags: [ werf-runner ]
+
+Lint:
+  stage: test
+  variables:
+    GOGC: "20"
+    GOMEMLIMIT: "500MiB"
+    GOFLAGS: "-p=1"
+  before_script:
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$SSH_PRIVATE_KEY")
+  script:
+    - set -x
+    - *werf_init
     - export WERF_DOCKER_OPTIONS="-v ${SSH_AUTH_SOCK}:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent"
-    - werf run -- golangci-lint -v run ./... || { exit_code=$?; ssh-agent -k; exit $exit_code; }
+    - werf run lint -- sh -c 'go mod download && golangci-lint -v run ./...' || { exit_code=$?; ssh-agent -k; exit $exit_code; }
     - ssh-agent -k
   except: [ schedules, triggers ]
   tags: [ werf-runner ]
@@ -39,7 +56,25 @@ Test:
     - set -x
     - *werf_init
     - export WERF_DOCKER_OPTIONS="-v ${SSH_AUTH_SOCK}:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent"
-    - werf run -- go test ./... || { exit_code=$?; ssh-agent -k; exit $exit_code; }
+    - werf run test -- go test ./... || { exit_code=$?; ssh-agent -k; exit $exit_code; }
+    - ssh-agent -k
+  except: [ schedules, triggers ]
+  tags: [ werf-runner ]
+
+Security Check:
+  stage: test
+  variables:
+    GOGC: "20"
+    GOMEMLIMIT: "500MiB"
+    GOFLAGS: "-p=1"
+  before_script:
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$SSH_PRIVATE_KEY")
+  script:
+    - set -x
+    - *werf_init
+    - export WERF_DOCKER_OPTIONS="-v ${SSH_AUTH_SOCK}:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent"
+    - werf run security -- sh -c 'go mod download && go mod verify && govulncheck ./... && gosec -exclude=G103,G115,G304 ./... && gitleaks detect --source=. --no-git --redact --report-format=sarif --verbose' || { exit_code=$?; ssh-agent -k; exit $exit_code; }
     - ssh-agent -k
   except: [ schedules, triggers ]
   tags: [ werf-runner ]
