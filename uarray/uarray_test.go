@@ -731,6 +731,16 @@ func TestCopyWithoutIndexes(t *testing.T) {
 	}
 }
 
+func TestCopyWithoutIndexesDoesNotMutateSource(t *testing.T) {
+	src := []int{1, 2, 3, 4, 5}
+	original := append([]int(nil), src...)
+
+	cpy := uarray.CopyWithoutIndexes(src, []int{1, -1, 10, 3})
+
+	require.Equal(t, []int{1, 3, 5}, cpy)
+	require.Equal(t, original, src)
+}
+
 func TestCollectAsMap(t *testing.T) {
 	values := []string{"apple", "banana"}
 	result := uarray.CollectAsMap(values, func(v string) int {
@@ -758,6 +768,17 @@ func TestEqualValues(t *testing.T) {
 	if !uarray.EqualValues(left, right) {
 		t.Error("EqualValues function failed")
 	}
+}
+
+func TestEqualValuesDoesNotMutateInputs(t *testing.T) {
+	left := []int{3, 1, 2}
+	right := []int{2, 3, 1}
+	leftOriginal := append([]int(nil), left...)
+	rightOriginal := append([]int(nil), right...)
+
+	require.True(t, uarray.EqualValues(left, right))
+	require.Equal(t, leftOriginal, left)
+	require.Equal(t, rightOriginal, right)
 }
 
 func TestMerge(t *testing.T) {

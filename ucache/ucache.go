@@ -169,7 +169,7 @@ func (c *InMemoryHashMapCache[K, T]) Drop() {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 	c.dropAll()
-	c.changes = nil
+	c.changes = make(map[int64]K)
 	c.lastUpdatedKeys = make(map[int64]keyContainer[K])
 }
 

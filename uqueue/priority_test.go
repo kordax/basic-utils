@@ -50,6 +50,21 @@ func TestPriorityQueuePriority(t *testing.T) {
 	}
 }
 
+func TestPriorityQueueMaintainsPriorityAfterFetch(t *testing.T) {
+	pq := NewPriorityQueue[int]()
+
+	pq.Queue(10, 1)
+	pq.Queue(30, 3)
+	pq.Queue(20, 2)
+
+	for _, expected := range []int{30, 20, 10} {
+		val := pq.Fetch()
+		if !val.Present() || val.OrElse(-1) != expected {
+			t.Fatalf("Expected %d, got %v", expected, val.OrElse(-1))
+		}
+	}
+}
+
 func TestPriorityQueue10k(t *testing.T) {
 	pq := NewPriorityQueue[int]()
 	const n = 10000

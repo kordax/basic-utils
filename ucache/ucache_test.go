@@ -207,6 +207,20 @@ func TestHashMapCache_DropAll(t *testing.T) {
 	assert.False(t, ok2, "key2 should be dropped")
 }
 
+func TestHashMapCache_SetAfterDrop(t *testing.T) {
+	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	key := ucache.StringKey("key")
+
+	c.Set(key, 1)
+	c.Drop()
+	c.Set(key, 2)
+
+	value, ok := c.Get(key)
+	require.True(t, ok)
+	require.Equal(t, 2, *value)
+	require.ElementsMatch(t, []ucache.StringKey{key}, c.Changes())
+}
+
 func TestInMemoryHashMapCache(t *testing.T) {
 	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Null[time.Duration]())
 

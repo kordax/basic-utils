@@ -914,6 +914,12 @@ func TestOpt_Scan(t *testing.T) {
 		t.Errorf("Scan method failed for bool type with string input: %v", err)
 	}
 
+	optStringInt := uopt.Opt[string]{}
+	err = optStringInt.Scan(int64(12345))
+	if err != nil || !optStringInt.Present() || *optStringInt.Get() != "12345" {
+		t.Errorf("Scan method failed for string type with int64 input: %v", err)
+	}
+
 	// Test for string type
 	optStrFloat32 := uopt.Opt[string]{}
 	err = optStrFloat32.Scan(float32(3.1415926535))

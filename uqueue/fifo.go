@@ -66,8 +66,8 @@ func (q *FIFOQueueImpl[T]) Poll(timeout time.Duration) uopt.Opt[T] {
 		select {
 		case <-timer.C:
 			return uopt.Null[T]()
-		case t := <-q.ch:
-			return uopt.OfNullable(t)
+		case <-q.ch:
+			return q.Fetch()
 		}
 	}
 

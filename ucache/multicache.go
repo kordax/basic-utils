@@ -559,7 +559,7 @@ func (c *InMemoryHashMapMultiCache[K, T, H]) Outdated(key uopt.Opt[K]) bool {
 
 func (c *InMemoryHashMapMultiCache[K, T, H]) dropAll() {
 	c.values = make(map[H][]T)
-	c.changes = nil
+	c.changes = make(map[H]K)
 }
 
 func (c *InMemoryHashMapMultiCache[K, T, H]) put(key K, values ...T) {

@@ -72,7 +72,11 @@ func (q *PriorityQueueImpl[T]) Queue(t T, priority int) {
 }
 
 func (q *PriorityQueueImpl[T]) Fetch() uopt.Opt[T] {
-	r := q.queue.Pop()
+	if q.queue.Len() == 0 {
+		return uopt.Null[T]()
+	}
+
+	r := heap.Pop(q.queue)
 	if r == nil {
 		return uopt.Null[T]()
 	} else {
@@ -89,8 +93,8 @@ func (q *PriorityQueueImpl[T]) Poll(timeout time.Duration) uopt.Opt[T] {
 		select {
 		case <-timer.C:
 			return uopt.Null[T]()
-		case t := <-q.ch:
-			return uopt.OfNullable(t)
+		case <-q.ch:
+			return q.Fetch()
 		}
 	}
 
@@ -125,17 +129,16 @@ func (pq *prioritizedQueue[T]) Push(x any) {
 }
 
 func (pq *prioritizedQueue[T]) Pop() any {
-	old := make([]*container[T], len(pq.e))
-	copy(old, pq.e)
+	old := pq.e
 	n := len(old)
 	if n == 0 {
 		return nil
 	}
 
-	item := old[0]
-	old[0] = nil    // avoid memory leak
+	item := old[n-1]
+	old[n-1] = nil  // avoid memory leak
 	item.index = -1 // for safety
-	pq.e = pq.e[1:]
+	pq.e = old[:n-1]
 
 	return item
 }

@@ -406,24 +406,19 @@ func CopyWithoutIndex[T any](src []T, index int) []T {
 func CopyWithoutIndexes[T any](src []T, indexes []int) []T {
 	indexMap := make(map[int]struct{})
 	for _, index := range indexes {
-		indexMap[index] = dummy
-	}
-
-	uniqueIndexes := make([]int, 0, len(indexMap))
-	for index := range indexMap {
-		uniqueIndexes = append(uniqueIndexes, index)
-	}
-
-	slices.Sort(uniqueIndexes)
-	slices.Reverse(uniqueIndexes)
-
-	for _, index := range uniqueIndexes {
-		if index < len(src) {
-			src = append(src[:index], src[index+1:]...)
+		if index >= 0 && index < len(src) {
+			indexMap[index] = dummy
 		}
 	}
 
-	return src
+	result := make([]T, 0, len(src)-len(indexMap))
+	for i, v := range src {
+		if _, remove := indexMap[i]; !remove {
+			result = append(result, v)
+		}
+	}
+
+	return result
 }
 
 // CollectAsMap collects corresponding values to a map.
@@ -472,15 +467,18 @@ func EqualValues[T constraints.Ordered](left []T, right []T) bool {
 		return false
 	}
 
-	sort.SliceStable(left, func(i, j int) bool {
-		return left[i] < left[j]
+	leftSorted := slices.Clone(left)
+	rightSorted := slices.Clone(right)
+
+	sort.SliceStable(leftSorted, func(i, j int) bool {
+		return leftSorted[i] < leftSorted[j]
 	})
-	sort.SliceStable(right, func(i, j int) bool {
-		return right[i] < right[j]
+	sort.SliceStable(rightSorted, func(i, j int) bool {
+		return rightSorted[i] < rightSorted[j]
 	})
 
-	for i, v := range left {
-		if right[i] != v {
+	for i, v := range leftSorted {
+		if rightSorted[i] != v {
 			return false
 		}
 	}
@@ -494,15 +492,18 @@ func EqualValuesCompare[T any](left []T, right []T, compare func(t1, t2 T) bool,
 		return false
 	}
 
-	sort.SliceStable(left, func(i, j int) bool {
-		return less(left[i], left[j])
+	leftSorted := slices.Clone(left)
+	rightSorted := slices.Clone(right)
+
+	sort.SliceStable(leftSorted, func(i, j int) bool {
+		return less(leftSorted[i], leftSorted[j])
 	})
-	sort.SliceStable(right, func(i, j int) bool {
-		return less(right[i], right[j])
+	sort.SliceStable(rightSorted, func(i, j int) bool {
+		return less(rightSorted[i], rightSorted[j])
 	})
 
-	for i, v := range left {
-		if !compare(v, right[i]) {
+	for i, v := range leftSorted {
+		if !compare(v, rightSorted[i]) {
 			return false
 		}
 	}

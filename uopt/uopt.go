@@ -442,7 +442,7 @@ func (o *Opt[T]) Scan(src interface{}) error {
 	case int64:
 		switch ptr := any(&v).(type) {
 		case **string:
-			*ptr = uref.Ref(src.(string))
+			*ptr = uref.Ref(strconv.FormatInt(src.(int64), 10))
 		case **uint:
 			*ptr = uref.Ref(uint(src.(int64)))
 		case **uint8:

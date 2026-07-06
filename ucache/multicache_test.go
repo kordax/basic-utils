@@ -173,6 +173,19 @@ func TestHashMapMultiCache_DropKey(t *testing.T) {
 	assert.Len(t, res2, 1)
 }
 
+func TestHashMapMultiCache_PutAfterDrop(t *testing.T) {
+	c := ucache.NewDefaultHashMapMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
+	key := ucache.NewStrCompositeKey("category", "kp_1")
+	value := DummyComparable{Val: 42}
+
+	c.Put(key, DummyComparable{Val: 1})
+	c.Drop()
+	c.Put(key, value)
+
+	assert.Equal(t, []DummyComparable{value}, c.Get(key))
+	assert.ElementsMatch(t, []ucache.StrCompositeKey{key}, c.Changes())
+}
+
 func TestHashMapMultiCache_PutQuietly(t *testing.T) {
 	c := ucache.NewDefaultHashMapMultiCache[SimpleCompositeKey[ucache.StringKey], DummyComparable](uopt.Null[time.Duration]())
 	key := NewSimpleCompositeKey[ucache.StringKey]("kp_1", "kp_2")

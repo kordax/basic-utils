@@ -67,6 +67,21 @@ func TestAsyncTask_Success(t *testing.T) {
 	}
 }
 
+func TestAsyncTask_SuccessWithNilResult(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	task := uasync.NewAsyncTask(ctx, func(ctx context.Context) (*int, error) {
+		return nil, nil
+	}, 3)
+
+	task.ExecuteAsync()
+
+	result, err := task.Wait()
+	require.NoError(t, err)
+	require.Nil(t, result)
+}
+
 func TestAsyncTask_RetryOnFailure(t *testing.T) {
 	attempts := 0
 	task := uasync.NewAsyncTask(context.Background(), func(ctx context.Context) (*int, error) {
