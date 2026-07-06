@@ -4,8 +4,8 @@ import (
 	"net/url"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v2/uconst"
-	"git.casinomodule.org/casino27/basic-utils/v2/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v3/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v3/uopt"
 )
 
 // GetEnvOpt is an alias to GetEnvOptAs[string](key, MapString).

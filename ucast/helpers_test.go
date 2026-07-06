@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/v2/ucast"
+	"git.casinomodule.org/casino27/basic-utils/v3/ucast"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

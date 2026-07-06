@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/v2/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v3/uopt"
 	"github.com/stretchr/testify/assert"
 )
 

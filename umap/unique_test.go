@@ -11,7 +11,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/v2/umap"
+	"git.casinomodule.org/casino27/basic-utils/v3/umap"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

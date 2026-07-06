@@ -7,8 +7,8 @@
 package uset
 
 import (
-	"git.casinomodule.org/casino27/basic-utils/v2/uconst"
-	"git.casinomodule.org/casino27/basic-utils/v2/umap"
+	"git.casinomodule.org/casino27/basic-utils/v3/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v3/umap"
 )
 
 // ComparableHashSet is the same as HashSet, but allows for custom UniqueKey definition.

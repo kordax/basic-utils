@@ -10,7 +10,7 @@ import (
 	"context"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v2/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v3/uopt"
 )
 
 type Queue[T any] interface {

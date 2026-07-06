@@ -9,7 +9,7 @@ package umap_test
 import (
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/v2/umap"
+	"git.casinomodule.org/casino27/basic-utils/v3/umap"
 )
 
 func BenchmarkReflectiveMultiMap_Set(b *testing.B) {

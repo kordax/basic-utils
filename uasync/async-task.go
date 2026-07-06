@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"sync"
 
-	"git.casinomodule.org/casino27/basic-utils/v2/upair"
+	"git.casinomodule.org/casino27/basic-utils/v3/upair"
 )
 
 // AsyncTask represents an asynchronous task that can be executed in the background.

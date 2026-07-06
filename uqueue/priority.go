@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v2/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v3/uopt"
 )
 
 // container represents an individual item in the priority queue.

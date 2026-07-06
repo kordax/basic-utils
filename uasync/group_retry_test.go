@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v2/uasync"
+	"git.casinomodule.org/casino27/basic-utils/v3/uasync"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

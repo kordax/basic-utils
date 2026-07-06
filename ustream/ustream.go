@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v2/uarray"
+	"git.casinomodule.org/casino27/basic-utils/v3/uarray"
 )
 
 // Collector defines the legacy interface for collecting elements from a stream.

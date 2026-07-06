@@ -1,4 +1,4 @@
-module git.casinomodule.org/casino27/basic-utils/v2
+module git.casinomodule.org/casino27/basic-utils/v3
 
 go 1.26
 
