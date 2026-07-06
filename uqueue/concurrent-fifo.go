@@ -7,6 +7,7 @@
 package uqueue
 
 import (
+	"context"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -86,8 +87,16 @@ func (q *ConcurrentFIFOQueueImpl[T]) Fetch() uopt.Opt[T] {
 
 // Poll items fetches item in the finite time.
 func (q *ConcurrentFIFOQueueImpl[T]) Poll(timeout time.Duration) uopt.Opt[T] {
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	return q.PollContext(ctx)
+}
+
+func (q *ConcurrentFIFOQueueImpl[T]) PollContext(ctx context.Context) uopt.Opt[T] {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	for {
 		if result := q.Fetch(); result.Present() {
@@ -95,11 +104,53 @@ func (q *ConcurrentFIFOQueueImpl[T]) Poll(timeout time.Duration) uopt.Opt[T] {
 		}
 
 		select {
-		case <-timer.C:
+		case <-ctx.Done():
 			return uopt.Null[T]()
 		case <-q.ch:
 		}
 	}
+}
+
+func (q *ConcurrentFIFOQueueImpl[T]) Peek() uopt.Opt[T] {
+	head := load[T](&q.head)
+	next := load[T](&head.next)
+	if next == nil {
+		return uopt.Null[T]()
+	}
+
+	return uopt.Of(next.value)
+}
+
+func (q *ConcurrentFIFOQueueImpl[T]) Drain(limit ...int) []T {
+	n := int(q.Len())
+	if len(limit) > 0 && limit[0] >= 0 && limit[0] < n {
+		n = limit[0]
+	}
+	if n == 0 {
+		return []T{}
+	}
+
+	result := make([]T, 0, n)
+	for len(result) < n {
+		value := q.Fetch()
+		if !value.Present() {
+			break
+		}
+		result = append(result, value.OrElse(*new(T)))
+	}
+
+	return result
+}
+
+func (q *ConcurrentFIFOQueueImpl[T]) Clear() {
+	n := &node[T]{}
+	atomic.StorePointer(&q.head, unsafe.Pointer(n))
+	atomic.StorePointer(&q.tail, unsafe.Pointer(n))
+	q.l.Store(0)
+}
+
+func (q *ConcurrentFIFOQueueImpl[T]) Empty() bool {
+	return q.Len() == 0
 }
 
 func (q *ConcurrentFIFOQueueImpl[T]) Len() uint64 {

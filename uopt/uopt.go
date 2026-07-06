@@ -46,6 +46,33 @@ func (o Opt[T]) IfPresent(f func(t T)) {
 	}
 }
 
+// Map transforms a present optional value, or returns Null when opt is empty.
+func Map[T, R any](opt Opt[T], mapper func(T) R) Opt[R] {
+	if !opt.Present() {
+		return Null[R]()
+	}
+
+	return Of(mapper(*opt.v))
+}
+
+// FlatMap transforms a present optional value into another optional value, or returns Null when opt is empty.
+func FlatMap[T, R any](opt Opt[T], mapper func(T) Opt[R]) Opt[R] {
+	if !opt.Present() {
+		return Null[R]()
+	}
+
+	return mapper(*opt.v)
+}
+
+// Filter keeps a present value only when predicate returns true.
+func Filter[T any](opt Opt[T], predicate func(T) bool) Opt[T] {
+	if !opt.Present() || !predicate(*opt.v) {
+		return Null[T]()
+	}
+
+	return opt
+}
+
 // Null creates an Opt with no value.
 func Null[T any]() Opt[T] {
 	return Opt[T]{v: nil}
@@ -137,6 +164,15 @@ func (o Opt[T]) OrElse(v T) T {
 	} else {
 		return *o.v
 	}
+}
+
+// OrElseGet retrieves the value within the Opt or invokes fallback when the Opt is null.
+func (o Opt[T]) OrElseGet(fallback func() T) T {
+	if o.v == nil {
+		return fallback()
+	}
+
+	return *o.v
 }
 
 // Get retrieves the value within the Opt as a pointer.

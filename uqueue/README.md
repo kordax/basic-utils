@@ -23,6 +23,11 @@ A standard FIFO (First-In-First-Out) queue implementation.
 - `Queue`: Enqueues an item to the back of the queue.
 - `Fetch`: Dequeues an item from the front of the queue without waiting.
 - `Poll`: Dequeues an item from the front of the queue or waits for a specified timeout.
+- `PollContext`: Dequeues an item from the front of the queue or waits until context cancellation.
+- `Peek`: Reads the next item without removing it.
+- `Drain`: Dequeues all items or up to a limit.
+- `Clear`: Removes all queued items.
+- `Empty`: Returns true when the queue has no items.
 
 ### ConcurrentFIFOQueueImpl
 
@@ -34,6 +39,11 @@ A lock-free FIFO queue implementation based on the Michael-Scott queue algorithm
 - `Queue`: Enqueues an item to the back of the queue.
 - `Fetch`: Dequeues an item from the front of the queue without waiting.
 - `Poll`: Dequeues an item from the front of the queue or waits for a specified timeout.
+- `PollContext`: Dequeues an item from the front of the queue or waits until context cancellation.
+- `Peek`: Reads the next item without removing it.
+- `Drain`: Dequeues all items or up to a limit.
+- `Clear`: Removes all queued items.
+- `Empty`: Returns true when the queue has no items.
 
 ### PriorityQueueImpl
 
@@ -46,6 +56,11 @@ item.
 - `Queue`: Enqueues an item with a specified priority.
 - `Fetch`: Dequeues the highest-priority item from the queue without waiting.
 - `Poll`: Dequeues the highest-priority item from the queue or waits for a specified timeout.
+- `PollContext`: Dequeues the highest-priority item or waits until context cancellation.
+- `Peek`: Reads the highest-priority item without removing it.
+- `Drain`: Dequeues all items or up to a limit in priority order.
+- `Clear`: Removes all queued items.
+- `Empty`: Returns true when the queue has no items.
 
 ## Dependencies
 

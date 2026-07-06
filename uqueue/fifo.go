@@ -7,6 +7,7 @@
 package uqueue
 
 import (
+	"context"
 	"slices"
 	"sync"
 	"time"
@@ -65,8 +66,16 @@ func (q *FIFOQueueImpl[T]) Fetch() uopt.Opt[T] {
 }
 
 func (q *FIFOQueueImpl[T]) Poll(timeout time.Duration) uopt.Opt[T] {
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	return q.PollContext(ctx)
+}
+
+func (q *FIFOQueueImpl[T]) PollContext(ctx context.Context) uopt.Opt[T] {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	for {
 		if result := q.Fetch(); result.Present() {
@@ -74,11 +83,62 @@ func (q *FIFOQueueImpl[T]) Poll(timeout time.Duration) uopt.Opt[T] {
 		}
 
 		select {
-		case <-timer.C:
+		case <-ctx.Done():
 			return uopt.Null[T]()
 		case <-q.ch:
 		}
 	}
+}
+
+func (q *FIFOQueueImpl[T]) Peek() uopt.Opt[T] {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	if len(q.queue) == 0 {
+		return uopt.Null[T]()
+	}
+
+	return uopt.Of(q.queue[0])
+}
+
+func (q *FIFOQueueImpl[T]) Drain(limit ...int) []T {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	n := len(q.queue)
+	if len(limit) > 0 && limit[0] >= 0 && limit[0] < n {
+		n = limit[0]
+	}
+	if n == 0 {
+		return []T{}
+	}
+
+	result := slices.Clone(q.queue[:n])
+	var zero T
+	for i := 0; i < n; i++ {
+		q.queue[i] = zero
+	}
+	q.queue = q.queue[n:]
+	if len(q.queue) > 0 {
+		defer q.notify()
+	}
+
+	return result
+}
+
+func (q *FIFOQueueImpl[T]) Clear() {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	var zero T
+	for i := range q.queue {
+		q.queue[i] = zero
+	}
+	q.queue = nil
+}
+
+func (q *FIFOQueueImpl[T]) Empty() bool {
+	return q.Len() == 0
 }
 
 func (q *FIFOQueueImpl[T]) Len() uint64 {

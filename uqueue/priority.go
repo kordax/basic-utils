@@ -8,6 +8,7 @@ package uqueue
 
 import (
 	"container/heap"
+	"context"
 	"sync"
 	"time"
 
@@ -87,8 +88,16 @@ func (q *PriorityQueueImpl[T]) Fetch() uopt.Opt[T] {
 }
 
 func (q *PriorityQueueImpl[T]) Poll(timeout time.Duration) uopt.Opt[T] {
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	return q.PollContext(ctx)
+}
+
+func (q *PriorityQueueImpl[T]) PollContext(ctx context.Context) uopt.Opt[T] {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	for {
 		if result := q.Fetch(); result.Present() {
@@ -96,11 +105,57 @@ func (q *PriorityQueueImpl[T]) Poll(timeout time.Duration) uopt.Opt[T] {
 		}
 
 		select {
-		case <-timer.C:
+		case <-ctx.Done():
 			return uopt.Null[T]()
 		case <-q.ch:
 		}
 	}
+}
+
+func (q *PriorityQueueImpl[T]) Peek() uopt.Opt[T] {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	if q.queue.Len() == 0 {
+		return uopt.Null[T]()
+	}
+
+	return uopt.OfNullable(q.queue.e[0].t)
+}
+
+func (q *PriorityQueueImpl[T]) Drain(limit ...int) []T {
+	n := int(q.Len())
+	if len(limit) > 0 && limit[0] >= 0 && limit[0] < n {
+		n = limit[0]
+	}
+	if n == 0 {
+		return []T{}
+	}
+
+	result := make([]T, 0, n)
+	for len(result) < n {
+		value := q.Fetch()
+		if !value.Present() {
+			break
+		}
+		result = append(result, value.OrElse(*new(T)))
+	}
+
+	return result
+}
+
+func (q *PriorityQueueImpl[T]) Clear() {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	for i := range q.queue.e {
+		q.queue.e[i] = nil
+	}
+	q.queue.e = nil
+}
+
+func (q *PriorityQueueImpl[T]) Empty() bool {
+	return q.Len() == 0
 }
 
 func (q *PriorityQueueImpl[T]) Len() uint64 {
