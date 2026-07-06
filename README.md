@@ -67,9 +67,3 @@ Then, refer to the individual documentation or code comments of each module for 
 
 The repository also includes a staticcheck.conf file, indicating that it might be set up to use the staticcheck tool for
 static code analysis. Run staticcheck in the root directory to perform a code quality check.
-
-## Author
-
-Developed by [@kordax](mailto:dmorozov@valoru-software.com) (Dmitry Morozov)
-
-[Valoru Software](https://valoru-software.com)
