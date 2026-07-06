@@ -13,11 +13,12 @@ import (
 	"git.casinomodule.org/casino27/basic-utils/v2/uconst"
 	"git.casinomodule.org/casino27/basic-utils/v2/umap"
 	"git.casinomodule.org/casino27/basic-utils/v2/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v2/upair"
 	"github.com/dgryski/go-farm"
 )
 
 type container[K CompositeKey, T uconst.Comparable] struct {
-	pairs map[int64][]uarray.Pair[K, T]
+	pairs map[int64][]upair.Pair[K, T]
 	node  map[int64]any
 }
 
@@ -194,7 +195,7 @@ func (c *InMemoryTreeMultiCache[K, T]) Keys() []K {
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 
-	pairs := c.getNodePairsFlat(c.values, make(map[int64][]uarray.Pair[K, T]))
+	pairs := c.getNodePairsFlat(c.values, make(map[int64][]upair.Pair[K, T]))
 	resultByKey := make(map[string]K, len(pairs))
 	for _, bucket := range pairs {
 		for _, pair := range bucket {
@@ -285,12 +286,12 @@ func (c *InMemoryTreeMultiCache[K, T]) addTran(key K, values ...T) {
 	lowKey := key.Keys()[len(keys)-1].Key()
 
 	for _, value := range values {
-		if ind, _ := uarray.ContainsPredicate(bucket[lowKey], func(v uarray.Pair[K, T]) bool {
+		if ind, _ := uarray.ContainsPredicate(bucket[lowKey], func(v upair.Pair[K, T]) bool {
 			return v.Right.Equals(value)
 		}); ind > -1 {
-			bucket[lowKey][ind] = *uarray.NewPair[K, T](key, value)
+			bucket[lowKey][ind] = upair.Of[K, T](key, value)
 		} else {
-			bucket[lowKey] = append(bucket[lowKey], *uarray.NewPair[K, T](key, value))
+			bucket[lowKey] = append(bucket[lowKey], upair.Of[K, T](key, value))
 		}
 	}
 }
@@ -312,11 +313,11 @@ func (c *InMemoryTreeMultiCache[K, T]) dropKeyRecursively(keys []uconst.Unique, 
 	}
 }
 
-func (c *InMemoryTreeMultiCache[K, T]) tryToGetBucket(keys []uconst.Unique) map[int64][]uarray.Pair[K, T] {
+func (c *InMemoryTreeMultiCache[K, T]) tryToGetBucket(keys []uconst.Unique) map[int64][]upair.Pair[K, T] {
 	return c.getBucket(keys, 0, c.values)
 }
 
-func (c *InMemoryTreeMultiCache[K, T]) getBucket(keys []uconst.Unique, n int, interBucket map[int64]any) map[int64][]uarray.Pair[K, T] {
+func (c *InMemoryTreeMultiCache[K, T]) getBucket(keys []uconst.Unique, n int, interBucket map[int64]any) map[int64][]upair.Pair[K, T] {
 	if keys == nil || n >= len(keys) {
 		return nil
 	}
@@ -324,7 +325,7 @@ func (c *InMemoryTreeMultiCache[K, T]) getBucket(keys []uconst.Unique, n int, in
 	hash := keys[n].Key()
 	if bucket, ok := interBucket[hash]; ok {
 		switch b := bucket.(type) {
-		case map[int64][]uarray.Pair[K, T]:
+		case map[int64][]upair.Pair[K, T]:
 			if n+1 < len(keys) {
 				interBucket[hash] = container[K, T]{
 					node:  make(map[int64]any),
@@ -336,7 +337,7 @@ func (c *InMemoryTreeMultiCache[K, T]) getBucket(keys []uconst.Unique, n int, in
 			}
 		case container[K, T]:
 			if n+1 == len(keys) {
-				result := make(map[int64][]uarray.Pair[K, T])
+				result := make(map[int64][]upair.Pair[K, T])
 				for k, e := range b.pairs {
 					result[k] = append(result[k], e...)
 				}
@@ -351,20 +352,20 @@ func (c *InMemoryTreeMultiCache[K, T]) getBucket(keys []uconst.Unique, n int, in
 		}
 	} else {
 		if n+1 == len(keys) {
-			interBucket[hash] = map[int64][]uarray.Pair[K, T]{
+			interBucket[hash] = map[int64][]upair.Pair[K, T]{
 				hash: nil,
 			}
-			return interBucket[hash].(map[int64][]uarray.Pair[K, T])
+			return interBucket[hash].(map[int64][]upair.Pair[K, T])
 		} else {
 			if entry, ok := interBucket[hash]; !ok {
 				interBucket[hash] = container[K, T]{
 					node:  make(map[int64]any),
-					pairs: make(map[int64][]uarray.Pair[K, T]),
+					pairs: make(map[int64][]upair.Pair[K, T]),
 				}
 				return c.getBucket(keys, n+1, interBucket[hash].(container[K, T]).node)
 			} else {
 				switch e := entry.(type) {
-				case map[int64][]uarray.Pair[K, T]:
+				case map[int64][]upair.Pair[K, T]:
 					interBucket[hash] = container[K, T]{
 						node:  make(map[int64]any),
 						pairs: e,
@@ -383,10 +384,10 @@ func (c *InMemoryTreeMultiCache[K, T]) getBucket(keys []uconst.Unique, n int, in
 	return nil
 }
 
-func (c *InMemoryTreeMultiCache[K, T]) getNodePairsFlat(node map[int64]any, result map[int64][]uarray.Pair[K, T]) map[int64][]uarray.Pair[K, T] {
+func (c *InMemoryTreeMultiCache[K, T]) getNodePairsFlat(node map[int64]any, result map[int64][]upair.Pair[K, T]) map[int64][]upair.Pair[K, T] {
 	for _, entry := range node {
 		switch e := entry.(type) {
-		case map[int64][]uarray.Pair[K, T]:
+		case map[int64][]upair.Pair[K, T]:
 			for hash, pair := range e {
 				result[hash] = append(result[hash], pair...)
 			}

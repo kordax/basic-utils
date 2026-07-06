@@ -19,15 +19,6 @@ import (
 
 var dummy struct{}
 
-type Pair[L any, R any] struct {
-	Left  L
-	Right R
-}
-
-func NewPair[L any, R any](left L, right R) *Pair[L, R] {
-	return &Pair[L, R]{Left: left, Right: right}
-}
-
 func IndexOfUint32(slice []uint32, value uint32) int {
 	for i, v := range slice {
 		if v == value {

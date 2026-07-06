@@ -21,6 +21,40 @@ func TestNewPair(t *testing.T) {
 	assert.Equal(t, "test", pair.GetRight(), "GetRight should return the correct right value")
 }
 
+func TestOf(t *testing.T) {
+	pair := Of(1, "test")
+
+	assert.Equal(t, 1, pair.GetLeft(), "GetLeft should return the correct left value")
+	assert.Equal(t, "test", pair.GetRight(), "GetRight should return the correct right value")
+
+	left, right := pair.Values()
+	assert.Equal(t, 1, left)
+	assert.Equal(t, "test", right)
+}
+
+func TestPairSwap(t *testing.T) {
+	pair := Of(1, "test")
+
+	swapped := pair.Swap()
+
+	assert.Equal(t, "test", swapped.Left)
+	assert.Equal(t, 1, swapped.Right)
+}
+
+func TestPairMap(t *testing.T) {
+	pair := Of(1, "test")
+
+	leftMapped := MapLeft(pair, func(v int) int {
+		return v * 2
+	})
+	rightMapped := MapRight(pair, func(v string) int {
+		return len(v)
+	})
+
+	assert.Equal(t, Of(2, "test"), leftMapped)
+	assert.Equal(t, Of(1, 4), rightMapped)
+}
+
 func TestNewCPair(t *testing.T) {
 	pair := NewCPair(236, "ctest")
 
@@ -30,4 +64,14 @@ func TestNewCPair(t *testing.T) {
 
 	pair2 := NewCPair(pair.Left, pair.Right)
 	assert.True(t, pair.Equals(pair2), "pair.Equals(%v) should return %v", pair, pair2)
+}
+
+func TestCOf(t *testing.T) {
+	pair := COf(236, "ctest")
+
+	assert.Equal(t, 236, pair.GetLeft(), "GetLeft should return the correct left value")
+	assert.Equal(t, "ctest", pair.GetRight(), "GetRight should return the correct right value")
+	assert.True(t, pair.Equals(COf(236, "ctest")))
+	assert.True(t, pair.Equals(NewCPair(236, "ctest")))
+	assert.False(t, pair.Equals(COf(236, "other")))
 }

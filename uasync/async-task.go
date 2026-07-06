@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"sync"
 
-	"git.casinomodule.org/casino27/basic-utils/v2/uarray"
+	"git.casinomodule.org/casino27/basic-utils/v2/upair"
 )
 
 // AsyncTask represents an asynchronous task that can be executed in the background.
@@ -21,9 +21,9 @@ type AsyncTask[R any] struct {
 	fn      func(ctx context.Context) (*R, error) // The function that represents the async task.
 	retries int                                   // Number of times to retry the task on failure. Value less than 0 means retry forever.
 
-	f    Future[R]               // A future object to represent the result or error of the task.
-	done *uarray.Pair[*R, error] // A pair containing the result and error of the task.
-	mtx  sync.RWMutex            // A mutex for thread-safe operations on the struct.
+	f    Future[R]              // A future object to represent the result or error of the task.
+	done *upair.Pair[*R, error] // A pair containing the result and error of the task.
+	mtx  sync.RWMutex           // A mutex for thread-safe operations on the struct.
 
 	ctx context.Context
 }
@@ -66,7 +66,8 @@ func (t *AsyncTask[R]) Wait() (*R, error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	if t.done == nil { // Check if t.done is still nil to avoid overwriting by other calls to Wait()
-		t.done = uarray.NewPair(r, err)
+		done := upair.Of(r, err)
+		t.done = &done
 	}
 
 	return r, err
@@ -76,7 +77,8 @@ func (t *AsyncTask[R]) setDone(r *R, err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	if t.done == nil {
-		t.done = uarray.NewPair(r, err)
+		done := upair.Of(r, err)
+		t.done = &done
 	}
 }
 
