@@ -105,6 +105,28 @@ func TestTerminalStream_ParallelExecute(t *testing.T) {
 	stream.ToTerminal().ParallelExecute(fn, 4)
 }
 
+func TestTerminalStream_ParallelExecuteMutatesOriginalValues(t *testing.T) {
+	stream := ustream.Of([]int{1, 2, 3})
+
+	stream.ToTerminal().ParallelExecute(func(index int, value *int) {
+		*value *= 10
+	}, 2)
+
+	assert.Equal(t, []int{10, 20, 30}, stream.Collect())
+}
+
+func TestTerminalStream_ParallelExecuteWithInvalidParallelism(t *testing.T) {
+	var processed atomic.Int32
+	stream := ustream.Of([]int{1, 2, 3})
+
+	assert.NotPanics(t, func() {
+		stream.ToTerminal().ParallelExecute(func(index int, value *int) {
+			processed.Add(1)
+		}, 0)
+	})
+	assert.EqualValues(t, 3, processed.Load())
+}
+
 func TestTerminalStream_ParallelExecuteWithTimeout(t *testing.T) {
 	data := make([]dummy, 100)
 	stream := ustream.NewTerminalStream(data)
@@ -122,6 +144,41 @@ func TestTerminalStream_ParallelExecuteWithTimeout(t *testing.T) {
 	stream.ParallelExecuteWithTimeout(mockFn, cancel, 3*time.Second, 10)
 
 	require.EqualValues(t, len(data), counter.Load(), "Not all items were processed as expected")
+}
+
+func TestTerminalStream_ParallelExecuteWithTimeoutUsesPerItemTimeout(t *testing.T) {
+	values := []int{1, 2, 3}
+	stream := ustream.NewTerminalStream(values)
+
+	var processed atomic.Int32
+	var canceled atomic.Int32
+
+	stream.ParallelExecuteWithTimeout(func(index int, item int) {
+		if item == 1 {
+			time.Sleep(30 * time.Millisecond)
+			return
+		}
+		processed.Add(1)
+	}, func(index int, item int) {
+		canceled.Add(1)
+	}, 5*time.Millisecond, 1)
+
+	require.EqualValues(t, 2, processed.Load(), "fast items should still run after one item times out")
+	require.EqualValues(t, 1, canceled.Load(), "only the slow item should be canceled")
+}
+
+func TestTerminalStream_ParallelExecuteWithTimeoutInvalidParallelism(t *testing.T) {
+	stream := ustream.NewTerminalStream([]int{1, 2, 3})
+	var processed atomic.Int32
+
+	assert.NotPanics(t, func() {
+		stream.ParallelExecuteWithTimeout(func(index int, item int) {
+			processed.Add(1)
+		}, func(index int, item int) {
+			assert.Fail(t, "unexpected cancellation")
+		}, time.Second, 0)
+	})
+	assert.EqualValues(t, 3, processed.Load())
 }
 
 func TestTerminalStream_ParallelExecuteWithTimeout_Timeout(t *testing.T) {

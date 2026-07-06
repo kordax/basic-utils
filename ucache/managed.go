@@ -116,14 +116,14 @@ func (b *ManagedMultiCache[K, T]) cleanupRoutine(tick time.Duration) {
 	for {
 		select {
 		case <-ticker.C:
-			b.performCleanup()
+			b.ForceCleanup()
 		case <-b.stopChan:
 			return
 		}
 	}
 }
 
-func (b *ManagedMultiCache[K, T]) performCleanup() {
+func (b *ManagedMultiCache[K, T]) ForceCleanup() {
 	for _, key := range b.cache.Changes() {
 		if b.cache.Outdated(uopt.Of(key)) {
 			b.cache.DropKey(key)

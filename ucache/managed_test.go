@@ -89,6 +89,22 @@ func TestManagedMultiCache_Outdated(t *testing.T) {
 	assert.Empty(t, values)
 }
 
+func TestManagedMultiCache_ForceCleanup(t *testing.T) {
+	ttl := time.Nanosecond
+	cache := ucache.NewInMemoryTreeMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Of(ttl))
+	managedCache := ucache.NewManagedMultiCache(cache, time.Hour)
+	defer managedCache.Stop()
+
+	key := ucache.NewStrCompositeKey("category", "key1")
+	value := DummyComparable{Val: 42}
+
+	managedCache.Set(key, value)
+	time.Sleep(ttl)
+	managedCache.ForceCleanup()
+
+	assert.Empty(t, managedCache.Get(key))
+}
+
 func TestManagedCache_SetAndGet(t *testing.T) {
 	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Null[time.Duration]())
 	managedCache := ucache.NewManagedCache(cache, time.Second)
@@ -158,6 +174,21 @@ func TestManagedCache_Outdated(t *testing.T) {
 
 	managedCache.Set(key, value)
 	time.Sleep(10 * ttl)
+	_, ok := managedCache.Get(key)
+	assert.False(t, ok)
+}
+
+func TestManagedCache_ForceCleanup(t *testing.T) {
+	ttl := time.Nanosecond
+	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Of(ttl))
+	managedCache := ucache.NewManagedCache(cache, time.Hour)
+	defer managedCache.Stop()
+
+	key := ucache.IntKey(1)
+	managedCache.Set(key, "TestValue")
+	time.Sleep(ttl)
+	managedCache.ForceCleanup()
+
 	_, ok := managedCache.Get(key)
 	assert.False(t, ok)
 }

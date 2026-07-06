@@ -204,26 +204,22 @@ func (c *InMemoryTreeMultiCache[K, T]) DropKey(key K) {
 // If no key is provided or key was not found, it checks the last updated time of the entire cache.
 // If a key is provided and found, it checks the last updated time of that specific key.
 func (c *InMemoryTreeMultiCache[K, T]) Outdated(key uopt.Opt[K]) bool {
-	if !key.Present() {
-		return time.Since(c.lastUpdated) > *c.ttl
-	}
-
 	c.vMtx.Lock()
 	defer c.vMtx.Unlock()
 
 	if c.ttl == nil {
 		return false
+	}
+
+	if !key.Present() {
+		return time.Since(c.lastUpdated) > *c.ttl
+	}
+
+	k := key.Get()
+	if lu, ok := c.lastUpdatedKeys[keysAsString((*k).Keys())]; ok {
+		return time.Since(lu) > *c.ttl
 	} else {
-		if key.Present() {
-			k := key.Get()
-			if lu, ok := c.lastUpdatedKeys[keysAsString((*k).Keys())]; ok {
-				return time.Since(lu) > *c.ttl
-			} else {
-				return true
-			}
-		} else {
-			return false
-		}
+		return true
 	}
 }
 
@@ -604,7 +600,11 @@ func intToBytes(buffer *bytes.Buffer, num int64) []byte {
 func keysAsString(keys []uconst.Unique) string {
 	var sb strings.Builder
 	for _, key := range keys {
-		sb.WriteString(strconv.FormatInt(key.Key(), 10))
+		part := strconv.FormatInt(key.Key(), 10)
+		sb.WriteString(strconv.Itoa(len(part)))
+		sb.WriteByte(':')
+		sb.WriteString(part)
+		sb.WriteByte(';')
 	}
 	return sb.String()
 }

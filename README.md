@@ -9,7 +9,7 @@ programming tasks. Each module addresses a particular set of functions or data s
 
 ## Minimum Go Version Requirement
 
-To use or contribute to this project, you need to have at least Go 1.23 installed.
+To use or contribute to this project, you need to have at least Go 1.26.4 installed.
 This is due to the usage of features and packages introduced in this version.
 
 ## Modules

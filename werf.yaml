@@ -5,7 +5,7 @@ configVersion: 1
 ---
 
 image: golangci-lint
-from: golang:1.26-alpine
+from: golang:1.26.4-alpine
 {{- if eq (env "NOCACHE") "true" }}
 fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
 {{- end }}

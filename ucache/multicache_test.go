@@ -508,6 +508,26 @@ func TestInMemoryTreeMultiCache_Outdated_WithDifferentTTLs(t *testing.T) {
 	assert.True(t, cLong.Outdated(uopt.Of(key)))
 }
 
+func TestInMemoryTreeMultiCache_OutdatedWithoutTTLDoesNotPanic(t *testing.T) {
+	c := ucache.NewInMemoryTreeMultiCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Null[time.Duration]())
+
+	assert.NotPanics(t, func() {
+		assert.False(t, c.Outdated(uopt.Null[ucache.StrCompositeKey]()))
+	})
+}
+
+func TestInMemoryTreeMultiCache_OutdatedCompositeKeyStringCollisions(t *testing.T) {
+	ttl := time.Hour
+	c := ucache.NewInMemoryTreeMultiCache[ucache.IntCompositeKey, ucache.StringValue](uopt.Of(ttl))
+
+	keyA := ucache.NewIntCompositeKey(1, 23)
+	keyB := ucache.NewIntCompositeKey(12, 3)
+	c.Put(keyA, ucache.NewStringValue("a"))
+
+	assert.False(t, c.Outdated(uopt.Of(keyA)))
+	assert.True(t, c.Outdated(uopt.Of(keyB)))
+}
+
 func TestHashMapMultiCache_CompositeKey_LotsOfKeys(t *testing.T) {
 	c := ucache.NewDefaultHashMapMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
 

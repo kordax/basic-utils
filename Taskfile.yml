@@ -32,7 +32,7 @@ tasks:
   check-coverage:
     desc: "Checking test coverage"
     cmds:
-      - go test ./... -tags=integration_test -coverprofile=./coverage.out -covermode=atomic -coverpkg=./...
-      - go tool cover -func=coverage.out
+      - go test ./... -tags=integration_test -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
+      - go tool cover -func=cover.out
     sources:
       - "**/*.go"

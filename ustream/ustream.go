@@ -7,17 +7,11 @@
 package ustream
 
 import (
-	"context"
 	"sync"
 	"time"
 
 	"git.casinomodule.org/casino27/basic-utils/v2/uarray"
 )
-
-type parallelTask[T any] struct {
-	v     *T
-	index int
-}
 
 // Collector defines the interface for collecting elements from a stream.
 type Collector[T any] interface {
@@ -75,31 +69,25 @@ func NewTerminalStream[T any](values []T) *TerminalStream[T] {
 // ParallelExecute executes the given function concurrently on each element of the stream's values
 // using the specified level of parallelism.
 func (s *TerminalStream[T]) ParallelExecute(fn func(int, *T), parallelism int) {
+	if parallelism <= 0 {
+		parallelism = 1
+	}
+
 	var wg sync.WaitGroup
-	in := make(chan parallelTask[T])
+	in := make(chan int)
 
 	for i := 0; i < parallelism; i++ {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			for v := range in {
-				fn(v.index, v.v)
+			for index := range in {
+				fn(index, &s.values[index])
 			}
 		}(i)
 	}
 
-	subsetSize := (len(s.values) + parallelism - 1) / parallelism
-	startIndex := 0
-	for i := 0; i < parallelism; i++ {
-		endIndex := startIndex + subsetSize
-		if endIndex > len(s.values) {
-			endIndex = len(s.values)
-		}
-		subset := s.values[startIndex:endIndex]
-		for j, value := range subset {
-			in <- parallelTask[T]{v: &value, index: startIndex + j}
-		}
-		startIndex = endIndex
+	for i := range s.values {
+		in <- i
 	}
 
 	close(in)
@@ -116,9 +104,6 @@ func (s *TerminalStream[T]) ParallelExecute(fn func(int, *T), parallelism int) {
 // - timeout: The maximum duration to wait for each task to complete before cancelling it. If a task exceeds this duration, it is considered failed.
 // - parallelism: The maximum number of tasks to execute concurrently. This controls the level of parallelism and helps manage resource utilization.
 //
-// Panics:
-// This method panics if the parallelism parameter is less than or equal to zero, as it indicates an invalid configuration.
-//
 // Usage Example:
 // Assuming a TerminalStream of some data type, you can process each item in parallel, with a specific timeout and level of parallelism:
 //
@@ -132,45 +117,45 @@ func (s *TerminalStream[T]) ParallelExecute(fn func(int, *T), parallelism int) {
 // Note: The actual processing function (fn) does not return a value. If you need to collect results or errors from each task,
 // you might need to use a different approach or modify the method accordingly.
 func (s *TerminalStream[T]) ParallelExecuteWithTimeout(fn func(int, T), cancel func(int, T), timeout time.Duration, parallelism int) {
-	ctx, cancelFunc := context.WithTimeout(context.Background(), timeout)
-	defer cancelFunc()
+	if parallelism <= 0 {
+		parallelism = 1
+	}
 
 	var wg sync.WaitGroup
-	in := make(chan parallelTask[T], parallelism)
+	in := make(chan int)
 
 	for i := 0; i < parallelism; i++ {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-		cycle:
-			v, ok := <-in
-			if !ok {
-				return
-			}
+			for index := range in {
+				value := s.values[index]
+				if timeout <= 0 {
+					cancel(index, value)
+					continue
+				}
 
-			select {
-			case <-ctx.Done():
-				cancel(v.index, *v.v)
-				goto cycle
-			default:
-				fn(v.index, *v.v)
-				goto cycle
+				done := make(chan struct{}, 1)
+				go func() {
+					fn(index, value)
+					done <- struct{}{}
+				}()
+
+				timer := time.NewTimer(timeout)
+				select {
+				case <-done:
+					if !timer.Stop() {
+						<-timer.C
+					}
+				case <-timer.C:
+					cancel(index, value)
+				}
 			}
 		}(i)
 	}
 
-	subsetSize := (len(s.values) + parallelism - 1) / parallelism
-	startIndex := 0
-	for i := 0; i < parallelism; i++ {
-		endIndex := startIndex + subsetSize
-		if endIndex > len(s.values) {
-			endIndex = len(s.values)
-		}
-		subset := s.values[startIndex:endIndex]
-		for j, value := range subset {
-			in <- parallelTask[T]{v: &value, index: startIndex + j}
-		}
-		startIndex = endIndex
+	for i := range s.values {
+		in <- i
 	}
 	close(in)
 	wg.Wait()
