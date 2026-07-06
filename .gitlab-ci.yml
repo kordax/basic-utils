@@ -42,13 +42,19 @@ Lint:
     - set -x
     - *werf_init
     - export WERF_DOCKER_OPTIONS="-v ${SSH_AUTH_SOCK}:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent"
-    - werf run lint -- sh -c 'go mod download && golangci-lint -v run ./...' || { exit_code=$?; ssh-agent -k; exit $exit_code; }
+    - werf run lint -- sh -c 'go mod download && golangci-lint -v run --concurrency=1 ./...' || { exit_code=$?; ssh-agent -k; exit $exit_code; }
     - ssh-agent -k
   except: [ schedules, triggers ]
   tags: [ werf-runner ]
 
 Test:
   stage: test
+  variables:
+    CGO_ENABLED: "1"
+    GOGC: "20"
+    GOMEMLIMIT: "500MiB"
+    GOMAXPROCS: "2"
+    GOFLAGS: "-p=1"
   before_script:
     - eval $(ssh-agent -s)
     - ssh-add <(echo "$SSH_PRIVATE_KEY")
