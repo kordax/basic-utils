@@ -7,13 +7,13 @@
 package uarray
 
 import (
+	"cmp"
 	"slices"
 	"sort"
 	"strings"
 
 	"git.casinomodule.org/casino27/basic-utils/v2/ucast"
 	"git.casinomodule.org/casino27/basic-utils/v2/uconst"
-	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/maps"
 )
 
@@ -232,6 +232,17 @@ func Find[V any](values []V, filter func(v V) bool) *V {
 	return nil
 }
 
+// FindIndex returns the index of the first element matching predicate, or -1 when no element matches.
+func FindIndex[T any](values []T, predicate func(v T) bool) int {
+	for i, v := range values {
+		if predicate(v) {
+			return i
+		}
+	}
+
+	return -1
+}
+
 // FindBinary finds the first match in a sorted slice using binary search.
 // The filter function should implement a comparison suitable for binary search.
 func FindBinary[V any](values []V, filter func(v V) bool) *V {
@@ -294,6 +305,16 @@ func Flat[V any](values [][]V) []V {
 	return result
 }
 
+// Reduce folds values into a single result by applying reducer from left to right.
+func Reduce[T, R any](values []T, initial R, reducer func(acc R, v T) R) R {
+	result := initial
+	for _, v := range values {
+		result = reducer(result, v)
+	}
+
+	return result
+}
+
 // ToMap collects elements of a slice into a map using a collector function.
 //
 // If the mapping function produces the same key for multiple elements, the resulting
@@ -316,6 +337,26 @@ func ToMultiMap[V any, K comparable, R any](values []V, m func(v V) (K, R)) map[
 	for _, v := range values {
 		k, vv := m(v)
 		result[k] = append(result[k], vv)
+	}
+
+	return result
+}
+
+// IndexBy indexes values by key. If multiple values produce the same key, the last value wins.
+func IndexBy[T any, K comparable](values []T, key func(v T) K) map[K]T {
+	result := make(map[K]T, len(values))
+	for _, v := range values {
+		result[key(v)] = v
+	}
+
+	return result
+}
+
+// CountBy counts values grouped by key.
+func CountBy[T any, K comparable](values []T, key func(v T) K) map[K]int {
+	result := make(map[K]int)
+	for _, v := range values {
+		result[key(v)]++
 	}
 
 	return result
@@ -350,6 +391,31 @@ func Unique[V comparable](values []V, transform ...func(v V) V) []V {
 
 		if _, exists := set[transformed]; !exists {
 			set[transformed] = struct{}{}
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
+// Compact returns a copy without zero-value elements.
+func Compact[T comparable](values []T) []T {
+	var zero T
+	result := make([]T, 0, len(values))
+	for _, v := range values {
+		if v != zero {
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
+// CompactFunc returns a copy without elements that match empty predicate.
+func CompactFunc[T any](values []T, empty func(v T) bool) []T {
+	result := make([]T, 0, len(values))
+	for _, v := range values {
+		if !empty(v) {
 			result = append(result, v)
 		}
 	}
@@ -431,6 +497,53 @@ func CollectAsMap[K comparable, V, R any](values []V, key func(v V) K, val func(
 	return result
 }
 
+// Difference returns a copy of left values that are not present in right.
+// The order and duplicate values from left are preserved.
+func Difference[T comparable](left, right []T) []T {
+	if len(left) == 0 {
+		return []T{}
+	}
+	if len(right) == 0 {
+		return slices.Clone(left)
+	}
+
+	rightSet := make(map[T]struct{}, len(right))
+	for _, v := range right {
+		rightSet[v] = dummy
+	}
+
+	result := make([]T, 0, len(left))
+	for _, v := range left {
+		if _, exists := rightSet[v]; !exists {
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
+// Intersect returns a copy of left values that are present in right.
+// The order and duplicate values from left are preserved.
+func Intersect[T comparable](left, right []T) []T {
+	if len(left) == 0 || len(right) == 0 {
+		return []T{}
+	}
+
+	rightSet := make(map[T]struct{}, len(right))
+	for _, v := range right {
+		rightSet[v] = dummy
+	}
+
+	result := make([]T, 0, len(left))
+	for _, v := range left {
+		if _, exists := rightSet[v]; exists {
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
 // EqualsWithOrder compares two slices taking into consideration elements order.
 func EqualsWithOrder[T comparable](left []T, right []T) bool {
 	if len(left) != len(right) {
@@ -462,7 +575,7 @@ func EqualsCompareWithOrder[T any](left []T, right []T, compare func(t1 T, t2 T)
 }
 
 // EqualValues compares values of two slices regardless of elements order.
-func EqualValues[T constraints.Ordered](left []T, right []T) bool {
+func EqualValues[T cmp.Ordered](left []T, right []T) bool {
 	if len(left) != len(right) {
 		return false
 	}
@@ -533,6 +646,23 @@ func Merge[K comparable, T any](t1 []T, t2 []T, key func(t T) K) []T {
 	return result
 }
 
+// Reverse returns a reversed copy of values.
+func Reverse[T any](values []T) []T {
+	result := make([]T, len(values))
+	for i, v := range values {
+		result[len(values)-1-i] = v
+	}
+
+	return result
+}
+
+// ReverseInPlace reverses values in place.
+func ReverseInPlace[T any](values []T) {
+	for i, j := 0, len(values)-1; i < j; i, j = i+1, j-1 {
+		values[i], values[j] = values[j], values[i]
+	}
+}
+
 // Range generates a slice of integers from 'from' to 'to' (exclusive).
 // The type T must be an integer type (e.g., int, int64, uint, etc.).
 // The returned slice includes 'from', but is exclusive to 'to'.
@@ -581,6 +711,39 @@ func BestMatchBy[T any](values []T, predicate func(currentBest, candidate T) boo
 	}
 
 	return &values[bestIdx]
+}
+
+// ClampIndex clamps index to the valid range of values. It returns -1 for empty slices.
+func ClampIndex[T any](values []T, index int) int {
+	if len(values) == 0 {
+		return -1
+	}
+	if index < 0 {
+		return 0
+	}
+	if index >= len(values) {
+		return len(values) - 1
+	}
+
+	return index
+}
+
+// At returns a pointer to the element at index, or nil when index is out of range.
+func At[T any](values []T, index int) *T {
+	if index < 0 || index >= len(values) {
+		return nil
+	}
+
+	return &values[index]
+}
+
+// AtOr returns the element at index, or fallback when index is out of range.
+func AtOr[T any](values []T, index int, fallback T) T {
+	if index < 0 || index >= len(values) {
+		return fallback
+	}
+
+	return values[index]
 }
 
 // Split divides a slice into multiple smaller slices (chunks) of a specified size and returns a slice of these chunks.

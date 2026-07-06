@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 
 	"git.casinomodule.org/casino27/basic-utils/v2/uarray"
@@ -1301,4 +1302,159 @@ func TestUnique_WithTransform_BothTransformed(t *testing.T) {
 
 	require.NotNil(t, result, "Result should not be nil")
 	assert.Equal(t, expected, result, "Result should match the expected output")
+}
+
+func TestFindIndex(t *testing.T) {
+	values := []int{10, 20, 30, 40}
+
+	assert.Equal(t, 2, uarray.FindIndex(values, func(v int) bool {
+		return v == 30
+	}))
+	assert.Equal(t, -1, uarray.FindIndex(values, func(v int) bool {
+		return v == 50
+	}))
+	assert.Equal(t, -1, uarray.FindIndex([]int{}, func(v int) bool {
+		return true
+	}))
+}
+
+func TestCompact(t *testing.T) {
+	assert.Equal(t, []int{1, 2, 3}, uarray.Compact([]int{0, 1, 0, 2, 3, 0}))
+	assert.Equal(t, []string{"a", "b"}, uarray.Compact([]string{"", "a", "", "b"}))
+	assert.Equal(t, []*int{}, uarray.Compact([]*int{nil, nil}))
+}
+
+func TestCompactFunc(t *testing.T) {
+	values := []string{"", "keep", "  ", "also"}
+	result := uarray.CompactFunc(values, func(v string) bool {
+		return strings.TrimSpace(v) == ""
+	})
+
+	assert.Equal(t, []string{"keep", "also"}, result)
+	assert.Equal(t, []string{"", "keep", "  ", "also"}, values)
+}
+
+func TestReduce(t *testing.T) {
+	sum := uarray.Reduce([]int{1, 2, 3, 4}, 0, func(acc int, v int) int {
+		return acc + v
+	})
+	assert.Equal(t, 10, sum)
+
+	joined := uarray.Reduce([]string{"a", "b", "c"}, "", func(acc string, v string) string {
+		return acc + v
+	})
+	assert.Equal(t, "abc", joined)
+}
+
+func TestReverse(t *testing.T) {
+	values := []int{1, 2, 3, 4}
+	result := uarray.Reverse(values)
+
+	assert.Equal(t, []int{4, 3, 2, 1}, result)
+	assert.Equal(t, []int{1, 2, 3, 4}, values)
+
+	result[0] = 99
+	assert.Equal(t, []int{1, 2, 3, 4}, values)
+}
+
+func TestReverseInPlace(t *testing.T) {
+	values := []int{1, 2, 3, 4}
+	uarray.ReverseInPlace(values)
+
+	assert.Equal(t, []int{4, 3, 2, 1}, values)
+
+	uarray.ReverseInPlace([]int{})
+	uarray.ReverseInPlace([]int{1})
+}
+
+func TestDifference(t *testing.T) {
+	left := []int{1, 2, 2, 3, 4, 5}
+	right := []int{2, 4}
+	result := uarray.Difference(left, right)
+
+	assert.Equal(t, []int{1, 3, 5}, result)
+	assert.Equal(t, []int{1, 2, 2, 3, 4, 5}, left)
+
+	clone := uarray.Difference(left, []int{})
+	require.Equal(t, left, clone)
+	require.NotSame(t, &left[0], &clone[0])
+}
+
+func TestIntersect(t *testing.T) {
+	left := []int{1, 2, 2, 3, 4, 5}
+	right := []int{2, 4}
+	result := uarray.Intersect(left, right)
+
+	assert.Equal(t, []int{2, 2, 4}, result)
+	assert.Equal(t, []int{1, 2, 2, 3, 4, 5}, left)
+	assert.Equal(t, []int{}, uarray.Intersect(left, []int{}))
+}
+
+func TestIndexBy(t *testing.T) {
+	type item struct {
+		ID   int
+		Name string
+	}
+	values := []item{{ID: 1, Name: "old"}, {ID: 2, Name: "two"}, {ID: 1, Name: "new"}}
+
+	result := uarray.IndexBy(values, func(v item) int {
+		return v.ID
+	})
+
+	assert.Equal(t, map[int]item{
+		1: {ID: 1, Name: "new"},
+		2: {ID: 2, Name: "two"},
+	}, result)
+}
+
+func TestCountBy(t *testing.T) {
+	result := uarray.CountBy([]string{"aa", "b", "cc", "d"}, func(v string) int {
+		return len(v)
+	})
+
+	assert.Equal(t, map[int]int{1: 2, 2: 2}, result)
+}
+
+func TestClampIndex(t *testing.T) {
+	assert.Equal(t, -1, uarray.ClampIndex([]int{}, 10))
+	assert.Equal(t, 0, uarray.ClampIndex([]int{1, 2, 3}, -10))
+	assert.Equal(t, 1, uarray.ClampIndex([]int{1, 2, 3}, 1))
+	assert.Equal(t, 2, uarray.ClampIndex([]int{1, 2, 3}, 10))
+}
+
+func TestAt(t *testing.T) {
+	values := []string{"a", "b", "c"}
+
+	require.Nil(t, uarray.At(values, -1))
+	require.Nil(t, uarray.At(values, 3))
+	require.NotNil(t, uarray.At(values, 1))
+	assert.Equal(t, "b", *uarray.At(values, 1))
+}
+
+func TestAtOr(t *testing.T) {
+	values := []string{"a", "b", "c"}
+
+	assert.Equal(t, "fallback", uarray.AtOr(values, -1, "fallback"))
+	assert.Equal(t, "fallback", uarray.AtOr(values, 3, "fallback"))
+	assert.Equal(t, "b", uarray.AtOr(values, 1, "fallback"))
+}
+
+func TestCopyingUtilitiesAreConcurrentReadSafe(t *testing.T) {
+	values := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	var wg sync.WaitGroup
+
+	for i := 0; i < 32; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7, 8, 9}, uarray.Compact(values))
+			assert.Equal(t, []int{9, 8, 7, 6, 5, 4, 3, 2, 1, 0}, uarray.Reverse(values))
+			assert.Equal(t, []int{1, 3, 5, 7, 9}, uarray.Difference(values, []int{0, 2, 4, 6, 8}))
+			assert.Equal(t, []int{0, 2, 4, 6, 8}, uarray.Intersect(values, []int{0, 2, 4, 6, 8}))
+		}()
+	}
+
+	wg.Wait()
+	assert.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, values)
 }

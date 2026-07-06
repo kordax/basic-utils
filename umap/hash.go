@@ -41,7 +41,7 @@ func writeHashData(h hash.Hash, val reflect.Value) {
 			writeHashData(h, key)
 			writeHashData(h, val.MapIndex(key))
 		}
-	case reflect.Ptr, reflect.Interface:
+	case reflect.Pointer, reflect.Interface:
 		if !val.IsNil() {
 			writeHashData(h, val.Elem())
 		}

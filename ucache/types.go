@@ -638,7 +638,7 @@ func isComparable(value interface{}) bool {
 
 	t := reflect.TypeOf(value)
 
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 

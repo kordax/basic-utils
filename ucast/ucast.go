@@ -162,7 +162,7 @@ func fromString[U uconst.BasicType](s string) (U, error) {
 	var zero U
 	var uType = reflect.TypeOf(zero)
 
-	isPtr := uType.Kind() == reflect.Ptr
+	isPtr := uType.Kind() == reflect.Pointer
 	if isPtr {
 		uType = uType.Elem()
 	}
