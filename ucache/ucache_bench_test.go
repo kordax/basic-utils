@@ -114,6 +114,30 @@ func BenchmarkInMemoryComparableMapCacheSetQuietly(b *testing.B) {
 	}
 }
 
+func BenchmarkInMemoryComparableMapCacheSetBuffered(b *testing.B) {
+	cache := ucache.NewInMemoryComparableMapCache[int, int](uopt.Null[time.Duration]())
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cache.SetBuffered(i, i)
+	}
+	cache.Wait()
+	cache.CloseBuffered()
+}
+
+func BenchmarkInMemoryComparableMapCacheSetQuietlyBuffered(b *testing.B) {
+	cache := ucache.NewInMemoryComparableMapCache[int, int](uopt.Null[time.Duration]())
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cache.SetQuietlyBuffered(i, i)
+	}
+	cache.Wait()
+	cache.CloseBuffered()
+}
+
 func BenchmarkInMemoryComparableMapCacheGet(b *testing.B) {
 	const numItems = 10000
 	cache := ucache.NewInMemoryComparableMapCache[int, int](uopt.Null[time.Duration]())

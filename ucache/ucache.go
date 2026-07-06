@@ -437,14 +437,72 @@ type InMemoryComparableMapCache[K comparable, T any] struct {
 	changes         sync.Map
 	lastUpdatedKeys sync.Map
 	ttlNanos        atomic.Int64
+
+	bufferOnce      sync.Once
+	bufferStarted   atomic.Bool
+	bufferClosed    atomic.Bool
+	bufferQueue     chan bufferedComparableMapEntry[K, T]
+	bufferQueueSize int
+	bufferWorkers   int
+	bufferWG        sync.WaitGroup
+	bufferWorkersWG sync.WaitGroup
+	bufferAddMtx    sync.Mutex
+}
+
+const (
+	defaultComparableMapCacheBufferedWorkers   = 4
+	defaultComparableMapCacheBufferedQueueSize = 65536
+)
+
+type InMemoryComparableMapCacheOptions struct {
+	// TTL configures cache entry time-to-live.
+	TTL uopt.Opt[time.Duration]
+	// BufferedWorkers configures how many workers apply buffered writes.
+	BufferedWorkers int
+	// BufferedQueueSize configures the buffered write queue capacity.
+	BufferedQueueSize int
+}
+
+type bufferedComparableMapEntry[K comparable, T any] struct {
+	key          K
+	value        T
+	trackChanges bool
 }
 
 // NewInMemoryComparableMapCache creates a new instance of InMemoryComparableMapCache.
 // It accepts an optional TTL (time-to-live) duration for cache entries.
 func NewInMemoryComparableMapCache[K comparable, T any](ttl uopt.Opt[time.Duration]) *InMemoryComparableMapCache[K, T] {
-	c := &InMemoryComparableMapCache[K, T]{}
-	c.SetTTL(ttl)
+	return NewInMemoryComparableMapCacheWithOptions[K, T](InMemoryComparableMapCacheOptions{
+		TTL: ttl,
+	})
+}
+
+// NewInMemoryComparableMapCacheWithOptions creates a new InMemoryComparableMapCache with TTL and buffered write options.
+func NewInMemoryComparableMapCacheWithOptions[K comparable, T any](
+	options InMemoryComparableMapCacheOptions,
+) *InMemoryComparableMapCache[K, T] {
+	c := &InMemoryComparableMapCache[K, T]{
+		bufferQueueSize: normalizeComparableMapCacheBufferedQueueSize(options.BufferedQueueSize),
+		bufferWorkers:   normalizeComparableMapCacheBufferedWorkers(options.BufferedWorkers),
+	}
+	c.SetTTL(options.TTL)
 	return c
+}
+
+func normalizeComparableMapCacheBufferedWorkers(workers int) int {
+	if workers > 0 {
+		return workers
+	}
+
+	return defaultComparableMapCacheBufferedWorkers
+}
+
+func normalizeComparableMapCacheBufferedQueueSize(queueSize int) int {
+	if queueSize > 0 {
+		return queueSize
+	}
+
+	return defaultComparableMapCacheBufferedQueueSize
 }
 
 func (c *InMemoryComparableMapCache[K, T]) SetTTL(ttl uopt.Opt[time.Duration]) {
@@ -522,11 +580,97 @@ func (c *InMemoryComparableMapCache[K, T]) Set(key K, value T) {
 	c.touch(key)
 }
 
+// SetBuffered queues a cache update without making it immediately visible.
+// Call Wait to flush buffered updates. It returns true to mirror admission-style cache APIs.
+func (c *InMemoryComparableMapCache[K, T]) SetBuffered(key K, value T) bool {
+	return c.enqueueBuffered(key, value, true)
+}
+
 // SetQuietly adds a value to the cache for the provided key without altering the change history.
 // This method is thread-safe and optimized for performance when change tracking is unnecessary.
 func (c *InMemoryComparableMapCache[K, T]) SetQuietly(key K, value T) {
 	c.values.Store(key, value)
 	c.touch(key)
+}
+
+// SetQuietlyBuffered queues a cache update without altering the change history and without making it immediately visible.
+// Call Wait to flush buffered updates. It returns true to mirror admission-style cache APIs.
+func (c *InMemoryComparableMapCache[K, T]) SetQuietlyBuffered(key K, value T) bool {
+	return c.enqueueBuffered(key, value, false)
+}
+
+func (c *InMemoryComparableMapCache[K, T]) enqueueBuffered(key K, value T, trackChanges bool) bool {
+	c.bufferAddMtx.Lock()
+	defer c.bufferAddMtx.Unlock()
+
+	if c.bufferClosed.Load() {
+		return false
+	}
+
+	c.startBuffer()
+
+	c.bufferWG.Add(1)
+	c.bufferQueue <- bufferedComparableMapEntry[K, T]{
+		key:          key,
+		value:        value,
+		trackChanges: trackChanges,
+	}
+
+	return true
+}
+
+func (c *InMemoryComparableMapCache[K, T]) startBuffer() {
+	c.bufferOnce.Do(func() {
+		c.bufferQueueSize = normalizeComparableMapCacheBufferedQueueSize(c.bufferQueueSize)
+		c.bufferWorkers = normalizeComparableMapCacheBufferedWorkers(c.bufferWorkers)
+		c.bufferQueue = make(chan bufferedComparableMapEntry[K, T], c.bufferQueueSize)
+
+		for i := 0; i < c.bufferWorkers; i++ {
+			c.bufferWorkersWG.Add(1)
+			go c.bufferWorker()
+		}
+
+		c.bufferStarted.Store(true)
+	})
+}
+
+func (c *InMemoryComparableMapCache[K, T]) bufferWorker() {
+	defer c.bufferWorkersWG.Done()
+
+	for entry := range c.bufferQueue {
+		c.values.Store(entry.key, entry.value)
+		if entry.trackChanges {
+			c.changes.Store(entry.key, struct{}{})
+		}
+		c.touch(entry.key)
+		c.bufferWG.Done()
+	}
+}
+
+// Wait blocks until all currently accepted buffered updates are applied.
+func (c *InMemoryComparableMapCache[K, T]) Wait() {
+	if !c.bufferStarted.Load() {
+		return
+	}
+
+	c.bufferAddMtx.Lock()
+	c.bufferWG.Wait()
+	c.bufferAddMtx.Unlock()
+}
+
+// CloseBuffered waits for buffered updates and stops background buffer workers.
+// After CloseBuffered, SetBuffered and SetQuietlyBuffered return false.
+func (c *InMemoryComparableMapCache[K, T]) CloseBuffered() {
+	c.bufferAddMtx.Lock()
+	if !c.bufferClosed.Swap(true) {
+		if c.bufferStarted.Load() {
+			c.bufferWG.Wait()
+			close(c.bufferQueue)
+		}
+	}
+	c.bufferAddMtx.Unlock()
+
+	c.bufferWorkersWG.Wait()
 }
 
 // Get retrieves the value associated with the provided key from the cache.
@@ -579,6 +723,8 @@ func (c *InMemoryComparableMapCache[K, T]) Keys() []K {
 
 // Drop completely clears the cache, removing all entries. The operation is thread-safe.
 func (c *InMemoryComparableMapCache[K, T]) Drop() {
+	c.Wait()
+
 	c.values.Range(func(key, _ any) bool {
 		c.values.Delete(key)
 		return true
@@ -596,6 +742,7 @@ func (c *InMemoryComparableMapCache[K, T]) Drop() {
 // DropKey removes the value associated with the provided key from the cache.
 // The operation is thread-safe.
 func (c *InMemoryComparableMapCache[K, T]) DropKey(key K) {
+	c.Wait()
 	c.deleteKey(key)
 }
 
