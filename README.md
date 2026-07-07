@@ -35,6 +35,7 @@ This is due to the usage of features and packages introduced in this version.
 - [uset](uset/README.md): Set implementations and set algebra helpers.
 - [usql](usql/README.md): SQL helper types and functions.
 - [usrlz](usrlz/README.md): Serialization helpers.
+- [usize](usize/README.md): Byte-sized data unit constants.
 - [ustr](ustr/README.md): String helpers.
 - [ustream](ustream/README.md): Experimental stream-style helpers for slice processing.
 
