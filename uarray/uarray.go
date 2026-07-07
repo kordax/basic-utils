@@ -8,9 +8,12 @@ package uarray
 
 import (
 	"cmp"
+	"runtime"
 	"slices"
 	"sort"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"git.casinomodule.org/casino27/basic-utils/v3/ucast"
 	"git.casinomodule.org/casino27/basic-utils/v3/uconst"
@@ -18,6 +21,10 @@ import (
 )
 
 var dummy struct{}
+
+const hasParallelThreshold = 1 << 16
+const hasParallelMinChunk = 2048
+const hasParallelPrefixScan = 1024
 
 func IndexOfUint32(slice []uint32, value uint32) int {
 	for i, v := range slice {
@@ -102,9 +109,24 @@ func AnyMatch[T any](values []T, predicate func(v T) bool) bool {
 // Has checks if slice has an element.
 // Returns true if there's a match, false otherwise.
 func Has[T comparable](values []T, val T) bool {
-	return AnyMatch(values, func(v T) bool {
-		return v == val
-	})
+	if len(values) >= hasParallelThreshold {
+		prefixLen := min(hasParallelPrefixScan, len(values))
+		for _, v := range values[:prefixLen] {
+			if v == val {
+				return true
+			}
+		}
+
+		return hasParallel(values[prefixLen:], val)
+	}
+
+	for _, v := range values {
+		if v == val {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Filter filters values slice and returns a copy with filtered elements matching a predicate.
@@ -173,6 +195,46 @@ func FilterOut[V any](values []V, filter func(v V) bool) []V {
 func FilterOutBySet[V comparable](values []V, filter ...V) []V {
 	if len(values) == 0 || len(filter) == 0 {
 		return values
+	}
+
+	if len(filter) == 1 {
+		filterValue := filter[0]
+		result := make([]V, 0, len(values))
+		for _, v := range values {
+			if v != filterValue {
+				result = append(result, v)
+			}
+		}
+
+		return result
+	}
+	if len(filter) == 2 {
+		filterValue1, filterValue2 := filter[0], filter[1]
+		result := make([]V, 0, len(values))
+		for _, v := range values {
+			if v != filterValue1 && v != filterValue2 {
+				result = append(result, v)
+			}
+		}
+
+		return result
+	}
+	if len(filter) <= 4 {
+		result := make([]V, 0, len(values))
+		for _, v := range values {
+			found := false
+			for _, filterValue := range filter {
+				if v == filterValue {
+					found = true
+					break
+				}
+			}
+			if !found {
+				result = append(result, v)
+			}
+		}
+
+		return result
 	}
 
 	filterSet := make(map[V]struct{}, len(filter))
@@ -821,6 +883,44 @@ func AsString[T uconst.Stringable](delimiter string, values ...T) string {
 	}
 
 	return strings.Join(parts, delimiter)
+}
+
+func hasParallel[T comparable](values []T, val T) bool {
+	workers := runtime.GOMAXPROCS(0)
+	if workers <= 1 || len(values) < workers*hasParallelMinChunk {
+		for _, v := range values {
+			if v == val {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	chunkSize := (len(values) + workers - 1) / workers
+	var found atomic.Bool
+	var wg sync.WaitGroup
+	wg.Add(workers)
+
+	for worker := 0; worker < workers; worker++ {
+		start := worker * chunkSize
+		end := min(start+chunkSize, len(values))
+		go func() {
+			defer wg.Done()
+			for i := start; i < end; i++ {
+				if values[i] == val {
+					found.Store(true)
+					return
+				}
+				if i&63 == 0 && found.Load() {
+					return
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
+	return found.Load()
 }
 
 func equals[T comparable](t1, t2 T) bool {

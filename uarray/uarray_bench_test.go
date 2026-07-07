@@ -11,6 +11,21 @@ import (
 	"testing"
 )
 
+var (
+	benchBool bool
+	benchInts []int
+)
+
+func hasLinearBench[T comparable](values []T, val T) bool {
+	for _, v := range values {
+		if v == val {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Benchmark for Contains function
 func BenchmarkContains(b *testing.B) {
 	sampleSlice := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
@@ -22,6 +37,97 @@ func BenchmarkContains(b *testing.B) {
 	}
 }
 
+func BenchmarkHas(b *testing.B) {
+	values := make([]int, 10000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchBool = Has(values, 9999)
+	}
+}
+
+func BenchmarkHasLargeFirst(b *testing.B) {
+	values := make([]int, 1_000_000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchBool = Has(values, 0)
+	}
+}
+
+func BenchmarkHasLinearLargeFirst(b *testing.B) {
+	values := make([]int, 1_000_000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchBool = hasLinearBench(values, 0)
+	}
+}
+
+func BenchmarkHasLargeLast(b *testing.B) {
+	values := make([]int, 1_000_000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchBool = Has(values, len(values)-1)
+	}
+}
+
+func BenchmarkHasLinearLargeLast(b *testing.B) {
+	values := make([]int, 1_000_000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchBool = hasLinearBench(values, len(values)-1)
+	}
+}
+
+func BenchmarkHasLargeAbsent(b *testing.B) {
+	values := make([]int, 1_000_000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchBool = Has(values, -1)
+	}
+}
+
+func BenchmarkHasLinearLargeAbsent(b *testing.B) {
+	values := make([]int, 1_000_000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchBool = hasLinearBench(values, -1)
+	}
+}
+
 // Benchmark for ContainsAny function
 func BenchmarkContainsAny(b *testing.B) {
 	sampleSlice := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
@@ -30,6 +136,62 @@ func BenchmarkContainsAny(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ContainsAny(sampleSlice, values...)
+	}
+}
+
+func BenchmarkFilterOutBySetOneValue(b *testing.B) {
+	values := make([]int, 10000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchInts = FilterOutBySet(values, 5000)
+	}
+}
+
+func BenchmarkFilterOutBySetTwoValues(b *testing.B) {
+	values := make([]int, 10000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchInts = FilterOutBySet(values, 5000, 7000)
+	}
+}
+
+func BenchmarkFilterOutBySetFourValues(b *testing.B) {
+	values := make([]int, 10000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchInts = FilterOutBySet(values, 1000, 3000, 5000, 7000)
+	}
+}
+
+func BenchmarkFilterOutBySetManyValues(b *testing.B) {
+	values := make([]int, 10000)
+	filter := make([]int, 100)
+	for i := range values {
+		values[i] = i
+	}
+	for i := range filter {
+		filter[i] = i * 10
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchInts = FilterOutBySet(values, filter...)
 	}
 }
 
