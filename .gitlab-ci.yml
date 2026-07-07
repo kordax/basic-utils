@@ -42,7 +42,7 @@ Lint:
     - set -x
     - *werf_init
     - export WERF_DOCKER_OPTIONS="-v ${SSH_AUTH_SOCK}:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent"
-    - werf run lint -- sh -c 'go mod download && golangci-lint -v run --concurrency=1 ./...' || { exit_code=$?; ssh-agent -k; exit $exit_code; }
+    - werf run ci-tools -- sh -c 'go mod download && golangci-lint -v run --concurrency=1 ./...' || { exit_code=$?; ssh-agent -k; exit $exit_code; }
     - ssh-agent -k
   except: [ schedules, triggers ]
   tags: [ werf-runner ]
@@ -62,7 +62,7 @@ Test:
     - set -x
     - *werf_init
     - export WERF_DOCKER_OPTIONS="-v ${SSH_AUTH_SOCK}:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent"
-    - werf run test -- go test -race ./... || { exit_code=$?; ssh-agent -k; exit $exit_code; }
+    - werf run ci-tools -- sh -c 'CGO_ENABLED=1 go test -race ./...' || { exit_code=$?; ssh-agent -k; exit $exit_code; }
     - ssh-agent -k
   except: [ schedules, triggers ]
   tags: [ werf-runner ]
@@ -80,7 +80,7 @@ Security Check:
     - set -x
     - *werf_init
     - export WERF_DOCKER_OPTIONS="-v ${SSH_AUTH_SOCK}:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent"
-    - werf run security -- sh -c 'go mod download && go mod verify && govulncheck ./... && gosec -exclude=G103,G115,G304 ./... && gitleaks detect --source=. --no-git --redact --report-format=sarif --verbose' || { exit_code=$?; ssh-agent -k; exit $exit_code; }
+    - werf run ci-tools -- sh -c 'go mod download && go mod verify && govulncheck ./... && gosec -exclude=G103,G115,G304 ./... && gitleaks detect --source=. --no-git --redact --report-format=sarif --verbose' || { exit_code=$?; ssh-agent -k; exit $exit_code; }
     - ssh-agent -k
   except: [ schedules, triggers ]
   tags: [ werf-runner ]
