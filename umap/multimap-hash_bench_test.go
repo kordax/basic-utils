@@ -33,3 +33,20 @@ func BenchmarkHashMultiMap_Get(b *testing.B) {
 		_, _ = m.Get(generateTestKey(i))
 	}
 }
+
+func BenchmarkHashMultiMap_Remove(b *testing.B) {
+	values := make([]int, 10000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		m := umap.NewHashMultiMap[int, int]()
+		m.Set(1, values...)
+		_ = m.Remove(1, func(v int) bool {
+			return v%3 == 0
+		})
+	}
+}

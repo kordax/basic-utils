@@ -33,6 +33,52 @@ func BenchmarkContainsAny(b *testing.B) {
 	}
 }
 
+func BenchmarkFilter(b *testing.B) {
+	values := make([]int, 10000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = Filter(values, func(v int) bool {
+			return v%3 == 0
+		})
+	}
+}
+
+func BenchmarkMap(b *testing.B) {
+	values := make([]int, 10000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = Map(values, func(v int) int {
+			return v * 2
+		})
+	}
+}
+
+func BenchmarkFlat(b *testing.B) {
+	values := make([][]int, 100)
+	for i := range values {
+		values[i] = make([]int, 100)
+		for j := range values[i] {
+			values[i][j] = i*100 + j
+		}
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = Flat(values)
+	}
+}
+
 // Benchmark for EqualValues function
 func BenchmarkEqualValues(b *testing.B) {
 	slice1 := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}

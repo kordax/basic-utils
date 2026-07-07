@@ -34,12 +34,19 @@ func writeHashData(h hash.Hash, val reflect.Value) {
 		}
 	case reflect.Map:
 		keys := val.MapKeys()
-		sort.Slice(keys, func(i, j int) bool {
-			return fmt.Sprintf("%v", keys[i]) < fmt.Sprintf("%v", keys[j])
+		sortKeys := make([]reflectMapKey, len(keys))
+		for i, key := range keys {
+			sortKeys[i] = reflectMapKey{
+				value: key,
+				sort:  fmt.Sprint(key),
+			}
+		}
+		sort.Slice(sortKeys, func(i, j int) bool {
+			return sortKeys[i].sort < sortKeys[j].sort
 		})
-		for _, key := range keys {
-			writeHashData(h, key)
-			writeHashData(h, val.MapIndex(key))
+		for _, key := range sortKeys {
+			writeHashData(h, key.value)
+			writeHashData(h, val.MapIndex(key.value))
 		}
 	case reflect.Pointer, reflect.Interface:
 		if !val.IsNil() {
@@ -48,4 +55,9 @@ func writeHashData(h hash.Hash, val reflect.Value) {
 	default:
 		_, _ = fmt.Fprintf(h, "%v", val.Interface())
 	}
+}
+
+type reflectMapKey struct {
+	value reflect.Value
+	sort  string
 }

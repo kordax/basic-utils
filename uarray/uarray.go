@@ -112,7 +112,7 @@ func Filter[V any](values []V, filter func(v V) bool) []V {
 	if len(values) == 0 {
 		return []V{}
 	}
-	result := make([]V, 0)
+	result := make([]V, 0, len(values))
 	for _, v := range values {
 		if filter(v) {
 			result = append(result, v)
@@ -128,8 +128,8 @@ func FilterAll[V any](values []V, filter func(v V) bool) ([]V, []V) {
 		return []V{}, []V{}
 	}
 
-	result := make([]V, 0)
-	nonMatching := make([]V, 0)
+	result := make([]V, 0, len(values))
+	nonMatching := make([]V, 0, len(values))
 	for _, v := range values {
 		if filter(v) {
 			result = append(result, v)
@@ -147,11 +147,11 @@ func FilterBySet[V comparable](values []V, filter ...V) []V {
 		return []V{}
 	}
 
-	filterSet := make(map[V]struct{})
+	filterSet := make(map[V]struct{}, len(filter))
 	for _, v := range filter {
 		filterSet[v] = struct{}{}
 	}
-	result := make([]V, 0)
+	result := make([]V, 0, len(values))
 	for _, v := range values {
 		if _, found := filterSet[v]; found {
 			result = append(result, v)
@@ -175,11 +175,11 @@ func FilterOutBySet[V comparable](values []V, filter ...V) []V {
 		return values
 	}
 
-	filterSet := make(map[V]struct{})
+	filterSet := make(map[V]struct{}, len(filter))
 	for _, v := range filter {
 		filterSet[v] = struct{}{}
 	}
-	result := make([]V, 0)
+	result := make([]V, 0, len(values))
 	for _, v := range values {
 		if _, found := filterSet[v]; !found {
 			result = append(result, v)
@@ -267,7 +267,7 @@ func MapAggr[V, R any](values []V, aggr func(v V) []R) []R {
 
 // Map maps a func and returns a result.
 func Map[V, R any](values []V, m func(v V) R) []R {
-	result := make([]R, 0)
+	result := make([]R, 0, len(values))
 	for _, v := range values {
 		result = append(result, m(v))
 	}
@@ -278,7 +278,7 @@ func Map[V, R any](values []V, m func(v V) R) []R {
 // FlatMap applies the Map method and the Flat method consequently.
 func FlatMap[V, R any](values [][]V, m func(v V) R) []R {
 	flatten := Flat(values)
-	result := make([]R, 0)
+	result := make([]R, 0, len(flatten))
 	for _, v := range flatten {
 		result = append(result, m(v))
 	}
@@ -288,7 +288,12 @@ func FlatMap[V, R any](values [][]V, m func(v V) R) []R {
 
 // Flat flattens the stream (slice).
 func Flat[V any](values [][]V) []V {
-	result := make([]V, 0)
+	size := 0
+	for _, v := range values {
+		size += len(v)
+	}
+
+	result := make([]V, 0, size)
 	for _, v := range values {
 		result = append(result, v...)
 	}
@@ -313,7 +318,7 @@ func Reduce[T, R any](values []T, initial R, reducer func(acc R, v T) R) R {
 // behave like a multimap. Each key in the returned map corresponds to a single value,
 // and any previous value for the same key will be overwritten.
 func ToMap[V any, K comparable, R any](values []V, m func(v V) (K, R)) map[K]R {
-	result := make(map[K]R)
+	result := make(map[K]R, len(values))
 	for _, v := range values {
 		k, nv := m(v)
 		result[k] = nv
@@ -355,8 +360,8 @@ func CountBy[T any, K comparable](values []T, key func(v T) K) map[K]int {
 
 // Uniq filters unique elements by predicate that returns any comparable value.
 func Uniq[V any, F comparable](values []V, getter func(v V) F) []V {
-	set := make(map[F]struct{})
-	result := make([]V, 0)
+	set := make(map[F]struct{}, len(values))
+	result := make([]V, 0, len(values))
 
 	for _, v := range values {
 		key := getter(v)
@@ -371,8 +376,8 @@ func Uniq[V any, F comparable](values []V, getter func(v V) F) []V {
 
 // Unique filters unique elements from a slice.
 func Unique[V comparable](values []V, transform ...func(v V) V) []V {
-	set := make(map[V]struct{})
-	result := make([]V, 0)
+	set := make(map[V]struct{}, len(values))
+	result := make([]V, 0, len(values))
 
 	for _, v := range values {
 		transformed := v
@@ -453,7 +458,7 @@ func MapAndGroupToMapBy[V any, G comparable, R any](values []V, group func(v V) 
 
 // CopyWithoutIndex copies a slice while ignoring an element at specific index.
 func CopyWithoutIndex[T any](src []T, index int) []T {
-	cpy := make([]T, 0)
+	cpy := make([]T, 0, len(src))
 	cpy = append(cpy, src[:index]...)
 
 	return append(cpy, src[index+1:]...)
@@ -480,7 +485,7 @@ func CopyWithoutIndexes[T any](src []T, indexes []int) []T {
 
 // CollectAsMap collects corresponding values to a map.
 func CollectAsMap[K comparable, V, R any](values []V, key func(v V) K, val func(v V) R) map[K]R {
-	result := make(map[K]R)
+	result := make(map[K]R, len(values))
 	for _, v := range values {
 		result[key(v)] = val(v)
 	}
@@ -617,8 +622,8 @@ func EqualValuesCompare[T any](left []T, right []T, compare func(t1, t2 T) bool,
 
 // Merge merges two slices with t1 elements prioritized against elements of t2.
 func Merge[K comparable, T any](t1 []T, t2 []T, key func(t T) K) []T {
-	hashes := make(map[K]struct{})
-	var result []T
+	hashes := make(map[K]struct{}, len(t1)+len(t2))
+	result := make([]T, 0, len(t1)+len(t2))
 	for _, t := range t1 {
 		k := key(t)
 		if _, ok := hashes[k]; !ok {
@@ -765,6 +770,7 @@ func Split[T any](slice []T, chunkSize int) [][]T {
 		return append(chunks, slice)
 	}
 
+	chunks = make([][]T, 0, (len(slice)+chunkSize-1)/chunkSize)
 	for i := 0; i < len(slice); i += chunkSize {
 		end := i + chunkSize
 		if end > len(slice) {
@@ -778,7 +784,7 @@ func Split[T any](slice []T, chunkSize int) [][]T {
 
 // AsString converts any supported stringable value to a string and joins them with the specified delimiter.
 func AsString[T uconst.Stringable](delimiter string, values ...T) string {
-	var parts []string
+	parts := make([]string, 0, len(values))
 	for _, v := range values {
 		var s string
 		switch val := any(v).(type) {

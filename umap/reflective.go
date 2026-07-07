@@ -24,7 +24,12 @@ func (m *ReflectiveMultiMap[K, V]) Get(key K) ([]V, bool) {
 		return nil, false
 	}
 
-	values := make([]V, 0)
+	size := 0
+	for _, v := range hashMap {
+		size += len(v)
+	}
+
+	values := make([]V, 0, size)
 	for _, v := range hashMap {
 		values = append(values, v...)
 	}
@@ -84,13 +89,17 @@ func (m *ReflectiveMultiMap[K, V]) Remove(key K, predicate func(v V) bool) int {
 
 	removalCount := 0
 	for hashKey, values := range hashMap {
-		newValues := make([]V, 0, len(values))
+		newValues := values[:0]
 		for _, v := range values {
 			if predicate(v) {
 				removalCount++
 			} else {
 				newValues = append(newValues, v)
 			}
+		}
+		var zero V
+		for i := len(newValues); i < len(values); i++ {
+			values[i] = zero
 		}
 		if len(newValues) == 0 {
 			delete(hashMap, hashKey)
