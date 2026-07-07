@@ -4,6 +4,22 @@ project: {{ $projectName }}
 configVersion: 1
 ---
 
+image: ci-tools
+from: registry.casinomodule.org/casino27/ci-tools:go-tools-latest
+fromCacheVersion: "go-tools-build-base-v1{{- if eq (env "NOCACHE") "true" }}-{{ env "CI_JOB_STARTED_AT" }}{{- end }}"
+imageSpec:
+  config:
+    workingDir: /app
+shell:
+  beforeSetup:
+    - mkdir -p /root/.ssh && echo -e 'Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile=/dev/null' > /root/.ssh/config
+git:
+  - add: /
+    to: /app
+    stageDependencies:
+      beforeSetup:
+        - "**/*"
+---
 image: builder
 final: false
 from: golang:1.26.4-alpine
@@ -33,61 +49,4 @@ git:
         - "go.sum"
       beforeSetup:
         - "**/*.go"
----
-
-image: test
-fromImage: builder
-{{- if eq (env "NOCACHE") "true" }}
-fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
-{{- end }}
----
-
-image: lint
-from: golang:1.26.4-alpine
-{{- if eq (env "NOCACHE") "true" }}
-fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
-{{- end }}
-imageSpec:
-  config:
-    workingDir: /app
-shell:
-  beforeInstall:
-    - apk --no-cache add curl git openssh-client
-    - go env -w GOPRIVATE=git.casinomodule.org
-    - curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.12.2
-    - mkdir -p /root/.ssh && echo -e 'Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile=/dev/null' > /root/.ssh/config
-  beforeSetup:
-    - test -f /app/go.mod
-git:
-  - add: /
-    to: /app
-    stageDependencies:
-      beforeSetup:
-        - "**/*"
----
-
-image: security
-from: golang:1.26.4-alpine
-{{- if eq (env "NOCACHE") "true" }}
-fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
-{{- end }}
-imageSpec:
-  config:
-    workingDir: /app
-shell:
-  beforeInstall:
-    - apk --no-cache add git openssh-client
-    - go env -w GOPRIVATE=git.casinomodule.org
-    - go install golang.org/x/vuln/cmd/govulncheck@v1.5.0
-    - go install github.com/securego/gosec/v2/cmd/gosec@v2.27.1
-    - go install github.com/zricethezav/gitleaks/v8@v8.30.1
-    - mkdir -p /root/.ssh && echo -e 'Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile=/dev/null' > /root/.ssh/config
-  beforeSetup:
-    - test -f /app/go.mod
-git:
-  - add: /
-    to: /app
-    stageDependencies:
-      beforeSetup:
-        - "**/*"
 ---
