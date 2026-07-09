@@ -90,6 +90,19 @@ func TestSynchronizedHashSet_Remove(t *testing.T) {
 	assert.Equal(t, 0, s.Size())
 }
 
+func TestSynchronizedHashSet_FromSetValuesAndClear(t *testing.T) {
+	t.Parallel()
+
+	s := uset.NewSynchronizedHashSetFromSet(uset.NewHashSet(1, 2))
+	values := s.Values()
+	assert.Len(t, values, 2)
+	assert.Contains(t, values, 1)
+	assert.Contains(t, values, 2)
+
+	s.Clear()
+	assert.Equal(t, 0, s.Size())
+}
+
 func TestSynchronizedHashSet_Clear(t *testing.T) {
 	t.Parallel()
 

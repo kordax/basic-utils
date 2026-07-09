@@ -45,6 +45,8 @@ func TestDef(t *testing.T) {
 }
 
 func TestStringHelpers(t *testing.T) {
+	require.Equal(t, "abc", ustr.Concat("a", "b", "c"))
+	require.Empty(t, ustr.Concat())
 	require.True(t, ustr.IsBlank(" \t\n"))
 	require.False(t, ustr.IsBlank(" value "))
 	require.Equal(t, "fallback", ustr.DefaultIfBlank(" ", "fallback"))

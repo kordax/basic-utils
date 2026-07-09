@@ -29,6 +29,45 @@ func TestStream_NewStream(t *testing.T) {
 	assert.Equal(t, values, stream.Collect(), "Of did not properly initialize with the values")
 }
 
+func TestStream_EmptyFactories(t *testing.T) {
+	assert.Empty(t, ustream.Empty[int]().Collect())
+	assert.Empty(t, ustream.Of[int](nil).Collect())
+	assert.Empty(t, ustream.Generate(0, func(index int) int {
+		return index
+	}).Collect())
+	assert.Empty(t, ustream.Generate(-1, func(index int) int {
+		return index
+	}).Collect())
+	assert.Empty(t, ustream.Iterate(1, 0, func(value int) int {
+		return value + 1
+	}).Collect())
+	assert.Empty(t, ustream.NewTerminalStream[int](nil).Collect())
+}
+
+func TestStream_GenerateAndIterate(t *testing.T) {
+	assert.Equal(t, []int{0, 2, 4}, ustream.Generate(3, func(index int) int {
+		return index * 2
+	}).Collect())
+
+	assert.Equal(t, []int{1, 2, 4, 8}, ustream.Iterate(1, 4, func(value int) int {
+		return value * 2
+	}).Collect())
+}
+
+func TestStream_EmptyOperations(t *testing.T) {
+	stream := ustream.Empty[int]()
+
+	assert.Empty(t, stream.Filter(func(value int) bool {
+		return true
+	}).Collect())
+	assert.Empty(t, stream.Transform(func(value int) int {
+		return value + 1
+	}).Collect())
+	assert.Empty(t, stream.DistinctBy(func(value int) string {
+		return fmt.Sprintf("%d", value)
+	}).Collect())
+}
+
 func TestStream_Filter(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
 	stream := ustream.Of(values)
@@ -95,6 +134,8 @@ func TestStream_TakeDropWhileAndMatches(t *testing.T) {
 
 	assert.Equal(t, []int{1, 2, 3}, stream.TakeWhile(func(v int) bool { return v < 4 }).Collect())
 	assert.Equal(t, []int{4, 1}, stream.DropWhile(func(v int) bool { return v < 4 }).Collect())
+	assert.Equal(t, []int{1, 2, 3, 4, 1}, stream.TakeWhile(func(v int) bool { return v < 10 }).Collect())
+	assert.Empty(t, stream.DropWhile(func(v int) bool { return v < 10 }).Collect())
 	assert.True(t, stream.AnyMatch(func(v int) bool { return v == 3 }))
 	assert.True(t, stream.AllMatch(func(v int) bool { return v > 0 }))
 	assert.True(t, stream.NoneMatch(func(v int) bool { return v < 0 }))
@@ -155,6 +196,20 @@ func TestStream_GenericMapFlatMapReduceAndCollectors(t *testing.T) {
 		return "odd"
 	}))
 	assert.Equal(t, map[string]int{"odd": 2, "even": 1}, counted)
+
+	assert.Equal(t, []int{1, 2, 3}, ustream.Collect(stream, ustream.ToSlice[int]()))
+
+	copied := ustream.Collect(stream, ustream.ToSliceCopy[int]())
+	copied[0] = 100
+	assert.Equal(t, []int{1, 2, 3}, stream.Collect())
+
+	multiMap := ustream.Collect(stream, ustream.ToMultiMap(func(v int) (string, int) {
+		if v%2 == 0 {
+			return "even", v
+		}
+		return "odd", v
+	}))
+	assert.Equal(t, map[string][]int{"odd": {1, 3}, "even": {2}}, multiMap)
 }
 
 func TestStream_TopLevelDistinctSortedCompact(t *testing.T) {
@@ -183,6 +238,35 @@ func TestStream_CollectCopyDoesNotExposeBackingArray(t *testing.T) {
 	copied[0] = 100
 
 	assert.Equal(t, []int{1, 2, 3}, stream.Collect())
+}
+
+func TestStream_CollectToMapMultiMapAndWith(t *testing.T) {
+	stream := ustream.From("a", "bb", "cc")
+
+	asMap := stream.CollectToMap(func(value string) (any, any) {
+		return len(value), value
+	})
+	assert.Equal(t, map[any]any{1: "a", 2: "cc"}, asMap)
+
+	asMultiMap := stream.CollectToMultiMap(func(value string) (any, any) {
+		return len(value), value
+	})
+	assert.Equal(t, map[any][]any{1: {"a"}, 2: {"bb", "cc"}}, asMultiMap)
+
+	collected := stream.CollectWith(func(values []string) any {
+		return strings.Join(values, "|")
+	})
+	assert.Equal(t, "a|bb|cc", collected)
+}
+
+func TestStream_ForEach(t *testing.T) {
+	var sum atomic.Int32
+
+	ustream.From(1, 2, 3).ForEach(func(value int) {
+		sum.Add(int32(value))
+	})
+
+	assert.EqualValues(t, 6, sum.Load())
 }
 
 func TestStream_CollectToMap(t *testing.T) {
@@ -226,6 +310,21 @@ func TestTerminalStream_ParallelExecute(t *testing.T) {
 
 	stream := ustream.Of([]int{1, 2, 3, 4, 5})
 	stream.ToTerminal().ParallelExecute(fn, 4)
+}
+
+func TestTerminalStream_Collectors(t *testing.T) {
+	stream := ustream.NewTerminalStream([]string{"a", "bb", "cc"})
+
+	assert.Equal(t, []string{"a", "bb", "cc"}, stream.Collect())
+
+	copied := stream.CollectCopy()
+	copied[0] = "changed"
+	assert.Equal(t, []string{"a", "bb", "cc"}, stream.Collect())
+
+	collected := stream.CollectToMap(func(value string) (any, string) {
+		return len(value), value
+	})
+	assert.Equal(t, map[any][]string{1: {"a"}, 2: {"bb", "cc"}}, collected)
 }
 
 func TestTerminalStream_ParallelExecuteMutatesOriginalValues(t *testing.T) {
@@ -320,4 +419,14 @@ func TestTerminalStream_ParallelExecuteWithTimeout_Timeout(t *testing.T) {
 	stream.ParallelExecuteWithTimeout(mockFn, cancel, 0, 10)
 
 	require.EqualValues(t, len(data), counter.Load(), "Not all items were processed as expected")
+}
+
+func TestTerminalStream_ParallelExecuteWithTimeoutNilCancel(t *testing.T) {
+	stream := ustream.NewTerminalStream([]int{1, 2, 3})
+
+	assert.NotPanics(t, func() {
+		stream.ParallelExecuteWithTimeout(func(index int, item int) {
+			time.Sleep(time.Millisecond)
+		}, nil, 0, 2)
+	})
 }

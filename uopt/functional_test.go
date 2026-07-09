@@ -19,6 +19,13 @@ func TestFunctionalHelpers(t *testing.T) {
 
 	assert.True(t, uopt.Filter(uopt.Of(2), func(v int) bool { return v%2 == 0 }).Present())
 	assert.False(t, uopt.Filter(uopt.Of(3), func(v int) bool { return v%2 == 0 }).Present())
+	assert.False(t, uopt.Filter(uopt.Null[int](), func(v int) bool { return true }).Present())
+	assert.False(t, uopt.Map(uopt.Null[int](), func(v int) string {
+		return strconv.Itoa(v)
+	}).Present())
+	assert.False(t, uopt.FlatMap(uopt.Null[int](), func(v int) uopt.Opt[int] {
+		return uopt.Of(v * 2)
+	}).Present())
 }
 
 func TestOrElseGet(t *testing.T) {

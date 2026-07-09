@@ -36,7 +36,7 @@ jobs:
           local-prefix: github.com/kordax/basic-utils
           threshold-file: 60
           threshold-package: 70
-          threshold-total: 70
+          threshold-total: 90
       - name: make coverage badge
         uses: action-badges/core@0.4.1
         if: contains(github.ref, 'main')

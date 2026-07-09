@@ -313,6 +313,16 @@ func TestHas(t *testing.T) {
 	}
 }
 
+func TestHasLargeSliceUsesParallelPath(t *testing.T) {
+	values := make([]int, 1<<16+4096)
+	for i := range values {
+		values[i] = i
+	}
+
+	assert.True(t, uarray.Has(values, len(values)-1))
+	assert.False(t, uarray.Has(values, -1))
+}
+
 func TestFilter(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
 	filtered := uarray.Filter(values, func(v int) bool {
@@ -1012,6 +1022,49 @@ func TestSplit_NilSlice_ChunkSizeZero(t *testing.T) {
 	result := uarray.Split(slice, chunkSize)
 	assert.Equal(t, 1, len(result), "Expected result length of 1 for nil slice and chunkSize zero")
 	assert.Nil(t, result[0], "Expected first element to be nil")
+}
+
+func TestEqualsCompareWithOrder(t *testing.T) {
+	compare := func(left, right string) bool {
+		return strings.EqualFold(left, right)
+	}
+
+	assert.True(t, uarray.EqualsCompareWithOrder([]string{"a", "B"}, []string{"A", "b"}, compare))
+	assert.False(t, uarray.EqualsCompareWithOrder([]string{"a"}, []string{"a", "b"}, compare))
+	assert.False(t, uarray.EqualsCompareWithOrder([]string{"a", "b"}, []string{"a", "c"}, compare))
+}
+
+func TestEqualValuesCompare(t *testing.T) {
+	type item struct {
+		id   int
+		name string
+	}
+
+	compare := func(left, right item) bool {
+		return left.id == right.id
+	}
+	less := func(left, right item) bool {
+		return left.id < right.id
+	}
+
+	assert.True(t, uarray.EqualValuesCompare(
+		[]item{{id: 2, name: "two"}, {id: 1, name: "one"}},
+		[]item{{id: 1, name: "uno"}, {id: 2, name: "dos"}},
+		compare,
+		less,
+	))
+	assert.False(t, uarray.EqualValuesCompare(
+		[]item{{id: 1}},
+		[]item{{id: 1}, {id: 2}},
+		compare,
+		less,
+	))
+	assert.False(t, uarray.EqualValuesCompare(
+		[]item{{id: 1}, {id: 3}},
+		[]item{{id: 1}, {id: 2}},
+		compare,
+		less,
+	))
 }
 
 func TestAsString(t *testing.T) {

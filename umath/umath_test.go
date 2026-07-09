@@ -60,6 +60,8 @@ func TestAvg(t *testing.T) {
 	if umath.Avg(array) != 3 {
 		t.Error("Expected average value of 3")
 	}
+
+	assert.Equal(t, 0, umath.Avg([]int{}))
 }
 
 func TestAvgFloat(t *testing.T) {
@@ -148,6 +150,26 @@ func TestAvgFloat(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMathEmptyAndBranchHelpers(t *testing.T) {
+	assert.Equal(t, 0, umath.Min([]int{}))
+	assert.Equal(t, 0, umath.Max([]int{}))
+	assert.Equal(t, 0, umath.Avg([]int{}))
+	assert.Equal(t, 0.0, umath.AvgFloat([]int{}))
+	assert.Equal(t, 0, umath.Med([]int{}))
+	assert.Equal(t, 10, umath.Med([]int{10}))
+
+	mn, mx := umath.MinMaxInt([]int{})
+	assert.Equal(t, 0, mn)
+	assert.Equal(t, 0, mx)
+
+	mn, mx = umath.MinMax([]int{})
+	assert.Equal(t, 0, mn)
+	assert.Equal(t, 0, mx)
+
+	assert.Equal(t, 5, umath.Min([]int{9, 7, 5}))
+	assert.Equal(t, 9, umath.Max([]int{5, 7, 9}))
 }
 
 func TestMin(t *testing.T) {
