@@ -4,6 +4,8 @@ Byte-sized data unit constants.
 
 Use decimal units for SI sizes and binary units for power-of-two sizes:
 
+## Example
+
 ```go
 const databaseLoadChunkSize = 8 * usize.MiB
 const payloadLimit = 10 * usize.MB

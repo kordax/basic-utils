@@ -10,6 +10,8 @@ when pointer allocation from `Get` is not needed.
 Use `InMemoryBufferedComparableMapCache` for write-heavy paths where immediate visibility is not required. It has the
 same cache methods, but `Set` and `SetQuietly` use buffered admission writes by default:
 
+## Example
+
 ```go
 var cache ucache.ComparableCache[string, int] = ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
 	TTL:               uopt.Null[time.Duration](),
