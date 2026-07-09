@@ -46,3 +46,45 @@ func TestInMemoryComparableMapCacheOptions_InvalidBufferedSettingsUseDefaults(t 
 	assert.Equal(t, defaultComparableMapCacheBufferedQueueSize, c.bufferQueueSize)
 	assert.Zero(t, c.bufferedMaxKeys)
 }
+
+func TestInMemoryComparableMapCache_BufferInternals(t *testing.T) {
+	c := NewInMemoryComparableMapCacheWithOptions[string, int](InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: 2,
+	})
+
+	assert.False(t, c.latestBufferedEntry(bufferedComparableMapEntry[string, int]{key: "missing", seq: 1}))
+
+	c.bufferedLatest.Store("key", "bad-seq")
+	assert.False(t, c.latestBufferedEntry(bufferedComparableMapEntry[string, int]{key: "key", seq: 1}))
+
+	c.bufferedLatest.Store("key", uint64(2))
+	assert.False(t, c.latestBufferedEntry(bufferedComparableMapEntry[string, int]{key: "key", seq: 1}))
+	assert.True(t, c.latestBufferedEntry(bufferedComparableMapEntry[string, int]{key: "key", seq: 2}))
+
+	assert.True(t, c.admitBufferedKey("key"))
+	assert.True(t, c.admitBufferedKey("second"))
+	assert.False(t, c.admitBufferedKey("third"))
+
+	c.clearBufferedKeys()
+	assert.Zero(t, c.bufferedKeyLen.Load())
+	assert.True(t, c.admitBufferedKey("third"))
+}
+
+func TestInMemoryComparableMapCache_BufferCloseAndRejectedWrites(t *testing.T) {
+	c := NewInMemoryComparableMapCacheWithOptions[string, int](InMemoryComparableMapCacheOptions{
+		BufferedWorkers: 1,
+	})
+
+	c.closeBuffered()
+	assert.False(t, c.enqueueBuffered("key", 1, true))
+
+	c = NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+	c.Set("key", 1)
+	c.closeBuffered()
+	c.closeBuffered()
+
+	value, ok := c.GetValue("key")
+	assert.True(t, ok)
+	assert.Equal(t, 1, value)
+	assert.False(t, c.enqueueBuffered("after-close", 2, true))
+}
