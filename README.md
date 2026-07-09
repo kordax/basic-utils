@@ -68,13 +68,11 @@ Then, refer to the individual documentation or code comments of each module for 
 ## Static Analysis
 
 The repository uses GitHub Actions for tests, linting, coverage, vulnerability checks, security scanning, and secret
-scanning. Run these checks locally before opening a pull request:
+scanning. The same checks can be run locally with Task:
 
 ```shell
-go test -race ./...
-golangci-lint run
-go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
-go run github.com/vladopajic/go-test-coverage/v2@latest --config=./testcoverage.yml
-go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-go run github.com/securego/gosec/v2/cmd/gosec@latest -exclude=G103,G115,G304 ./...
+task verify
 ```
+
+Useful focused checks are also available: `task test`, `task check`, `task check-coverage`, `task security`, and
+`task actionlint`.
