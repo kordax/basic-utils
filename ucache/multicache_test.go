@@ -581,6 +581,41 @@ func TestInMemoryHashMapMultiCache_Set(t *testing.T) {
 	assert.Equal(t, []DummyComparable{val2}, values)
 }
 
+func TestInMemoryHashMapMultiCache_KeysOutdatedAndRemoveOutdated(t *testing.T) {
+	c := ucache.NewDefaultHashMapMultiCache[SimpleCompositeKey[ucache.StringKey], DummyComparable](uopt.Of(time.Hour))
+	key := NewSimpleCompositeKey[ucache.StringKey]("kp_1", "kp_2")
+	val := DummyComparable{Val: 10}
+
+	assert.True(t, c.Outdated(uopt.Null[SimpleCompositeKey[ucache.StringKey]]()))
+	assert.True(t, c.Outdated(uopt.Of(key)))
+
+	c.Put(key, val)
+	assert.Equal(t, []SimpleCompositeKey[ucache.StringKey]{key}, c.Keys())
+	assert.False(t, c.Outdated(uopt.Of(key)))
+
+	expiring := ucache.NewDefaultHashMapMultiCache[SimpleCompositeKey[ucache.StringKey], DummyComparable](uopt.Of(time.Nanosecond))
+	expiring.Put(key, val)
+	time.Sleep(time.Nanosecond)
+	assert.True(t, expiring.Outdated(uopt.Of(key)))
+	assert.True(t, expiring.Outdated(uopt.Null[SimpleCompositeKey[ucache.StringKey]]()))
+	assert.Equal(t, 1, expiring.RemoveOutdated())
+	assert.Empty(t, expiring.Get(key))
+	assert.Zero(t, expiring.RemoveOutdated())
+}
+
+func TestSha256HashMapMultiCache(t *testing.T) {
+	cache := ucache.NewSha256HashMapMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
+	key := ucache.NewStrCompositeKey("category", "key")
+	value := DummyComparable{Val: 10}
+
+	cache.Put(key, value)
+
+	assert.Equal(t, []DummyComparable{value}, cache.Get(key))
+	assert.Equal(t, []ucache.StrCompositeKey{key}, cache.Keys())
+	assert.Equal(t, []ucache.StrCompositeKey{key}, cache.Changes())
+	assert.False(t, cache.Outdated(uopt.Of(key)))
+}
+
 func TestHashMapMultiCacheHighCollisionProbability(t *testing.T) {
 	c := ucache.NewFarmHashMapMultiCache[CollisionTestKey, ucache.Int64Value](uopt.Null[time.Duration]())
 

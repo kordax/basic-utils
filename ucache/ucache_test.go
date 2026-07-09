@@ -125,6 +125,44 @@ func TestHashMapCache_SetNil(t *testing.T) {
 	assert.EqualValues(t, val3, *result3)
 }
 
+func TestInMemoryBufferedComparableMapCache_WrapperMethods(t *testing.T) {
+	cache := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
+	defer cache.CloseBuffered()
+
+	cache.SetTTL(uopt.Of(time.Hour))
+	cache.Set("one", 1)
+	cache.SetQuietly("two", 2)
+	cache.Wait()
+
+	value, ok := cache.Get("one")
+	require.True(t, ok)
+	assert.Equal(t, 1, *value)
+
+	value2, ok := cache.GetValue("two")
+	require.True(t, ok)
+	assert.Equal(t, 2, value2)
+
+	assert.Contains(t, cache.Keys(), "one")
+	assert.Contains(t, cache.Keys(), "two")
+	assert.Contains(t, cache.Changes(), "one")
+	assert.NotContains(t, cache.Changes(), "two")
+	assert.False(t, cache.Outdated(uopt.Of("one")))
+
+	cache.DropKey("one")
+	_, ok = cache.Get("one")
+	assert.False(t, ok)
+
+	cache.SetTTL(uopt.Of(time.Nanosecond))
+	cache.Set("expired", 3)
+	cache.Wait()
+	time.Sleep(time.Nanosecond)
+	assert.True(t, cache.Outdated(uopt.Of("expired")))
+	assert.GreaterOrEqual(t, cache.RemoveOutdated(), 1)
+
+	cache.Drop()
+	assert.Empty(t, cache.Keys())
+}
+
 func TestHashMapCache_GetValue(t *testing.T) {
 	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 
@@ -605,6 +643,8 @@ func TestComparableMapCache_BufferedMaxKeysRejectsNewKeys(t *testing.T) {
 
 	c.SetQuietly("key1", 1)
 	c.SetQuietly("key2", 2)
+	c.Wait()
+
 	c.SetQuietly("key3", 3)
 	c.SetQuietly("key1", 10)
 

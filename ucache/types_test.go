@@ -55,6 +55,20 @@ func TestStringKey_String(t *testing.T) {
 	assert.Equal(t, "hello", key.String())
 }
 
+func TestIntAndUIntKeyStringAndEqualsPointers(t *testing.T) {
+	intKey := ucache.IntKey(42)
+	uintKey := ucache.UIntKey(43)
+
+	assert.Equal(t, "42", intKey.String())
+	assert.Equal(t, "43", uintKey.String())
+	assert.True(t, intKey.Equals(&intKey))
+	assert.True(t, uintKey.Equals(&uintKey))
+	assert.False(t, intKey.Equals((*ucache.IntKey)(nil)))
+	assert.False(t, uintKey.Equals((*ucache.UIntKey)(nil)))
+	assert.False(t, intKey.Equals(ucache.StringKey("42")))
+	assert.False(t, uintKey.Equals(ucache.StringKey("43")))
+}
+
 func TestStrCompositeKey_Equals(t *testing.T) {
 	key1 := ucache.NewStrCompositeKey("a", "b", "c")
 	key2 := ucache.NewStrCompositeKey("a", "b", "c")
@@ -62,6 +76,9 @@ func TestStrCompositeKey_Equals(t *testing.T) {
 
 	assert.True(t, key1.Equals(key2))
 	assert.False(t, key1.Equals(key3))
+	assert.True(t, key1.Equals(&key2))
+	assert.False(t, key1.Equals((*ucache.StrCompositeKey)(nil)))
+	assert.False(t, key1.Equals(ucache.StringKey("a")))
 }
 
 func TestIntKey_Key(t *testing.T) {
@@ -113,6 +130,9 @@ func TestIntCompositeKey_Equals(t *testing.T) {
 
 	assert.True(t, key1.Equals(key2))
 	assert.False(t, key1.Equals(key3))
+	assert.True(t, key1.Equals(&key2))
+	assert.False(t, key1.Equals((*ucache.IntCompositeKey)(nil)))
+	assert.False(t, key1.Equals(ucache.IntKey(1)))
 }
 
 func TestUIntCompositeKey_Equals(t *testing.T) {
@@ -122,6 +142,9 @@ func TestUIntCompositeKey_Equals(t *testing.T) {
 
 	assert.True(t, key1.Equals(key2))
 	assert.False(t, key1.Equals(key3))
+	assert.True(t, key1.Equals(&key2))
+	assert.False(t, key1.Equals((*ucache.UIntCompositeKey)(nil)))
+	assert.False(t, key1.Equals(ucache.UIntKey(1)))
 }
 
 func TestUIntCompositeKey_Keys(t *testing.T) {
@@ -136,6 +159,9 @@ func TestGenericCompositeKey_Equals(t *testing.T) {
 
 	assert.True(t, key1.Equals(key2))
 	assert.False(t, key1.Equals(key3))
+	assert.True(t, key1.Equals(&key2))
+	assert.False(t, key1.Equals((*ucache.GenericCompositeKey)(nil)))
+	assert.False(t, key1.Equals(ucache.StringKey("test")))
 }
 
 func TestGenericCompositeKey_Keys(t *testing.T) {
@@ -184,6 +210,7 @@ func TestStringSliceValue_Equals(t *testing.T) {
 	value3 := ucache.NewStringSliceValue([]string{"d", "e", "f"})
 
 	assert.True(t, value1.Equals(value2))
+	assert.True(t, value1.Equals(&value2))
 	assert.False(t, value1.Equals(value3))
 	assert.False(t, value1.Equals(ucache.StringKey("test string")))
 }
@@ -192,9 +219,12 @@ func TestComparableSlice_Equals(t *testing.T) {
 	slice1 := ucache.ComparableSlice[ucache.IntKey]{Data: []ucache.IntKey{1, 2, 3}}
 	slice2 := ucache.ComparableSlice[ucache.IntKey]{Data: []ucache.IntKey{1, 2, 3}}
 	slice3 := ucache.ComparableSlice[ucache.IntKey]{Data: []ucache.IntKey{4, 5, 6}}
+	slice4 := ucache.ComparableSlice[ucache.IntKey]{Data: []ucache.IntKey{1, 2}}
 
 	assert.True(t, slice1.Equals(slice2))
+	assert.True(t, slice1.Equals(&slice2))
 	assert.False(t, slice1.Equals(slice3))
+	assert.False(t, slice1.Equals(slice4))
 }
 
 func TestComparableSlice_Equals_NotComparableSlice(t *testing.T) {
@@ -257,7 +287,10 @@ func TestComparableKey_Equals(t *testing.T) {
 	key3 := ucache.NewComparableKey(456)
 
 	assert.True(t, key1.Equals(key2), "keys with the same value should be equal")
+	assert.True(t, key1.Equals(&key2), "keys with pointer to the same value should be equal")
 	assert.False(t, key1.Equals(key3), "keys with different values should not be equal")
+	assert.False(t, key1.Equals((*ucache.ComparableKey[int])(nil)))
+	assert.False(t, key1.Equals(ucache.IntKey(123)))
 }
 
 func TestComparableKey_String(t *testing.T) {
@@ -266,6 +299,24 @@ func TestComparableKey_String(t *testing.T) {
 
 	key2 := ucache.NewComparableKey("abc")
 	assert.Equal(t, "abc", key2.String(), "String() should handle string types correctly")
+}
+
+func TestComparableKey_String_CoverAllTypes(t *testing.T) {
+	assert.Equal(t, "42", ucache.NewComparableKey(int8(42)).String())
+	assert.Equal(t, "42", ucache.NewComparableKey(int16(42)).String())
+	assert.Equal(t, "42", ucache.NewComparableKey(int32(42)).String())
+	assert.Equal(t, "42", ucache.NewComparableKey(int64(42)).String())
+	assert.Equal(t, "42", ucache.NewComparableKey(uint(42)).String())
+	assert.Equal(t, "42", ucache.NewComparableKey(uint8(42)).String())
+	assert.Equal(t, "42", ucache.NewComparableKey(uint16(42)).String())
+	assert.Equal(t, "42", ucache.NewComparableKey(uint32(42)).String())
+	assert.Equal(t, "42", ucache.NewComparableKey(uint64(42)).String())
+	assert.Equal(t, "true", ucache.NewComparableKey(true).String())
+	assert.Equal(t, "42.5", ucache.NewComparableKey(float32(42.5)).String())
+	assert.Equal(t, "42.5", ucache.NewComparableKey(float64(42.5)).String())
+	assert.Equal(t, "(1+2i)", ucache.NewComparableKey(complex64(1+2i)).String())
+	assert.Equal(t, "(1+2i)", ucache.NewComparableKey(complex128(1+2i)).String())
+	assert.Empty(t, ucache.NewComparableKey(struct{}{}).String())
 }
 
 func TestComparableKey_Equals_CoverAllTypes(t *testing.T) {
@@ -302,8 +353,21 @@ func TestStringValue_Equals(t *testing.T) {
 	stringValue3 := ucache.NewStringValue("world")
 
 	assert.True(t, stringValue1.Equals(stringValue2), "should be equal for the same string value")
+	assert.True(t, stringValue1.Equals(&stringValue2), "should be equal for pointer to the same string value")
 	assert.False(t, stringValue1.Equals(stringValue3), "should not be equal for different string values")
 	assert.False(t, stringValue1.Equals(ucache.NewInt64Value(123)), "should be false when compared with a different type")
+}
+
+func TestInt64Value_ValueAndEquals(t *testing.T) {
+	value1 := ucache.NewInt64Value(123)
+	value2 := ucache.NewInt64Value(123)
+	value3 := ucache.NewInt64Value(456)
+
+	assert.Equal(t, "123", value1.Value())
+	assert.True(t, value1.Equals(value2))
+	assert.True(t, value1.Equals(&value2))
+	assert.False(t, value1.Equals(value3))
+	assert.False(t, value1.Equals(ucache.NewStringValue("123")))
 }
 
 func TestKeysWithCache(t *testing.T) {

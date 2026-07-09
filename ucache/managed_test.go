@@ -32,6 +32,24 @@ func TestManagedMultiCache_SetAndGet(t *testing.T) {
 	assert.Equal(t, value, results[0])
 }
 
+func TestManagedMultiCache_PutChangesOutdated(t *testing.T) {
+	cache := ucache.NewDefaultHashMapMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
+	managedCache := ucache.NewManagedMultiCache(cache, 0)
+	defer managedCache.Stop()
+
+	key := ucache.NewStrCompositeKey("category", "key1")
+	value1 := DummyComparable{Val: 42}
+	value2 := DummyComparable{Val: 43}
+
+	managedCache.Put(key, value1)
+	managedCache.Put(key, value2)
+
+	assert.Equal(t, []DummyComparable{value1, value2}, managedCache.Get(key))
+	assert.Equal(t, []ucache.StrCompositeKey{key}, managedCache.Changes())
+	assert.False(t, managedCache.Outdated(uopt.Of(key)))
+	assert.False(t, managedCache.Outdated(uopt.Null[ucache.StrCompositeKey]()))
+}
+
 func TestManagedMultiCache_Drop(t *testing.T) {
 	cache := ucache.NewInMemoryTreeMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
 	managedCache := ucache.NewManagedMultiCache(cache, time.Second)
@@ -117,6 +135,23 @@ func TestManagedCache_SetAndGet(t *testing.T) {
 	v, ok := managedCache.Get(key)
 	assert.True(t, ok)
 	assert.Equal(t, value, *v)
+}
+
+func TestManagedCache_ChangesKeysGetValueOutdated(t *testing.T) {
+	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Null[time.Duration]())
+	managedCache := ucache.NewManagedCache(cache, 0)
+	defer managedCache.Stop()
+
+	key := ucache.IntKey(1)
+	managedCache.Set(key, "TestValue")
+
+	value, ok := managedCache.GetValue(key)
+	require.True(t, ok)
+	assert.Equal(t, "TestValue", value)
+	assert.Equal(t, []ucache.IntKey{key}, managedCache.Keys())
+	assert.Equal(t, []ucache.IntKey{key}, managedCache.Changes())
+	assert.False(t, managedCache.Outdated(uopt.Of(key)))
+	assert.False(t, managedCache.Outdated(uopt.Null[ucache.IntKey]()))
 }
 
 func TestManagedCache_Drop(t *testing.T) {

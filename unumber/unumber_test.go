@@ -137,6 +137,15 @@ func TestNumberString(t *testing.T) {
 	}
 }
 
+func TestValueTypeStringUnknown(t *testing.T) {
+	assert.Equal(t, "Int", unumber.Int.String())
+	assert.Equal(t, "Float", unumber.Float.String())
+	assert.Equal(t, "Uint", unumber.Uint.String())
+	assert.Equal(t, "BigInt", unumber.BigInt.String())
+	assert.Equal(t, "BigFloat", unumber.BigFloat.String())
+	assert.Equal(t, "Unknown", unumber.ValueType(999).String())
+}
+
 func TestDenominate(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -269,4 +278,15 @@ func TestAsDenominated(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDenominatedIsValid(t *testing.T) {
+	zero := &unumber.Denominated[int64]{}
+	assert.False(t, zero.IsValid())
+
+	value, err := unumber.AsDenom[int64](1.23, 2)
+	require.NoError(t, err)
+	assert.True(t, value.IsValid())
+	assert.Equal(t, 2, value.Denominator())
+	assert.EqualValues(t, 123, value.Value())
 }

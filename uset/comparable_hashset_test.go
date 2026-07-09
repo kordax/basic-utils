@@ -71,3 +71,16 @@ func TestComparableHashSet_Clear(t *testing.T) {
 	assert.False(t, set.Contains(testElement{key: 1}))
 	assert.False(t, set.Contains(testElement{key: 2}))
 }
+
+func TestComparableHashSet_WithSizeAndValues(t *testing.T) {
+	t.Parallel()
+
+	set := uset.NewComparableHashSetWithSize[testElement, int](2)
+	assert.True(t, set.Add(testElement{key: 1}))
+	assert.True(t, set.Add(testElement{key: 2}))
+
+	values := set.Values()
+	assert.Len(t, values, 2)
+	assert.Contains(t, values, testElement{key: 1})
+	assert.Contains(t, values, testElement{key: 2})
+}

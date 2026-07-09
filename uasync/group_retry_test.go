@@ -41,6 +41,35 @@ func TestRetryStopsOnContextCancel(t *testing.T) {
 	require.ErrorIs(t, err, context.Canceled)
 }
 
+func TestRetryExhaustsAttempts(t *testing.T) {
+	var attempts atomic.Int32
+	expected := errors.New("temporary")
+
+	_, err := uasync.Retry[int](nil, 2, 0, func(context.Context) (*int, error) { //nolint:staticcheck // Verify Retry accepts a nil context by falling back to context.Background.
+		attempts.Add(1)
+		return nil, expected
+	})
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "retry attempts exhausted")
+	assert.ErrorIs(t, err, expected)
+	assert.EqualValues(t, 2, attempts.Load())
+}
+
+func TestRetryStopsWhenContextCancelledDuringDelay(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	var attempts atomic.Int32
+
+	_, err := uasync.Retry[int](ctx, 3, time.Hour, func(context.Context) (*int, error) {
+		attempts.Add(1)
+		cancel()
+		return nil, errors.New("temporary")
+	})
+
+	require.ErrorIs(t, err, context.Canceled)
+	assert.EqualValues(t, 1, attempts.Load())
+}
+
 func TestRunGroup(t *testing.T) {
 	var running atomic.Int32
 	var maxRunning atomic.Int32
