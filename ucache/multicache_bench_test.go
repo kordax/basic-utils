@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/v2/uconst"
-	"github.com/kordax/basic-utils/v2/uopt"
+	"github.com/kordax/basic-utils/v3/uconst"
+	"github.com/kordax/basic-utils/v3/uopt"
 )
 
 const (

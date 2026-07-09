@@ -9,8 +9,8 @@ package umap_test
 import (
 	"testing"
 
-	"github.com/kordax/basic-utils/v2/uarray"
-	"github.com/kordax/basic-utils/v2/umap"
+	"github.com/kordax/basic-utils/v3/uarray"
+	"github.com/kordax/basic-utils/v3/umap"
 	"github.com/stretchr/testify/assert"
 )
 

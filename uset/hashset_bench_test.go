@@ -9,7 +9,7 @@ package uset_test
 import (
 	"testing"
 
-	"github.com/kordax/basic-utils/v2/uset"
+	"github.com/kordax/basic-utils/v3/uset"
 )
 
 const benchSetSize = 100

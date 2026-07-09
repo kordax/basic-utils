@@ -9,7 +9,7 @@ package umap_test
 import (
 	"testing"
 
-	"github.com/kordax/basic-utils/v2/umap"
+	"github.com/kordax/basic-utils/v3/umap"
 )
 
 func BenchmarkReflectiveMultiMap_Set(b *testing.B) {

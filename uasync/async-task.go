@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/kordax/basic-utils/v2/uarray"
+	"github.com/kordax/basic-utils/v3/upair"
 )
 
 // AsyncTask represents an asynchronous task that can be executed in the background.
@@ -21,9 +21,9 @@ type AsyncTask[R any] struct {
 	fn      func(ctx context.Context) (*R, error) // The function that represents the async task.
 	retries int                                   // Number of times to retry the task on failure. Value less than 0 means retry forever.
 
-	f    Future[R]               // A future object to represent the result or error of the task.
-	done *uarray.Pair[*R, error] // A pair containing the result and error of the task.
-	mtx  sync.RWMutex            // A mutex for thread-safe operations on the struct.
+	f    Future[R]              // A future object to represent the result or error of the task.
+	done *upair.Pair[*R, error] // A pair containing the result and error of the task.
+	mtx  sync.RWMutex           // A mutex for thread-safe operations on the struct.
 
 	ctx context.Context
 }
@@ -38,40 +38,16 @@ func NewAsyncTask[R any](ctx context.Context, fn func(ctx context.Context) (*R, 
 // Once the task completes or fails after all retries, the result or error is stored internally.
 func (t *AsyncTask[R]) ExecuteAsync() {
 	go func() {
-		resultChan := make(chan *R)
-		errChan := make(chan error)
-
 		r, err := tryTask(t.ctx, t.fn, 0, t.retries)
-
-		go func() {
-			select {
-			case <-t.ctx.Done():
-				// If context is canceled, set the task as canceled
-				t.cancel()
-				t.mtx.Lock()
-				t.done = uarray.NewPair[*R, error](nil, t.ctx.Err())
-				t.mtx.Unlock()
-
-			case r = <-resultChan:
-				// If the task completes successfully
-				t.f.Complete(r)
-				t.mtx.Lock()
-				t.done = uarray.NewPair[*R, error](r, nil)
-				t.mtx.Unlock()
-
-			case err = <-errChan:
-				// If the task fails after all retries
-				t.f.Fail(err)
-				t.mtx.Lock()
-				t.done = uarray.NewPair[*R, error](nil, err)
-				t.mtx.Unlock()
-			}
-		}()
-
 		if err != nil {
-			errChan <- err
-		} else {
-			resultChan <- r
+			if t.f.Fail(err) {
+				t.setDone(nil, err)
+			}
+			return
+		}
+
+		if t.f.Complete(r) {
+			t.setDone(r, nil)
 		}
 	}()
 }
@@ -90,19 +66,28 @@ func (t *AsyncTask[R]) Wait() (*R, error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	if t.done == nil { // Check if t.done is still nil to avoid overwriting by other calls to Wait()
-		t.done = uarray.NewPair(r, err)
+		done := upair.Of(r, err)
+		t.done = &done
 	}
 
 	return r, err
 }
 
+func (t *AsyncTask[R]) setDone(r *R, err error) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	if t.done == nil {
+		done := upair.Of(r, err)
+		t.done = &done
+	}
+}
+
 // Cancel attempts to cancel the execution of the task.
 // It invokes the provided cancellation function and marks the task as canceled.
 func (t *AsyncTask[R]) cancel() {
-	t.f.Cancel()
-	t.mtx.Lock()
-	t.done = uarray.NewPair[*R, error](nil, context.Canceled) // Set the done pair to represent the cancellation.
-	t.mtx.Unlock()
+	if t.f.Cancel() {
+		t.setDone(nil, context.Canceled)
+	}
 }
 
 // tryTask tries to execute a task function up to a maximum number of times.

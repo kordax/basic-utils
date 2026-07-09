@@ -8,10 +8,11 @@ package ufile_test
 
 import (
 	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 
-	"github.com/kordax/basic-utils/v2/ufile"
+	"github.com/kordax/basic-utils/v3/ufile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,4 +81,34 @@ func TestListFiles(t *testing.T) {
 	files, err = ufile.ListFiles(tmpdir, &regex)
 	require.NoError(t, err, "Should list files without error")
 	assert.Len(t, files, 2, "Should list only .txt files")
+}
+
+func TestJSONAndWalkHelpers(t *testing.T) {
+	tmpdir := t.TempDir()
+	nested := filepath.Join(tmpdir, "nested")
+	require.NoError(t, ufile.EnsureDir(nested, 0755))
+
+	type payload struct {
+		Name string `json:"name"`
+	}
+	path := filepath.Join(nested, "data.json")
+	require.NoError(t, ufile.WriteJSON(path, payload{Name: "test"}, 0644))
+
+	read, err := ufile.ReadJSON[payload](path)
+	require.NoError(t, err)
+	require.Equal(t, "test", read.Name)
+
+	txt := filepath.Join(tmpdir, "notes.txt")
+	ufile.MustWrite(txt, []byte("hello"), 0644)
+	files, err := ufile.WalkFiles(tmpdir, ptrString(`\.txt$`))
+	require.NoError(t, err)
+	require.Equal(t, []string{txt}, files)
+
+	require.NoError(t, ufile.RemoveIfExists(txt))
+	require.NoError(t, ufile.RemoveIfExists(txt))
+	assert.False(t, ufile.Exists(txt))
+}
+
+func ptrString(value string) *string {
+	return &value
 }

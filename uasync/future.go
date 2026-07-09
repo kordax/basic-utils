@@ -9,7 +9,6 @@ package uasync
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 )
 
 // Future is an interface that represents a value or an error that will be available in the future.
@@ -26,15 +25,17 @@ type Future[T any] interface {
 type FutureImpl[T any] struct {
 	cond *sync.Cond
 
-	v   atomic.Value
-	err atomic.Value
-
+	v         *T
+	err       error
 	completed bool
 
 	ctx context.Context
 }
 
 func NewFuture[T any](ctx context.Context) *FutureImpl[T] {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	return &FutureImpl[T]{
 		cond: sync.NewCond(&sync.Mutex{}),
 		ctx:  ctx,
@@ -60,14 +61,14 @@ func (f *FutureImpl[T]) Wait() (*T, error) {
 	defer f.cond.L.Unlock()
 	defer close(done)
 
-	for f.getV() == nil && f.getE() == nil {
+	for !f.completed {
 		if f.ctx.Err() != nil {
 			return nil, f.ctx.Err()
 		}
 		f.cond.Wait()
 	}
 
-	return f.getV(), f.getE()
+	return f.v, f.err
 }
 
 // Complete sets the value for the FutureImpl and marks it as completed.
@@ -81,9 +82,9 @@ func (f *FutureImpl[T]) Complete(t *T) bool {
 		return false
 	}
 
-	f.v.Store(t)
-	f.cond.Broadcast()
+	f.v = t
 	f.completed = true
+	f.cond.Broadcast()
 
 	return true
 }
@@ -99,9 +100,9 @@ func (f *FutureImpl[T]) Fail(err error) bool {
 		return false
 	}
 
-	f.err.Store(err)
-	f.cond.Broadcast()
+	f.err = err
 	f.completed = true
+	f.cond.Broadcast()
 
 	return true
 }
@@ -112,22 +113,4 @@ func (f *FutureImpl[T]) Fail(err error) bool {
 // It returns false if the FutureImpl is already completed.
 func (f *FutureImpl[T]) Cancel() bool {
 	return f.Fail(context.Canceled)
-}
-
-func (f *FutureImpl[T]) getV() *T {
-	v := f.v.Load()
-	if v == nil {
-		return nil
-	} else {
-		return v.(*T)
-	}
-}
-
-func (f *FutureImpl[T]) getE() error {
-	err := f.err.Load()
-	if err == nil {
-		return nil
-	} else {
-		return err.(error)
-	}
 }

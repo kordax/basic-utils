@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/v2/ucache"
-	"github.com/kordax/basic-utils/v2/uconst"
-	"github.com/kordax/basic-utils/v2/uopt"
+	"github.com/kordax/basic-utils/v3/ucache"
+	"github.com/kordax/basic-utils/v3/uconst"
+	"github.com/kordax/basic-utils/v3/uopt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -171,6 +171,19 @@ func TestHashMapMultiCache_DropKey(t *testing.T) {
 	assert.Len(t, catRes, 1)
 	assert.Len(t, res, 0)
 	assert.Len(t, res2, 1)
+}
+
+func TestHashMapMultiCache_PutAfterDrop(t *testing.T) {
+	c := ucache.NewDefaultHashMapMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
+	key := ucache.NewStrCompositeKey("category", "kp_1")
+	value := DummyComparable{Val: 42}
+
+	c.Put(key, DummyComparable{Val: 1})
+	c.Drop()
+	c.Put(key, value)
+
+	assert.Equal(t, []DummyComparable{value}, c.Get(key))
+	assert.ElementsMatch(t, []ucache.StrCompositeKey{key}, c.Changes())
 }
 
 func TestHashMapMultiCache_PutQuietly(t *testing.T) {
@@ -495,6 +508,26 @@ func TestInMemoryTreeMultiCache_Outdated_WithDifferentTTLs(t *testing.T) {
 	assert.True(t, cLong.Outdated(uopt.Of(key)))
 }
 
+func TestInMemoryTreeMultiCache_OutdatedWithoutTTLDoesNotPanic(t *testing.T) {
+	c := ucache.NewInMemoryTreeMultiCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Null[time.Duration]())
+
+	assert.NotPanics(t, func() {
+		assert.False(t, c.Outdated(uopt.Null[ucache.StrCompositeKey]()))
+	})
+}
+
+func TestInMemoryTreeMultiCache_OutdatedCompositeKeyStringCollisions(t *testing.T) {
+	ttl := time.Hour
+	c := ucache.NewInMemoryTreeMultiCache[ucache.IntCompositeKey, ucache.StringValue](uopt.Of(ttl))
+
+	keyA := ucache.NewIntCompositeKey(1, 23)
+	keyB := ucache.NewIntCompositeKey(12, 3)
+	c.Put(keyA, ucache.NewStringValue("a"))
+
+	assert.False(t, c.Outdated(uopt.Of(keyA)))
+	assert.True(t, c.Outdated(uopt.Of(keyB)))
+}
+
 func TestHashMapMultiCache_CompositeKey_LotsOfKeys(t *testing.T) {
 	c := ucache.NewDefaultHashMapMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
 
@@ -568,4 +601,18 @@ func TestHashMapMultiCacheHighCollisionProbability(t *testing.T) {
 		values := c.Get(key)
 		assert.Contains(t, values, ucache.NewInt64Value(int64(i))) // Check if the expected value is present in the retrieved values
 	}
+}
+
+func TestManagedMultiCache_ForceCleanupPutQuietly(t *testing.T) {
+	cache := ucache.NewDefaultHashMapMultiCache[ucache.IntCompositeKey, ucache.Int64Value](uopt.Of(time.Nanosecond))
+	managed := ucache.NewManagedMultiCache[ucache.IntCompositeKey, ucache.Int64Value](cache, time.Hour)
+	defer managed.Stop()
+
+	key := ucache.NewIntCompositeKey(1, 2, 3)
+	managed.PutQuietly(key, ucache.NewInt64Value(1))
+
+	time.Sleep(time.Nanosecond)
+	managed.ForceCleanup()
+
+	assert.Empty(t, managed.Get(key))
 }

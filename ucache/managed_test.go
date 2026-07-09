@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/v2/ucache"
-	"github.com/kordax/basic-utils/v2/uopt"
+	"github.com/kordax/basic-utils/v3/ucache"
+	"github.com/kordax/basic-utils/v3/uopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -89,6 +89,22 @@ func TestManagedMultiCache_Outdated(t *testing.T) {
 	assert.Empty(t, values)
 }
 
+func TestManagedMultiCache_ForceCleanup(t *testing.T) {
+	ttl := time.Nanosecond
+	cache := ucache.NewInMemoryTreeMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Of(ttl))
+	managedCache := ucache.NewManagedMultiCache(cache, time.Hour)
+	defer managedCache.Stop()
+
+	key := ucache.NewStrCompositeKey("category", "key1")
+	value := DummyComparable{Val: 42}
+
+	managedCache.Set(key, value)
+	time.Sleep(ttl)
+	managedCache.ForceCleanup()
+
+	assert.Empty(t, managedCache.Get(key))
+}
+
 func TestManagedCache_SetAndGet(t *testing.T) {
 	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Null[time.Duration]())
 	managedCache := ucache.NewManagedCache(cache, time.Second)
@@ -159,6 +175,80 @@ func TestManagedCache_Outdated(t *testing.T) {
 	managedCache.Set(key, value)
 	time.Sleep(10 * ttl)
 	_, ok := managedCache.Get(key)
+	assert.False(t, ok)
+}
+
+func TestManagedCache_ForceCleanup(t *testing.T) {
+	ttl := time.Nanosecond
+	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Of(ttl))
+	managedCache := ucache.NewManagedCache(cache, time.Hour)
+	defer managedCache.Stop()
+
+	key := ucache.IntKey(1)
+	managedCache.Set(key, "TestValue")
+	time.Sleep(ttl)
+	managedCache.ForceCleanup()
+
+	_, ok := managedCache.Get(key)
+	assert.False(t, ok)
+}
+
+func TestManagedCache_ForceCleanupSetQuietly(t *testing.T) {
+	ttl := time.Nanosecond
+	cache := ucache.NewInMemoryComparableMapCache[string, int](uopt.Of(ttl))
+	managedCache := ucache.NewManagedCache(cache, time.Hour)
+	defer managedCache.Stop()
+
+	managedCache.SetQuietly("quiet", 1)
+
+	time.Sleep(ttl)
+	managedCache.ForceCleanup()
+
+	_, ok := managedCache.Get("quiet")
+	assert.False(t, ok)
+}
+
+func TestManagedCache_WithOptionsAppliesTTL(t *testing.T) {
+	cache := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+	managedCache := ucache.NewManagedCacheWithOptions[string, int](cache, ucache.ManagedCacheOptions{
+		CleanupInterval: time.Hour,
+		TTL:             uopt.Of(time.Nanosecond),
+	})
+	defer managedCache.Stop()
+
+	managedCache.Set("key", 1)
+	time.Sleep(time.Nanosecond)
+	managedCache.ForceCleanup()
+
+	_, ok := managedCache.Get("key")
+	assert.False(t, ok)
+}
+
+func TestManagedCache_StopIdempotent(t *testing.T) {
+	cache := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+	managedCache := ucache.NewManagedCache(cache, time.Hour)
+
+	managedCache.Stop()
+	managedCache.Stop()
+}
+
+func TestManagedCache_UsesBufferedComparableImplementation(t *testing.T) {
+	cache := ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: 1,
+	})
+	managedCache := ucache.NewManagedCache[string, int](cache, time.Hour)
+	defer managedCache.Stop()
+	defer cache.CloseBuffered()
+
+	managedCache.Set("key", 42)
+	managedCache.Set("rejected", 100)
+
+	cache.Wait()
+
+	value, ok := managedCache.GetValue("key")
+	require.True(t, ok)
+	assert.Equal(t, 42, value)
+	_, ok = managedCache.GetValue("rejected")
 	assert.False(t, ok)
 }
 

@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kordax/basic-utils/v2/uconst"
-	"github.com/kordax/basic-utils/v2/uopt"
+	"github.com/kordax/basic-utils/v3/uconst"
+	"github.com/kordax/basic-utils/v3/uopt"
 )
 
 // ManagedCache provides a wrapper around a Cache implementation to manage
@@ -16,9 +16,33 @@ type ManagedCache[K any, T any] struct {
 	cache    BaseCache[K, T]
 	stopChan chan struct{}
 	wg       sync.WaitGroup
+	stopOnce sync.Once
+}
+
+type ManagedCacheOptions struct {
+	CleanupInterval time.Duration
+	TTL             uopt.Opt[time.Duration]
+}
+
+type outdatedCleaner interface {
+	RemoveOutdated() int
 }
 
 func NewManagedCache[K any, T any](cache BaseCache[K, T], tick time.Duration) *ManagedCache[K, T] {
+	return NewManagedCacheWithOptions[K, T](cache, ManagedCacheOptions{CleanupInterval: tick})
+}
+
+func NewManagedCacheWithOptions[K any, T any](cache BaseCache[K, T], options ManagedCacheOptions) *ManagedCache[K, T] {
+	if options.TTL.Present() {
+		if configurable, ok := any(cache).(ttlConfigurable); ok {
+			configurable.SetTTL(options.TTL)
+		}
+	}
+	tick := options.CleanupInterval
+	if tick <= 0 {
+		tick = time.Minute
+	}
+
 	b := &ManagedCache[K, T]{
 		cache:    cache,
 		stopChan: make(chan struct{}),
@@ -46,7 +70,11 @@ func (b *ManagedCache[K, T]) cleanupRoutine(tick time.Duration) {
 }
 
 func (b *ManagedCache[K, T]) ForceCleanup() {
-	for _, key := range b.cache.Changes() {
+	if cleaner, ok := any(b.cache).(outdatedCleaner); ok {
+		cleaner.RemoveOutdated()
+		return
+	}
+	for _, key := range b.cache.Keys() {
 		if b.cache.Outdated(uopt.Of(key)) {
 			b.cache.DropKey(key)
 		}
@@ -54,7 +82,9 @@ func (b *ManagedCache[K, T]) ForceCleanup() {
 }
 
 func (b *ManagedCache[K, T]) Stop() {
-	close(b.stopChan)
+	b.stopOnce.Do(func() {
+		close(b.stopChan)
+	})
 	b.wg.Wait()
 }
 
@@ -66,8 +96,16 @@ func (b *ManagedCache[K, T]) Get(key K) (*T, bool) {
 	return b.cache.Get(key)
 }
 
+func (b *ManagedCache[K, T]) GetValue(key K) (T, bool) {
+	return b.cache.GetValue(key)
+}
+
 func (b *ManagedCache[K, T]) Changes() []K {
 	return b.cache.Changes()
+}
+
+func (b *ManagedCache[K, T]) Keys() []K {
+	return b.cache.Keys()
 }
 
 func (b *ManagedCache[K, T]) Drop() {
@@ -94,9 +132,24 @@ type ManagedMultiCache[K CompositeKey, T uconst.Comparable] struct {
 	cache    MultiCache[K, T]
 	stopChan chan struct{}
 	wg       sync.WaitGroup
+	stopOnce sync.Once
 }
 
 func NewManagedMultiCache[K CompositeKey, T uconst.Comparable](cache MultiCache[K, T], tick time.Duration) *ManagedMultiCache[K, T] {
+	return NewManagedMultiCacheWithOptions[K, T](cache, ManagedCacheOptions{CleanupInterval: tick})
+}
+
+func NewManagedMultiCacheWithOptions[K CompositeKey, T uconst.Comparable](cache MultiCache[K, T], options ManagedCacheOptions) *ManagedMultiCache[K, T] {
+	if options.TTL.Present() {
+		if configurable, ok := any(cache).(ttlConfigurable); ok {
+			configurable.SetTTL(options.TTL)
+		}
+	}
+	tick := options.CleanupInterval
+	if tick <= 0 {
+		tick = time.Minute
+	}
+
 	b := &ManagedMultiCache[K, T]{
 		cache:    cache,
 		stopChan: make(chan struct{}),
@@ -116,15 +169,19 @@ func (b *ManagedMultiCache[K, T]) cleanupRoutine(tick time.Duration) {
 	for {
 		select {
 		case <-ticker.C:
-			b.performCleanup()
+			b.ForceCleanup()
 		case <-b.stopChan:
 			return
 		}
 	}
 }
 
-func (b *ManagedMultiCache[K, T]) performCleanup() {
-	for _, key := range b.cache.Changes() {
+func (b *ManagedMultiCache[K, T]) ForceCleanup() {
+	if cleaner, ok := any(b.cache).(outdatedCleaner); ok {
+		cleaner.RemoveOutdated()
+		return
+	}
+	for _, key := range b.cache.Keys() {
 		if b.cache.Outdated(uopt.Of(key)) {
 			b.cache.DropKey(key)
 		}
@@ -132,7 +189,9 @@ func (b *ManagedMultiCache[K, T]) performCleanup() {
 }
 
 func (b *ManagedMultiCache[K, T]) Stop() {
-	close(b.stopChan)
+	b.stopOnce.Do(func() {
+		close(b.stopChan)
+	})
 	b.wg.Wait()
 }
 

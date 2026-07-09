@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kordax/basic-utils/v2/ucache"
-	"github.com/kordax/basic-utils/v2/uconst"
-	"github.com/kordax/basic-utils/v2/uopt"
-	"github.com/kordax/basic-utils/v2/uref"
+	"github.com/kordax/basic-utils/v3/ucache"
+	"github.com/kordax/basic-utils/v3/uconst"
+	"github.com/kordax/basic-utils/v3/uopt"
+	"github.com/kordax/basic-utils/v3/uref"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

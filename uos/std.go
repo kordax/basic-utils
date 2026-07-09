@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	basicutils "github.com/kordax/basic-utils/v2/uconst"
-	"github.com/kordax/basic-utils/v2/uref"
+	basicutils "github.com/kordax/basic-utils/v3/uconst"
+	"github.com/kordax/basic-utils/v3/uref"
 )
 
 // MappingFunc is a type for functions that convert a string to a pointer of type T, returning an error if the conversion fails.

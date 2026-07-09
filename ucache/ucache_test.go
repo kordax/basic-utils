@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/v2/ucache"
-	"github.com/kordax/basic-utils/v2/uopt"
+	"github.com/kordax/basic-utils/v3/ucache"
+	"github.com/kordax/basic-utils/v3/uopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -125,6 +125,19 @@ func TestHashMapCache_SetNil(t *testing.T) {
 	assert.EqualValues(t, val3, *result3)
 }
 
+func TestHashMapCache_GetValue(t *testing.T) {
+	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+
+	c.Set("key", 42)
+
+	value, ok := c.GetValue("key")
+	require.True(t, ok)
+	assert.Equal(t, 42, value)
+
+	_, ok = c.GetValue("missing")
+	assert.False(t, ok)
+}
+
 func TestHashMapCache_PutQuietly(t *testing.T) {
 	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
 	key := ucache.StringKey("kp_1")
@@ -205,6 +218,20 @@ func TestHashMapCache_DropAll(t *testing.T) {
 
 	assert.False(t, ok1, "key1 should be dropped")
 	assert.False(t, ok2, "key2 should be dropped")
+}
+
+func TestHashMapCache_SetAfterDrop(t *testing.T) {
+	c := ucache.NewInMemoryHashMapCache[ucache.StringKey, int](uopt.Null[time.Duration]())
+	key := ucache.StringKey("key")
+
+	c.Set(key, 1)
+	c.Drop()
+	c.Set(key, 2)
+
+	value, ok := c.Get(key)
+	require.True(t, ok)
+	require.Equal(t, 2, *value)
+	require.ElementsMatch(t, []ucache.StringKey{key}, c.Changes())
 }
 
 func TestInMemoryHashMapCache(t *testing.T) {
@@ -336,6 +363,34 @@ func TestHashMapCacheHighCollisionProbability(t *testing.T) {
 	}
 }
 
+func TestHashMapCacheDropKeyKeepsCollidingKeys(t *testing.T) {
+	c := ucache.NewInMemoryHashMapCache[CollisionTestKey, ucache.Int64Value](uopt.Null[time.Duration]())
+	key1 := CollisionTestKey{id: 1, hash: []int64{1, 2, 3}}
+	key2 := CollisionTestKey{id: 2, hash: []int64{1, 2, 3}}
+
+	c.Set(key1, ucache.NewInt64Value(1))
+	c.Set(key2, ucache.NewInt64Value(2))
+	c.DropKey(key1)
+
+	_, ok := c.Get(key1)
+	assert.False(t, ok)
+
+	value, ok := c.Get(key2)
+	require.True(t, ok)
+	assert.Equal(t, ucache.NewInt64Value(2), *value)
+}
+
+func TestHashMapCacheKeysIncludeSetQuietly(t *testing.T) {
+	c := ucache.NewInMemoryHashMapCache[CollisionTestKey, ucache.Int64Value](uopt.Null[time.Duration]())
+	key1 := CollisionTestKey{id: 1, hash: []int64{1, 2, 3}}
+	key2 := CollisionTestKey{id: 2, hash: []int64{1, 2, 3}}
+
+	c.Set(key1, ucache.NewInt64Value(1))
+	c.SetQuietly(key2, ucache.NewInt64Value(2))
+
+	assert.ElementsMatch(t, []CollisionTestKey{key1, key2}, c.Keys())
+}
+
 func TestComparableMapCache_CompositeKey(t *testing.T) {
 	// Using string as a comparable key
 	c := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
@@ -380,6 +435,19 @@ func TestComparableMapCache_SetNil(t *testing.T) {
 	assert.EqualValues(t, val3, *result3)
 }
 
+func TestComparableMapCache_GetValue(t *testing.T) {
+	c := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+
+	c.Set("key", 42)
+
+	value, ok := c.GetValue("key")
+	require.True(t, ok)
+	assert.Equal(t, 42, value)
+
+	_, ok = c.GetValue("missing")
+	assert.False(t, ok)
+}
+
 func TestComparableMapCache_PutQuietly(t *testing.T) {
 	c := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
 	key := "kp_1"
@@ -405,6 +473,172 @@ func TestComparableMapCache_PutQuietly(t *testing.T) {
 	assert.Equal(t, *result, val)
 }
 
+func TestBufferedComparableMapCache_SetWait(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
+	defer c.CloseBuffered()
+
+	c.Set("key", 42)
+	c.Wait()
+
+	value, exists := c.GetValue("key")
+	require.True(t, exists)
+	assert.Equal(t, 42, value)
+	assert.ElementsMatch(t, []string{"key"}, c.Changes())
+}
+
+func TestBufferedComparableMapCache_SetQuietlyWait(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
+	defer c.CloseBuffered()
+
+	c.SetQuietly("key", 42)
+	c.Wait()
+
+	value, exists := c.GetValue("key")
+	require.True(t, exists)
+	assert.Equal(t, 42, value)
+	assert.Empty(t, c.Changes())
+}
+
+func TestBufferedComparableMapCache_DropKeyRemovesBufferedValue(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
+	defer c.CloseBuffered()
+
+	c.Set("key", 42)
+	c.DropKey("key")
+	c.Wait()
+
+	_, exists := c.GetValue("key")
+	assert.False(t, exists)
+}
+
+func TestBufferedComparableMapCache_DropRemovesBufferedValues(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
+	defer c.CloseBuffered()
+
+	c.Set("key", 42)
+	c.Drop()
+	c.Wait()
+
+	assert.Empty(t, c.Keys())
+	assert.Empty(t, c.Changes())
+}
+
+func TestBufferedComparableMapCache_CloseRejectsWrites(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
+
+	c.Set("key", 42)
+	c.CloseBuffered()
+	c.Set("next", 100)
+	c.SetQuietly("quiet", 100)
+	c.Wait()
+
+	_, ok := c.GetValue("next")
+	assert.False(t, ok)
+	_, ok = c.GetValue("quiet")
+	assert.False(t, ok)
+}
+
+func TestBufferedComparableMapCache_SetQuietlyWithTTL(t *testing.T) {
+	ttl := 50 * time.Millisecond
+	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Of(ttl))
+	defer c.CloseBuffered()
+
+	c.SetQuietly("key", 42)
+	c.Wait()
+
+	value, ok := c.GetValue("key")
+	require.True(t, ok)
+	assert.Equal(t, 42, value)
+
+	time.Sleep(2 * ttl)
+
+	_, ok = c.GetValue("key")
+	assert.False(t, ok)
+}
+
+func TestBufferedComparableMapCache_ImplementsInterfaces(t *testing.T) {
+	var _ ucache.ComparableCache[string, int] = (*ucache.InMemoryComparableMapCache[string, int])(nil)
+	var _ ucache.ComparableCache[string, int] = (*ucache.InMemoryBufferedComparableMapCache[string, int])(nil)
+}
+
+func TestBufferedComparableMapCache_SetUsesBufferedAdmission(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: 1,
+	})
+	defer c.CloseBuffered()
+
+	c.Set("key1", 1)
+	c.Set("key2", 2)
+	c.Wait()
+
+	value, ok := c.GetValue("key1")
+	require.True(t, ok)
+	assert.Equal(t, 1, value)
+	_, ok = c.GetValue("key2")
+	assert.False(t, ok)
+	assert.ElementsMatch(t, []string{"key1"}, c.Changes())
+}
+
+func TestBufferedComparableMapCache_SetQuietlyUsesBufferedAdmission(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: 1,
+	})
+	defer c.CloseBuffered()
+
+	c.SetQuietly("key1", 1)
+	c.SetQuietly("key2", 2)
+	c.Wait()
+
+	value, ok := c.GetValue("key1")
+	require.True(t, ok)
+	assert.Equal(t, 1, value)
+	_, ok = c.GetValue("key2")
+	assert.False(t, ok)
+	assert.Empty(t, c.Changes())
+}
+
+func TestComparableMapCache_BufferedMaxKeysRejectsNewKeys(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: 2,
+	})
+	defer c.CloseBuffered()
+
+	c.SetQuietly("key1", 1)
+	c.SetQuietly("key2", 2)
+	c.SetQuietly("key3", 3)
+	c.SetQuietly("key1", 10)
+
+	c.Wait()
+
+	value, ok := c.GetValue("key1")
+	require.True(t, ok)
+	assert.Equal(t, 10, value)
+	_, ok = c.GetValue("key3")
+	assert.False(t, ok)
+	assert.Len(t, c.Keys(), 2)
+}
+
+func TestComparableMapCache_BufferedMaxKeysDropKeyFreesSlot(t *testing.T) {
+	c := ucache.NewInMemoryBufferedComparableMapCacheWithOptions[string, int](ucache.InMemoryComparableMapCacheOptions{
+		BufferedMaxKeys: 1,
+	})
+	defer c.CloseBuffered()
+
+	c.SetQuietly("key1", 1)
+	c.Wait()
+
+	c.DropKey("key1")
+
+	c.SetQuietly("key2", 2)
+	c.Wait()
+
+	_, ok := c.GetValue("key1")
+	assert.False(t, ok)
+	value, ok := c.GetValue("key2")
+	require.True(t, ok)
+	assert.Equal(t, 2, value)
+}
+
 func TestComparableMapCache_TTLExpiry(t *testing.T) {
 	ttl := 100 * time.Millisecond
 	c := ucache.NewInMemoryComparableMapCache[string, int](uopt.Of(ttl))
@@ -415,6 +649,17 @@ func TestComparableMapCache_TTLExpiry(t *testing.T) {
 	time.Sleep(2 * ttl)
 	outdated := c.Outdated(uopt.Of(key))
 	assert.True(t, outdated, "key should be marked as outdated")
+}
+
+func TestComparableMapCache_SetTTLKeepsExistingValuesFresh(t *testing.T) {
+	c := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
+	c.SetQuietly("key", 42)
+
+	c.SetTTL(uopt.Of(time.Minute))
+
+	value, ok := c.GetValue("key")
+	require.True(t, ok)
+	assert.Equal(t, 42, value)
 }
 
 func TestComparableMapCache_Concurrency(t *testing.T) {

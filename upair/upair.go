@@ -6,23 +6,53 @@
 
 package upair
 
-import "github.com/kordax/basic-utils/v2/uconst"
+import "github.com/kordax/basic-utils/v3/uconst"
 
+// Pair stores two related values.
 type Pair[L, R any] struct {
 	Left  L
 	Right R
 }
 
-func NewPair[L, R any](l L, r R) *Pair[L, R] {
-	return &Pair[L, R]{Left: l, Right: r}
+// Of creates a pair value without pointer allocation.
+func Of[L, R any](l L, r R) Pair[L, R] {
+	return Pair[L, R]{Left: l, Right: r}
 }
 
+// NewPair creates a pair pointer.
+func NewPair[L, R any](l L, r R) *Pair[L, R] {
+	pair := Of(l, r)
+	return &pair
+}
+
+// GetLeft returns the left value.
 func (p Pair[L, R]) GetLeft() L {
 	return p.Left
 }
 
+// GetRight returns the right value.
 func (p Pair[L, R]) GetRight() R {
 	return p.Right
+}
+
+// Values returns both pair values.
+func (p Pair[L, R]) Values() (L, R) {
+	return p.Left, p.Right
+}
+
+// Swap returns a pair with left and right values swapped.
+func (p Pair[L, R]) Swap() Pair[R, L] {
+	return Of(p.Right, p.Left)
+}
+
+// MapLeft maps the left value and keeps the right value unchanged.
+func MapLeft[L, R, NL any](p Pair[L, R], mapper func(L) NL) Pair[NL, R] {
+	return Of(mapper(p.Left), p.Right)
+}
+
+// MapRight maps the right value and keeps the left value unchanged.
+func MapRight[L, R, NR any](p Pair[L, R], mapper func(R) NR) Pair[L, NR] {
+	return Of(p.Left, mapper(p.Right))
 }
 
 // CPair is the same struct as Pair, but forces comparable constraints to support uconst.Comparable contract.
@@ -30,12 +60,20 @@ type CPair[L, R comparable] struct {
 	Pair[L, R]
 }
 
-func NewCPair[L, R comparable](l L, r R) *CPair[L, R] {
-	return &CPair[L, R]{
-		Pair: Pair[L, R]{Left: l, Right: r},
+// COf creates a comparable pair value.
+func COf[L, R comparable](l L, r R) CPair[L, R] {
+	return CPair[L, R]{
+		Pair: Of(l, r),
 	}
 }
 
+// NewCPair creates a comparable pair pointer.
+func NewCPair[L, R comparable](l L, r R) *CPair[L, R] {
+	pair := COf(l, r)
+	return &pair
+}
+
+// Equals checks whether other contains the same comparable pair values.
 func (p CPair[L, R]) Equals(other uconst.Comparable) bool {
 	switch o := other.(type) {
 	case CPair[L, R]:

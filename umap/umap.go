@@ -103,6 +103,48 @@ func Values[K comparable, T any](values map[K]T) []T {
 	return result
 }
 
+// Filter returns a copy containing only entries that match predicate.
+func Filter[K comparable, V any](values map[K]V, predicate func(K, V) bool) map[K]V {
+	result := make(map[K]V, len(values))
+	for k, v := range values {
+		if predicate(k, v) {
+			result[k] = v
+		}
+	}
+
+	return result
+}
+
+// MapValues returns a new map with the same keys and mapped values.
+func MapValues[K comparable, V, R any](values map[K]V, mapper func(K, V) R) map[K]R {
+	result := make(map[K]R, len(values))
+	for k, v := range values {
+		result[k] = mapper(k, v)
+	}
+
+	return result
+}
+
+// MapKeys returns a new map with mapped keys. If mapper produces duplicate keys, the last value wins.
+func MapKeys[K comparable, V any, R comparable](values map[K]V, mapper func(K, V) R) map[R]V {
+	result := make(map[R]V, len(values))
+	for k, v := range values {
+		result[mapper(k, v)] = v
+	}
+
+	return result
+}
+
+// Invert groups original keys by their values.
+func Invert[K comparable, V comparable](values map[K]V) map[V][]K {
+	result := make(map[V][]K, len(values))
+	for k, v := range values {
+		result[v] = append(result[v], k)
+	}
+
+	return result
+}
+
 // IfPresent executes action(value) if key exists in the map.
 func IfPresent[K comparable, V any](values map[K]V, key K, action func(value V)) {
 	if v, ok := values[key]; ok {

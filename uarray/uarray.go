@@ -7,26 +7,24 @@
 package uarray
 
 import (
+	"cmp"
+	"runtime"
 	"slices"
 	"sort"
 	"strings"
+	"sync"
+	"sync/atomic"
 
-	"github.com/kordax/basic-utils/v2/ucast"
-	"github.com/kordax/basic-utils/v2/uconst"
-	"golang.org/x/exp/constraints"
+	"github.com/kordax/basic-utils/v3/ucast"
+	"github.com/kordax/basic-utils/v3/uconst"
 	"golang.org/x/exp/maps"
 )
 
 var dummy struct{}
 
-type Pair[L any, R any] struct {
-	Left  L
-	Right R
-}
-
-func NewPair[L any, R any](left L, right R) *Pair[L, R] {
-	return &Pair[L, R]{Left: left, Right: right}
-}
+const hasParallelThreshold = 1 << 16
+const hasParallelMinChunk = 2048
+const hasParallelPrefixScan = 1024
 
 func IndexOfUint32(slice []uint32, value uint32) int {
 	for i, v := range slice {
@@ -111,9 +109,24 @@ func AnyMatch[T any](values []T, predicate func(v T) bool) bool {
 // Has checks if slice has an element.
 // Returns true if there's a match, false otherwise.
 func Has[T comparable](values []T, val T) bool {
-	return AnyMatch(values, func(v T) bool {
-		return v == val
-	})
+	if len(values) >= hasParallelThreshold {
+		prefixLen := min(hasParallelPrefixScan, len(values))
+		for _, v := range values[:prefixLen] {
+			if v == val {
+				return true
+			}
+		}
+
+		return hasParallel(values[prefixLen:], val)
+	}
+
+	for _, v := range values {
+		if v == val {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Filter filters values slice and returns a copy with filtered elements matching a predicate.
@@ -121,7 +134,7 @@ func Filter[V any](values []V, filter func(v V) bool) []V {
 	if len(values) == 0 {
 		return []V{}
 	}
-	result := make([]V, 0)
+	result := make([]V, 0, len(values))
 	for _, v := range values {
 		if filter(v) {
 			result = append(result, v)
@@ -137,8 +150,8 @@ func FilterAll[V any](values []V, filter func(v V) bool) ([]V, []V) {
 		return []V{}, []V{}
 	}
 
-	result := make([]V, 0)
-	nonMatching := make([]V, 0)
+	result := make([]V, 0, len(values))
+	nonMatching := make([]V, 0, len(values))
 	for _, v := range values {
 		if filter(v) {
 			result = append(result, v)
@@ -156,11 +169,11 @@ func FilterBySet[V comparable](values []V, filter ...V) []V {
 		return []V{}
 	}
 
-	filterSet := make(map[V]struct{})
+	filterSet := make(map[V]struct{}, len(filter))
 	for _, v := range filter {
 		filterSet[v] = struct{}{}
 	}
-	result := make([]V, 0)
+	result := make([]V, 0, len(values))
 	for _, v := range values {
 		if _, found := filterSet[v]; found {
 			result = append(result, v)
@@ -184,11 +197,51 @@ func FilterOutBySet[V comparable](values []V, filter ...V) []V {
 		return values
 	}
 
-	filterSet := make(map[V]struct{})
+	if len(filter) == 1 {
+		filterValue := filter[0]
+		result := make([]V, 0, len(values))
+		for _, v := range values {
+			if v != filterValue {
+				result = append(result, v)
+			}
+		}
+
+		return result
+	}
+	if len(filter) == 2 {
+		filterValue1, filterValue2 := filter[0], filter[1]
+		result := make([]V, 0, len(values))
+		for _, v := range values {
+			if v != filterValue1 && v != filterValue2 {
+				result = append(result, v)
+			}
+		}
+
+		return result
+	}
+	if len(filter) <= 4 {
+		result := make([]V, 0, len(values))
+		for _, v := range values {
+			found := false
+			for _, filterValue := range filter {
+				if v == filterValue {
+					found = true
+					break
+				}
+			}
+			if !found {
+				result = append(result, v)
+			}
+		}
+
+		return result
+	}
+
+	filterSet := make(map[V]struct{}, len(filter))
 	for _, v := range filter {
 		filterSet[v] = struct{}{}
 	}
-	result := make([]V, 0)
+	result := make([]V, 0, len(values))
 	for _, v := range values {
 		if _, found := filterSet[v]; !found {
 			result = append(result, v)
@@ -232,6 +285,17 @@ func Find[V any](values []V, filter func(v V) bool) *V {
 	return nil
 }
 
+// FindIndex returns the index of the first element matching predicate, or -1 when no element matches.
+func FindIndex[T any](values []T, predicate func(v T) bool) int {
+	for i, v := range values {
+		if predicate(v) {
+			return i
+		}
+	}
+
+	return -1
+}
+
 // FindBinary finds the first match in a sorted slice using binary search.
 // The filter function should implement a comparison suitable for binary search.
 func FindBinary[V any](values []V, filter func(v V) bool) *V {
@@ -265,7 +329,7 @@ func MapAggr[V, R any](values []V, aggr func(v V) []R) []R {
 
 // Map maps a func and returns a result.
 func Map[V, R any](values []V, m func(v V) R) []R {
-	result := make([]R, 0)
+	result := make([]R, 0, len(values))
 	for _, v := range values {
 		result = append(result, m(v))
 	}
@@ -276,7 +340,7 @@ func Map[V, R any](values []V, m func(v V) R) []R {
 // FlatMap applies the Map method and the Flat method consequently.
 func FlatMap[V, R any](values [][]V, m func(v V) R) []R {
 	flatten := Flat(values)
-	result := make([]R, 0)
+	result := make([]R, 0, len(flatten))
 	for _, v := range flatten {
 		result = append(result, m(v))
 	}
@@ -286,9 +350,24 @@ func FlatMap[V, R any](values [][]V, m func(v V) R) []R {
 
 // Flat flattens the stream (slice).
 func Flat[V any](values [][]V) []V {
-	result := make([]V, 0)
+	size := 0
+	for _, v := range values {
+		size += len(v)
+	}
+
+	result := make([]V, 0, size)
 	for _, v := range values {
 		result = append(result, v...)
+	}
+
+	return result
+}
+
+// Reduce folds values into a single result by applying reducer from left to right.
+func Reduce[T, R any](values []T, initial R, reducer func(acc R, v T) R) R {
+	result := initial
+	for _, v := range values {
+		result = reducer(result, v)
 	}
 
 	return result
@@ -301,7 +380,7 @@ func Flat[V any](values [][]V) []V {
 // behave like a multimap. Each key in the returned map corresponds to a single value,
 // and any previous value for the same key will be overwritten.
 func ToMap[V any, K comparable, R any](values []V, m func(v V) (K, R)) map[K]R {
-	result := make(map[K]R)
+	result := make(map[K]R, len(values))
 	for _, v := range values {
 		k, nv := m(v)
 		result[k] = nv
@@ -321,10 +400,30 @@ func ToMultiMap[V any, K comparable, R any](values []V, m func(v V) (K, R)) map[
 	return result
 }
 
+// IndexBy indexes values by key. If multiple values produce the same key, the last value wins.
+func IndexBy[T any, K comparable](values []T, key func(v T) K) map[K]T {
+	result := make(map[K]T, len(values))
+	for _, v := range values {
+		result[key(v)] = v
+	}
+
+	return result
+}
+
+// CountBy counts values grouped by key.
+func CountBy[T any, K comparable](values []T, key func(v T) K) map[K]int {
+	result := make(map[K]int)
+	for _, v := range values {
+		result[key(v)]++
+	}
+
+	return result
+}
+
 // Uniq filters unique elements by predicate that returns any comparable value.
 func Uniq[V any, F comparable](values []V, getter func(v V) F) []V {
-	set := make(map[F]struct{})
-	result := make([]V, 0)
+	set := make(map[F]struct{}, len(values))
+	result := make([]V, 0, len(values))
 
 	for _, v := range values {
 		key := getter(v)
@@ -339,8 +438,8 @@ func Uniq[V any, F comparable](values []V, getter func(v V) F) []V {
 
 // Unique filters unique elements from a slice.
 func Unique[V comparable](values []V, transform ...func(v V) V) []V {
-	set := make(map[V]struct{})
-	result := make([]V, 0)
+	set := make(map[V]struct{}, len(values))
+	result := make([]V, 0, len(values))
 
 	for _, v := range values {
 		transformed := v
@@ -350,6 +449,31 @@ func Unique[V comparable](values []V, transform ...func(v V) V) []V {
 
 		if _, exists := set[transformed]; !exists {
 			set[transformed] = struct{}{}
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
+// Compact returns a copy without zero-value elements.
+func Compact[T comparable](values []T) []T {
+	var zero T
+	result := make([]T, 0, len(values))
+	for _, v := range values {
+		if v != zero {
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
+// CompactFunc returns a copy without elements that match empty predicate.
+func CompactFunc[T any](values []T, empty func(v T) bool) []T {
+	result := make([]T, 0, len(values))
+	for _, v := range values {
+		if !empty(v) {
 			result = append(result, v)
 		}
 	}
@@ -396,7 +520,7 @@ func MapAndGroupToMapBy[V any, G comparable, R any](values []V, group func(v V) 
 
 // CopyWithoutIndex copies a slice while ignoring an element at specific index.
 func CopyWithoutIndex[T any](src []T, index int) []T {
-	cpy := make([]T, 0)
+	cpy := make([]T, 0, len(src))
 	cpy = append(cpy, src[:index]...)
 
 	return append(cpy, src[index+1:]...)
@@ -406,31 +530,73 @@ func CopyWithoutIndex[T any](src []T, index int) []T {
 func CopyWithoutIndexes[T any](src []T, indexes []int) []T {
 	indexMap := make(map[int]struct{})
 	for _, index := range indexes {
-		indexMap[index] = dummy
-	}
-
-	uniqueIndexes := make([]int, 0, len(indexMap))
-	for index := range indexMap {
-		uniqueIndexes = append(uniqueIndexes, index)
-	}
-
-	slices.Sort(uniqueIndexes)
-	slices.Reverse(uniqueIndexes)
-
-	for _, index := range uniqueIndexes {
-		if index < len(src) {
-			src = append(src[:index], src[index+1:]...)
+		if index >= 0 && index < len(src) {
+			indexMap[index] = dummy
 		}
 	}
 
-	return src
+	result := make([]T, 0, len(src)-len(indexMap))
+	for i, v := range src {
+		if _, remove := indexMap[i]; !remove {
+			result = append(result, v)
+		}
+	}
+
+	return result
 }
 
 // CollectAsMap collects corresponding values to a map.
 func CollectAsMap[K comparable, V, R any](values []V, key func(v V) K, val func(v V) R) map[K]R {
-	result := make(map[K]R)
+	result := make(map[K]R, len(values))
 	for _, v := range values {
 		result[key(v)] = val(v)
+	}
+
+	return result
+}
+
+// Difference returns a copy of left values that are not present in right.
+// The order and duplicate values from left are preserved.
+func Difference[T comparable](left, right []T) []T {
+	if len(left) == 0 {
+		return []T{}
+	}
+	if len(right) == 0 {
+		return slices.Clone(left)
+	}
+
+	rightSet := make(map[T]struct{}, len(right))
+	for _, v := range right {
+		rightSet[v] = dummy
+	}
+
+	result := make([]T, 0, len(left))
+	for _, v := range left {
+		if _, exists := rightSet[v]; !exists {
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
+// Intersect returns a copy of left values that are present in right.
+// The order and duplicate values from left are preserved.
+func Intersect[T comparable](left, right []T) []T {
+	if len(left) == 0 || len(right) == 0 {
+		return []T{}
+	}
+
+	rightSet := make(map[T]struct{}, len(right))
+	for _, v := range right {
+		rightSet[v] = dummy
+	}
+
+	result := make([]T, 0, len(left))
+	for _, v := range left {
+		if _, exists := rightSet[v]; exists {
+			result = append(result, v)
+		}
 	}
 
 	return result
@@ -467,20 +633,23 @@ func EqualsCompareWithOrder[T any](left []T, right []T, compare func(t1 T, t2 T)
 }
 
 // EqualValues compares values of two slices regardless of elements order.
-func EqualValues[T constraints.Ordered](left []T, right []T) bool {
+func EqualValues[T cmp.Ordered](left []T, right []T) bool {
 	if len(left) != len(right) {
 		return false
 	}
 
-	sort.SliceStable(left, func(i, j int) bool {
-		return left[i] < left[j]
+	leftSorted := slices.Clone(left)
+	rightSorted := slices.Clone(right)
+
+	sort.SliceStable(leftSorted, func(i, j int) bool {
+		return leftSorted[i] < leftSorted[j]
 	})
-	sort.SliceStable(right, func(i, j int) bool {
-		return right[i] < right[j]
+	sort.SliceStable(rightSorted, func(i, j int) bool {
+		return rightSorted[i] < rightSorted[j]
 	})
 
-	for i, v := range left {
-		if right[i] != v {
+	for i, v := range leftSorted {
+		if rightSorted[i] != v {
 			return false
 		}
 	}
@@ -494,15 +663,18 @@ func EqualValuesCompare[T any](left []T, right []T, compare func(t1, t2 T) bool,
 		return false
 	}
 
-	sort.SliceStable(left, func(i, j int) bool {
-		return less(left[i], left[j])
+	leftSorted := slices.Clone(left)
+	rightSorted := slices.Clone(right)
+
+	sort.SliceStable(leftSorted, func(i, j int) bool {
+		return less(leftSorted[i], leftSorted[j])
 	})
-	sort.SliceStable(right, func(i, j int) bool {
-		return less(right[i], right[j])
+	sort.SliceStable(rightSorted, func(i, j int) bool {
+		return less(rightSorted[i], rightSorted[j])
 	})
 
-	for i, v := range left {
-		if !compare(v, right[i]) {
+	for i, v := range leftSorted {
+		if !compare(v, rightSorted[i]) {
 			return false
 		}
 	}
@@ -512,8 +684,8 @@ func EqualValuesCompare[T any](left []T, right []T, compare func(t1, t2 T) bool,
 
 // Merge merges two slices with t1 elements prioritized against elements of t2.
 func Merge[K comparable, T any](t1 []T, t2 []T, key func(t T) K) []T {
-	hashes := make(map[K]struct{})
-	var result []T
+	hashes := make(map[K]struct{}, len(t1)+len(t2))
+	result := make([]T, 0, len(t1)+len(t2))
 	for _, t := range t1 {
 		k := key(t)
 		if _, ok := hashes[k]; !ok {
@@ -530,6 +702,23 @@ func Merge[K comparable, T any](t1 []T, t2 []T, key func(t T) K) []T {
 	}
 
 	return result
+}
+
+// Reverse returns a reversed copy of values.
+func Reverse[T any](values []T) []T {
+	result := make([]T, len(values))
+	for i, v := range values {
+		result[len(values)-1-i] = v
+	}
+
+	return result
+}
+
+// ReverseInPlace reverses values in place.
+func ReverseInPlace[T any](values []T) {
+	for i, j := 0, len(values)-1; i < j; i, j = i+1, j-1 {
+		values[i], values[j] = values[j], values[i]
+	}
 }
 
 // Range generates a slice of integers from 'from' to 'to' (exclusive).
@@ -582,6 +771,39 @@ func BestMatchBy[T any](values []T, predicate func(currentBest, candidate T) boo
 	return &values[bestIdx]
 }
 
+// ClampIndex clamps index to the valid range of values. It returns -1 for empty slices.
+func ClampIndex[T any](values []T, index int) int {
+	if len(values) == 0 {
+		return -1
+	}
+	if index < 0 {
+		return 0
+	}
+	if index >= len(values) {
+		return len(values) - 1
+	}
+
+	return index
+}
+
+// At returns a pointer to the element at index, or nil when index is out of range.
+func At[T any](values []T, index int) *T {
+	if index < 0 || index >= len(values) {
+		return nil
+	}
+
+	return &values[index]
+}
+
+// AtOr returns the element at index, or fallback when index is out of range.
+func AtOr[T any](values []T, index int, fallback T) T {
+	if index < 0 || index >= len(values) {
+		return fallback
+	}
+
+	return values[index]
+}
+
 // Split divides a slice into multiple smaller slices (chunks) of a specified size and returns a slice of these chunks.
 //
 // If chunkSize is less than or equal to zero, the function returns a slice containing the original slice as its only element.
@@ -610,6 +832,7 @@ func Split[T any](slice []T, chunkSize int) [][]T {
 		return append(chunks, slice)
 	}
 
+	chunks = make([][]T, 0, (len(slice)+chunkSize-1)/chunkSize)
 	for i := 0; i < len(slice); i += chunkSize {
 		end := i + chunkSize
 		if end > len(slice) {
@@ -621,9 +844,9 @@ func Split[T any](slice []T, chunkSize int) [][]T {
 	return chunks
 }
 
-// AsString converts any supported numeric value to a string and joins them with the specified delimiter.
+// AsString converts any supported stringable value to a string and joins them with the specified delimiter.
 func AsString[T uconst.Stringable](delimiter string, values ...T) string {
-	var parts []string
+	parts := make([]string, 0, len(values))
 	for _, v := range values {
 		var s string
 		switch val := any(v).(type) {
@@ -637,6 +860,8 @@ func AsString[T uconst.Stringable](delimiter string, values ...T) string {
 			s = ucast.Int32ToString(val)
 		case int64:
 			s = ucast.Int64ToString(val)
+		case uint:
+			s = ucast.UintToString(val)
 		case uint8:
 			s = ucast.Uint8ToString(val)
 		case uint16:
@@ -651,11 +876,51 @@ func AsString[T uconst.Stringable](delimiter string, values ...T) string {
 			s = ucast.Float64ToString(val)
 		case bool:
 			s = ucast.BoolToString(val)
+		case string:
+			s = val
 		}
 		parts = append(parts, s)
 	}
 
 	return strings.Join(parts, delimiter)
+}
+
+func hasParallel[T comparable](values []T, val T) bool {
+	workers := runtime.GOMAXPROCS(0)
+	if workers <= 1 || len(values) < workers*hasParallelMinChunk {
+		for _, v := range values {
+			if v == val {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	chunkSize := (len(values) + workers - 1) / workers
+	var found atomic.Bool
+	var wg sync.WaitGroup
+	wg.Add(workers)
+
+	for worker := 0; worker < workers; worker++ {
+		start := worker * chunkSize
+		end := min(start+chunkSize, len(values))
+		go func() {
+			defer wg.Done()
+			for i := start; i < end; i++ {
+				if values[i] == val {
+					found.Store(true)
+					return
+				}
+				if i&63 == 0 && found.Load() {
+					return
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
+	return found.Load()
 }
 
 func equals[T comparable](t1, t2 T) bool {

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConcurrentFIFOQueueRaceConditions(t *testing.T) {
@@ -112,4 +113,22 @@ func TestConcurrentFIFOQueueImpl_Len(t *testing.T) {
 
 	assert.EqualValues(t, 0, q.Len())
 	assert.False(t, q.Fetch().Present())
+}
+
+func TestConcurrentFIFOQueuePollWaitsForQueuedItem(t *testing.T) {
+	q := NewConcurrentFIFOQueueImpl[int]()
+	result := make(chan int, 1)
+
+	go func() {
+		result <- q.Poll(time.Second).OrElse(-1)
+	}()
+
+	time.Sleep(10 * time.Millisecond)
+	q.Queue(42)
+
+	require.Eventually(t, func() bool {
+		return len(result) == 1
+	}, time.Second, time.Millisecond)
+	assert.Equal(t, 42, <-result)
+	assert.EqualValues(t, 0, q.Len())
 }
