@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/dgryski/go-farm"
-	"github.com/kordax/basic-utils/v2/usrlz"
+	"github.com/kordax/basic-utils/v3/usrlz"
 )
 
 type concurrentShard[T comparable] struct {

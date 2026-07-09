@@ -11,8 +11,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/kordax/basic-utils/v2/uarray"
-	"github.com/kordax/basic-utils/v2/uevent"
+	"github.com/kordax/basic-utils/v3/uarray"
+	"github.com/kordax/basic-utils/v3/uevent"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

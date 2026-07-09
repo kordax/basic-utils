@@ -7,8 +7,10 @@
 package ufile
 
 import (
+	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 )
 
@@ -24,6 +26,53 @@ func MustRead(path string) []byte {
 	}
 
 	return content
+}
+
+// MustWrite writes content to path or panics on error.
+func MustWrite(path string, content []byte, perm os.FileMode) {
+	if err := os.WriteFile(path, content, perm); err != nil {
+		panic(err)
+	}
+}
+
+// EnsureDir creates dir and all missing parents.
+func EnsureDir(dir string, perm os.FileMode) error {
+	return os.MkdirAll(dir, perm)
+}
+
+// RemoveIfExists removes path when it exists.
+func RemoveIfExists(path string) error {
+	err := os.Remove(path)
+	if err == nil || os.IsNotExist(err) {
+		return nil
+	}
+
+	return err
+}
+
+// ReadJSON reads path and unmarshals JSON into target.
+func ReadJSON[T any](path string) (*T, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var result T
+	if err := json.Unmarshal(content, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// WriteJSON marshals value as JSON and writes it to path.
+func WriteJSON[T any](path string, value T, perm os.FileMode) error {
+	content, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(path, content, perm)
 }
 
 // CreateFile creates a new file at the specified path and optionally writes content to it.
@@ -98,4 +147,36 @@ func ListFiles(dir string, regex *string) ([]string, error) {
 
 	// Return the list of file names and nil for the error if everything was successful.
 	return fileList, nil
+}
+
+// WalkFiles walks dir recursively and returns file paths matching regex when provided.
+func WalkFiles(dir string, regex *string) ([]string, error) {
+	var compiled *regexp.Regexp
+	if regex != nil {
+		var err error
+		compiled, err = regexp.Compile(*regex)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	result := make([]string, 0)
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if compiled == nil || compiled.MatchString(filepath.Base(path)) {
+			result = append(result, path)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

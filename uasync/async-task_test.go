@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/v2/uasync"
+	"github.com/kordax/basic-utils/v3/uasync"
 	"github.com/stretchr/testify/require"
 )
 
@@ -65,6 +65,21 @@ func TestAsyncTask_Success(t *testing.T) {
 	if *result != 5 {
 		t.Fatalf("Expected result to be 5, but got: %v", *result)
 	}
+}
+
+func TestAsyncTask_SuccessWithNilResult(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	task := uasync.NewAsyncTask(ctx, func(ctx context.Context) (*int, error) {
+		return nil, nil
+	}, 3)
+
+	task.ExecuteAsync()
+
+	result, err := task.Wait()
+	require.NoError(t, err)
+	require.Nil(t, result)
 }
 
 func TestAsyncTask_RetryOnFailure(t *testing.T) {

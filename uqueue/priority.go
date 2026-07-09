@@ -8,9 +8,11 @@ package uqueue
 
 import (
 	"container/heap"
+	"context"
+	"sync"
 	"time"
 
-	"github.com/kordax/basic-utils/v2/uopt"
+	"github.com/kordax/basic-utils/v3/uopt"
 )
 
 // container represents an individual item in the priority queue.
@@ -37,16 +39,12 @@ type container[T any] struct {
 // Fields:
 // - queue: The underlying heap structure (prioritizedQueue) that manages the prioritized items.
 //
-//   - ch: A communication channel utilized in the Poll() method. The channel is used to assist
-//     in fetching elements with a specified timeout. When a new item is queued and the channel
-//     is not full, the new item's pointer is sent into the channel.
-//
-// Note: This implementation isn't inherently thread-safe. If concurrent access is anticipated,
-//
-//	external synchronization mechanisms should be used, or you can use ConcurrentFIFOQueueImpl.
+//   - ch: A communication channel utilized in the Poll() method. The channel is used to notify
+//     waiting pollers when queue state changes.
 type PriorityQueueImpl[T any] struct {
+	mu    sync.Mutex
 	queue *prioritizedQueue[T]
-	ch    chan *T
+	ch    chan struct{}
 }
 
 func NewPriorityQueue[T any]() *PriorityQueueImpl[T] {
@@ -54,51 +52,124 @@ func NewPriorityQueue[T any]() *PriorityQueueImpl[T] {
 	heap.Init(pq)
 	return &PriorityQueueImpl[T]{
 		queue: pq,
-		ch:    make(chan *T),
+		ch:    make(chan struct{}, 1),
 	}
 }
 
 func (q *PriorityQueueImpl[T]) Queue(t T, priority int) {
+	q.mu.Lock()
 	heap.Push(q.queue, &container[T]{
 		t:        &t,
 		priority: priority,
 		index:    q.queue.Len(),
 	})
+	q.mu.Unlock()
 
-	select {
-	case q.ch <- &t:
-	default:
-	}
+	q.notify()
 }
 
 func (q *PriorityQueueImpl[T]) Fetch() uopt.Opt[T] {
-	r := q.queue.Pop()
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	if q.queue.Len() == 0 {
+		return uopt.Null[T]()
+	}
+
+	r := heap.Pop(q.queue)
 	if r == nil {
 		return uopt.Null[T]()
-	} else {
-		return uopt.OfNullable[T](r.(*container[T]).t)
 	}
+	if q.queue.Len() > 0 {
+		defer q.notify()
+	}
+
+	return uopt.OfNullable[T](r.(*container[T]).t)
 }
 
 func (q *PriorityQueueImpl[T]) Poll(timeout time.Duration) uopt.Opt[T] {
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
-	r := q.Fetch()
-	for !r.Present() {
-		select {
-		case <-timer.C:
-			return uopt.Null[T]()
-		case t := <-q.ch:
-			return uopt.OfNullable(t)
-		}
+	return q.PollContext(ctx)
+}
+
+func (q *PriorityQueueImpl[T]) PollContext(ctx context.Context) uopt.Opt[T] {
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
-	return r
+	for {
+		if result := q.Fetch(); result.Present() {
+			return result
+		}
+
+		select {
+		case <-ctx.Done():
+			return uopt.Null[T]()
+		case <-q.ch:
+		}
+	}
+}
+
+func (q *PriorityQueueImpl[T]) Peek() uopt.Opt[T] {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	if q.queue.Len() == 0 {
+		return uopt.Null[T]()
+	}
+
+	return uopt.OfNullable(q.queue.e[0].t)
+}
+
+func (q *PriorityQueueImpl[T]) Drain(limit ...int) []T {
+	n := int(q.Len())
+	if len(limit) > 0 && limit[0] >= 0 && limit[0] < n {
+		n = limit[0]
+	}
+	if n == 0 {
+		return []T{}
+	}
+
+	result := make([]T, 0, n)
+	for len(result) < n {
+		value := q.Fetch()
+		if !value.Present() {
+			break
+		}
+		result = append(result, value.OrElse(*new(T)))
+	}
+
+	return result
+}
+
+func (q *PriorityQueueImpl[T]) Clear() {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	for i := range q.queue.e {
+		q.queue.e[i] = nil
+	}
+	q.queue.e = nil
+}
+
+func (q *PriorityQueueImpl[T]) Empty() bool {
+	return q.Len() == 0
 }
 
 func (q *PriorityQueueImpl[T]) Len() uint64 {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
 	return uint64(q.queue.Len())
+}
+
+func (q *PriorityQueueImpl[T]) notify() {
+	select {
+	case q.ch <- struct{}{}:
+	default:
+	}
 }
 
 type prioritizedQueue[T any] struct {
@@ -125,17 +196,16 @@ func (pq *prioritizedQueue[T]) Push(x any) {
 }
 
 func (pq *prioritizedQueue[T]) Pop() any {
-	old := make([]*container[T], len(pq.e))
-	copy(old, pq.e)
+	old := pq.e
 	n := len(old)
 	if n == 0 {
 		return nil
 	}
 
-	item := old[0]
-	old[0] = nil    // avoid memory leak
+	item := old[n-1]
+	old[n-1] = nil  // avoid memory leak
 	item.index = -1 // for safety
-	pq.e = pq.e[1:]
+	pq.e = old[:n-1]
 
 	return item
 }

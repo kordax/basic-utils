@@ -10,7 +10,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/kordax/basic-utils/v2/usrlz"
+	"github.com/kordax/basic-utils/v3/usrlz"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,38 +34,60 @@ type SimpleStruct struct {
 
 type EmptyStruct struct{}
 
+type FixedStruct struct {
+	A int64
+	B [2]uint32
+}
+
 func TestToBytes(t *testing.T) {
-	simpleStruct := SimpleStruct{A: 1, B: 2.0}
-	intVal := 42
-	complexStruct := ComplexStruct{
-		IntField:        123,
-		FloatField:      456.789,
-		StringField:     "test",
-		BoolField:       true,
-		ArrayField:      [3]int{1, 2, 3},
-		SliceField:      []int{4, 5, 6},
-		MapField:        map[string]int{"one": 1, "two": 2},
-		PointerField:    &intVal,
-		NilPointerField: nil,
-		StructField:     simpleStruct,
-	}
+	fixed := FixedStruct{A: 123, B: [2]uint32{456, 789}}
 
-	bytes := usrlz.ToBytes(&complexStruct)
+	bytes := usrlz.ToBytes(&fixed)
 
-	var result *ComplexStruct
+	var result *FixedStruct
 	ptr := unsafe.Pointer(&bytes[0])
-	result = (*ComplexStruct)(ptr)
+	result = (*FixedStruct)(ptr)
 
-	assert.Equal(t, complexStruct.IntField, result.IntField, "IntField does not match")
-	assert.Equal(t, complexStruct.FloatField, result.FloatField, "FloatField does not match")
-	assert.Equal(t, complexStruct.StringField, result.StringField, "StringField does not match")
-	assert.Equal(t, complexStruct.BoolField, result.BoolField, "BoolField does not match")
-	assert.Equal(t, complexStruct.ArrayField, result.ArrayField, "ArrayField does not match")
-	assert.Equal(t, complexStruct.SliceField, result.SliceField, "SliceField does not match")
-	assert.Equal(t, complexStruct.MapField, result.MapField, "MapField does not match")
-	assert.Equal(t, complexStruct.PointerField, result.PointerField, "PointerField does not match")
-	assert.Equal(t, complexStruct.NilPointerField, result.NilPointerField, "NilPointerField does not match")
-	assert.Equal(t, complexStruct.StructField, result.StructField, "StructField does not match")
+	assert.Equal(t, fixed, *result)
+}
+
+func TestToBytesReturnsStableCopy(t *testing.T) {
+	value := FixedStruct{A: 10, B: [2]uint32{20, 30}}
+
+	bytes := usrlz.ToBytes(&value)
+	value.A = 99
+
+	result := (*FixedStruct)(unsafe.Pointer(&bytes[0]))
+	assert.Equal(t, int64(10), result.A)
+	assert.Equal(t, [2]uint32{20, 30}, result.B)
+}
+
+func TestToBytesRejectsReferenceBearingTypes(t *testing.T) {
+	t.Run("string field", func(t *testing.T) {
+		value := struct {
+			Name string
+		}{Name: "unsafe"}
+
+		assert.Panics(t, func() {
+			_ = usrlz.ToBytes(&value)
+		})
+	})
+
+	t.Run("slice", func(t *testing.T) {
+		value := []int{1, 2, 3}
+
+		assert.Panics(t, func() {
+			_ = usrlz.ToBytes(&value)
+		})
+	})
+
+	t.Run("map", func(t *testing.T) {
+		value := map[string]int{"one": 1}
+
+		assert.Panics(t, func() {
+			_ = usrlz.ToBytes(&value)
+		})
+	})
 }
 
 func TestToBytesEmptyStruct(t *testing.T) {
@@ -91,23 +113,15 @@ func TestToBytesNilPointer(t *testing.T) {
 func TestToBytesSlice(t *testing.T) {
 	slice := []int{1, 2, 3}
 
-	bytes := usrlz.ToBytes(&slice)
-
-	var result *[]int
-	ptr := unsafe.Pointer(&bytes[0])
-	result = (*[]int)(ptr)
-
-	assert.EqualValues(t, slice, *result)
+	assert.Panics(t, func() {
+		_ = usrlz.ToBytes(&slice)
+	})
 }
 
 func TestToBytesMap(t *testing.T) {
 	m := map[string]int{"one": 1, "two": 2}
 
-	bytes := usrlz.ToBytes(&m)
-
-	var result *map[string]int
-	ptr := unsafe.Pointer(&bytes[0])
-	result = (*map[string]int)(ptr)
-
-	assert.EqualValues(t, m, *result)
+	assert.Panics(t, func() {
+		_ = usrlz.ToBytes(&m)
+	})
 }

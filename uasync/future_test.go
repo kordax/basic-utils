@@ -32,6 +32,18 @@ func TestFutureSimpleCompletion(t *testing.T) {
 	}
 }
 
+func TestFutureCompletionWithNilResult(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	f := NewFuture[int](ctx)
+	require.True(t, f.Complete(nil))
+
+	result, err := f.Wait()
+	require.NoError(t, err)
+	require.Nil(t, result)
+}
+
 func TestFutureSimpleFailure(t *testing.T) {
 	f := NewFuture[int](context.Background())
 	expectedErr := errors.New("an error")

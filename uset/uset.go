@@ -6,7 +6,7 @@
 
 package uset
 
-import "github.com/kordax/basic-utils/v2/uconst"
+import "github.com/kordax/basic-utils/v3/uconst"
 
 // Set that contains unique elements.
 type Set[T comparable] interface {

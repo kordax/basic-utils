@@ -10,7 +10,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/kordax/basic-utils/v2/unumber"
+	"github.com/kordax/basic-utils/v3/unumber"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -8,7 +8,6 @@ package umap
 
 import (
 	"iter"
-	"slices"
 )
 
 // HashMultiMap is a generic data structure that implements a multi-value map,
@@ -58,14 +57,20 @@ func (m *HashMultiMap[K, V]) Remove(key K, predicate func(v V) bool) int {
 	}
 
 	removalCount := 0
-	indexesToRemove := make([]int, 0)
-	for ind, value := range values {
+	kept := values[:0]
+	for _, value := range values {
 		if predicate(value) {
-			indexesToRemove = append(indexesToRemove, ind)
 			removalCount++
+			continue
 		}
+
+		kept = append(kept, value)
 	}
-	m.store[key] = withoutIndexes(values, indexesToRemove)
+	var zero V
+	for i := len(kept); i < len(values); i++ {
+		values[i] = zero
+	}
+	m.store[key] = kept
 
 	return removalCount
 }
@@ -88,27 +93,4 @@ func (m *HashMultiMap[K, V]) Iterator() iter.Seq2[K, []V] {
 			}
 		}
 	}
-}
-
-func withoutIndexes[T any](src []T, indexes []int) []T {
-	indexMap := make(map[int]struct{})
-	for _, index := range indexes {
-		indexMap[index] = dummy
-	}
-
-	uniqueIndexes := make([]int, 0, len(indexMap))
-	for index := range indexMap {
-		uniqueIndexes = append(uniqueIndexes, index)
-	}
-
-	slices.Sort(uniqueIndexes)
-	slices.Reverse(uniqueIndexes)
-
-	for _, index := range uniqueIndexes {
-		if index < len(src) {
-			src = append(src[:index], src[index+1:]...)
-		}
-	}
-
-	return src
 }

@@ -9,7 +9,7 @@ package ustr_test
 import (
 	"testing"
 
-	"github.com/kordax/basic-utils/v2/ustr"
+	"github.com/kordax/basic-utils/v3/ustr"
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,6 +42,18 @@ func TestDef(t *testing.T) {
 			require.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestStringHelpers(t *testing.T) {
+	require.True(t, ustr.IsBlank(" \t\n"))
+	require.False(t, ustr.IsBlank(" value "))
+	require.Equal(t, "fallback", ustr.DefaultIfBlank(" ", "fallback"))
+	require.Equal(t, "value", ustr.DefaultIfBlank("value", "fallback"))
+	require.Equal(t, "value", *ustr.Ptr("value"))
+	require.Nil(t, ustr.TrimPtr(nil))
+	require.Equal(t, "value", *ustr.TrimPtr(ptr(" value ")))
+	require.Equal(t, []string{"a", "b", "c"}, ustr.SplitAndTrim(" a, b ,, c ", ","))
+	require.Equal(t, "a b c", ustr.NormalizeSpace(" a\t b\n c "))
 }
 
 func ptr(s string) *string {

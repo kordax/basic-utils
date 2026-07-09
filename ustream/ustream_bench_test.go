@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kordax/basic-utils/v2/uarray"
-	"github.com/kordax/basic-utils/v2/ustream"
+	"github.com/kordax/basic-utils/v3/uarray"
+	"github.com/kordax/basic-utils/v3/ustream"
 )
 
 func BenchmarkTerminalStream_ParallelExecute(b *testing.B) {
@@ -98,5 +98,49 @@ func BenchmarkTerminalStream_ParallelExecuteWithTimeout_HigherOrder(b *testing.B
 				stream.ParallelExecuteWithTimeout(fn, nil, timeout, parallelism)
 			}
 		})
+	}
+}
+
+func BenchmarkStream_FluentPipeline(b *testing.B) {
+	values := make([]int, 10_000)
+	for i := range values {
+		values[i] = i
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = ustream.Of(values).
+			Filter(func(v int) bool {
+				return v%2 == 0
+			}).
+			Transform(func(v int) int {
+				return v * 2
+			}).
+			Skip(10).
+			Limit(1000).
+			Reverse().
+			Reduce(0, func(acc int, v int) int {
+				return acc + v
+			})
+	}
+}
+
+func BenchmarkStream_GenericMapCollect(b *testing.B) {
+	values := make([]int, 10_000)
+	for i := range values {
+		values[i] = i
+	}
+	stream := ustream.Of(values)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		mapped := ustream.Map(stream, func(v int) int {
+			return v * 2
+		})
+		_ = ustream.Collect(mapped, ustream.ToMap(func(v int) (int, int) {
+			return v, v
+		}))
 	}
 }

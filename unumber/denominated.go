@@ -9,7 +9,7 @@ package unumber
 import (
 	"errors"
 
-	"github.com/kordax/basic-utils/v2/uconst"
+	"github.com/kordax/basic-utils/v3/uconst"
 )
 
 type denominated interface {

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/kordax/basic-utils/v2/uset"
+	"github.com/kordax/basic-utils/v3/uset"
 	"github.com/stretchr/testify/assert"
 )
 
