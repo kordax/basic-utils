@@ -4,6 +4,8 @@ Stream-style helpers for fluent slice processing.
 
 Use this package when a pipeline is clearer than direct `uarray` calls:
 
+## Example
+
 ```go
 result := ustream.From(5, 1, 2, 2, 3, 4).
 	Filter(func(v int) bool {

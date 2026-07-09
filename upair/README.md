@@ -4,6 +4,8 @@ Pair type helpers.
 
 Use this package when returning or carrying two related values without introducing a local struct.
 
+## Example
+
 Use `Of` for the zero-allocation value form:
 
 ```go
