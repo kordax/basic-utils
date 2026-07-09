@@ -1,5 +1,7 @@
 [![Tests](https://github.com/kordax/basic-utils/actions/workflows/Tests.yml/badge.svg?branch=main)](https://github.com/kordax/basic-utils/actions/workflows/Tests.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/kordax/basic-utils)](https://goreportcard.com/report/github.com/kordax/basic-utils)
+[![Lint](https://github.com/kordax/basic-utils/actions/workflows/Lint.yml/badge.svg?branch=main)](https://github.com/kordax/basic-utils/actions/workflows/Lint.yml)
+[![Security](https://github.com/kordax/basic-utils/actions/workflows/Security.yml/badge.svg?branch=main)](https://github.com/kordax/basic-utils/actions/workflows/Security.yml)
+[![gitleaks](https://github.com/kordax/basic-utils/actions/workflows/gitleaks.yml/badge.svg?branch=main)](https://github.com/kordax/basic-utils/actions/workflows/gitleaks.yml)
 [![Coverage](https://raw.githubusercontent.com/kordax/basic-utils/badges/.badges/main/coverage.svg)](https://github.com/kordax/basic-utils/tree/badges)
 
 # Basic Utils
@@ -9,8 +11,7 @@ programming tasks. Each module addresses a particular set of functions or data s
 
 ## Minimum Go Version Requirement
 
-To use or contribute to this project, you need to have at least Go 1.26.4 installed.
-This is due to the usage of features and packages introduced in this version.
+To use or contribute to this project, install Go 1.26.4 or newer.
 
 ## Modules
 
@@ -44,7 +45,7 @@ This is due to the usage of features and packages introduced in this version.
 Make sure you have Go installed on your machine. Then, use `go get` to install the package:
 
 ```shell
-go get -u github.com/kordax/basic-utils/v3
+go get github.com/kordax/basic-utils/v3@latest
 ```
 
 ## Usage
@@ -53,7 +54,7 @@ You can import each module individually or import the main module and it depends
 queue library:
 
 ```shell
-go get -u github.com/kordax/basic-utils/v3/uqueue
+go get github.com/kordax/basic-utils/v3/uqueue@latest
 ```
 
 then...
@@ -66,5 +67,14 @@ Then, refer to the individual documentation or code comments of each module for 
 
 ## Static Analysis
 
-The repository uses golangci-lint for static analysis. Run `golangci-lint run` in the root directory to perform a code
-quality check.
+The repository uses GitHub Actions for tests, linting, coverage, vulnerability checks, security scanning, and secret
+scanning. Run these checks locally before opening a pull request:
+
+```shell
+go test -race ./...
+golangci-lint run
+go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
+go run github.com/vladopajic/go-test-coverage/v2@latest --config=./testcoverage.yml
+go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+go run github.com/securego/gosec/v2/cmd/gosec@latest -exclude=G103,G115,G304 ./...
+```
