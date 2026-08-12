@@ -95,6 +95,43 @@ func TestRequireEnvSliceAs(t *testing.T) {
 	}, "The function should panic when the environment variable is not set")
 }
 
+func TestRequireEnvSliceAsOrEmpty(t *testing.T) {
+	key := "TEST_ENV_SLICE_AS_OR_EMPTY"
+	mapperCalls := 0
+	mapStringToFloat64 := func(s string) (*float64, error) {
+		mapperCalls++
+		v, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return nil, err
+		}
+		return &v, nil
+	}
+
+	t.Cleanup(func() { _ = os.Unsetenv(key) })
+
+	require.NoError(t, os.Setenv(key, "0.5, 2.3, 3.8"))
+	assert.Equal(t, []float64{0.5, 2.3, 3.8}, uos.RequireEnvSliceAsOrEmpty(key, mapStringToFloat64))
+	assert.Equal(t, 3, mapperCalls)
+
+	require.NoError(t, os.Unsetenv(key))
+	mapperCalls = 0
+	result := uos.RequireEnvSliceAsOrEmpty(key, mapStringToFloat64)
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+	assert.Zero(t, mapperCalls)
+
+	require.NoError(t, os.Setenv(key, ""))
+	result = uos.RequireEnvSliceAsOrEmpty(key, mapStringToFloat64)
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+	assert.Zero(t, mapperCalls)
+
+	require.NoError(t, os.Setenv(key, "0.5, two, 3.8"))
+	assert.Panics(t, func() {
+		uos.RequireEnvSliceAsOrEmpty(key, mapStringToFloat64)
+	})
+}
+
 func TestRequireEnvNumeric(t *testing.T) {
 	require.NoError(t, os.Setenv("TEST_INT", strconv.Itoa(math.MaxInt)))
 	require.NoError(t, os.Setenv("TEST_INT8", strconv.Itoa(math.MinInt8)))

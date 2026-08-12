@@ -196,6 +196,16 @@ func RequireEnvSliceAs[T any](key string, f MappingFunc[T]) []T {
 	return result
 }
 
+// RequireEnvSliceAsOrEmpty is the same as RequireEnvSliceAs, but returns an empty slice
+// when the environment variable is missing or empty. Mapping errors still cause a panic.
+func RequireEnvSliceAsOrEmpty[T any](key string, f MappingFunc[T]) []T {
+	if os.Getenv(key) == "" {
+		return make([]T, 0)
+	}
+
+	return RequireEnvSliceAs(key, f)
+}
+
 // RequireEnvDuration retrieves the environment variable specified by key as a time.Duration.
 // This function uses RequireEnvAs under the hood to convert the environment variable string
 // to a time.Duration type. If the environment variable is not found, or if the conversion
