@@ -22,3 +22,5 @@ target/
 .helm/charts
 /.env
 .task/
+.gortex/
+.gortex.yaml
