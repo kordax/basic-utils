@@ -22,7 +22,7 @@ git:
 ---
 image: builder
 final: false
-from: golang:1.26.4-alpine
+from: golang:1.26.6-alpine
 {{- if eq (env "NOCACHE") "true" }}
 fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
 {{- end }}

@@ -1,8 +1,6 @@
 module git.casinomodule.org/casino27/basic-utils/v3
 
-go 1.26
-
-toolchain go1.26.4
+go 1.26.6
 
 require (
 	github.com/dgryski/go-farm v0.0.0-20240924180020-3414d57e47da

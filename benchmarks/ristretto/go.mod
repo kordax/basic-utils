@@ -2,7 +2,7 @@ module git.casinomodule.org/casino27/basic-utils-benchmarks/ristretto
 
 go 1.26
 
-toolchain go1.26.4
+toolchain go1.26.6
 
 require (
 	git.casinomodule.org/casino27/basic-utils/v3 v3.0.0
