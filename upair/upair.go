@@ -45,14 +45,31 @@ func (p Pair[L, R]) Swap() Pair[R, L] {
 	return Of(p.Right, p.Left)
 }
 
+// Map transforms both pair values.
+func (p Pair[L, R]) Map[NL, NR any](left func(L) NL, right func(R) NR) Pair[NL, NR] {
+	return Of(left(p.Left), right(p.Right))
+}
+
 // MapLeft maps the left value and keeps the right value unchanged.
-func MapLeft[L, R, NL any](p Pair[L, R], mapper func(L) NL) Pair[NL, R] {
+func (p Pair[L, R]) MapLeft[NL any](mapper func(L) NL) Pair[NL, R] {
 	return Of(mapper(p.Left), p.Right)
 }
 
 // MapRight maps the right value and keeps the left value unchanged.
-func MapRight[L, R, NR any](p Pair[L, R], mapper func(R) NR) Pair[L, NR] {
+func (p Pair[L, R]) MapRight[NR any](mapper func(R) NR) Pair[L, NR] {
 	return Of(p.Left, mapper(p.Right))
+}
+
+// MapLeft maps the left value and keeps the right value unchanged.
+// Deprecated: use p.MapLeft(mapper).
+func MapLeft[L, R, NL any](p Pair[L, R], mapper func(L) NL) Pair[NL, R] {
+	return p.MapLeft(mapper)
+}
+
+// MapRight maps the right value and keeps the left value unchanged.
+// Deprecated: use p.MapRight(mapper).
+func MapRight[L, R, NR any](p Pair[L, R], mapper func(R) NR) Pair[L, NR] {
+	return p.MapRight(mapper)
 }
 
 // CPair is the same struct as Pair, but forces comparable constraints to support uconst.Comparable contract.

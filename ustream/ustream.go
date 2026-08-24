@@ -111,9 +111,9 @@ func (s *Stream[T]) FilterOut(predicate func(T) bool) *Stream[T] {
 	})
 }
 
-// Map maps values into any and returns a terminal stream for legacy compatibility.
-func (s *Stream[T]) Map(mapper func(T) any) *TerminalStream[any] {
-	return NewTerminalStream(uarray.Map(s.values, mapper))
+// Map maps values into another type.
+func (s *Stream[T]) Map[R any](mapper func(T) R) *Stream[R] {
+	return Of(uarray.Map(s.values, mapper))
 }
 
 // Transform maps values without changing their type.
@@ -130,12 +130,55 @@ func (s *Stream[T]) Transform(mapper func(T) T) *Stream[T] {
 	return Of(result)
 }
 
-// FlatMap expands each value into zero or more values of the same type.
-func (s *Stream[T]) FlatMap(mapper func(T) []T) *Stream[T] {
-	result := make([]T, 0, len(s.values))
+// FlatMap maps each value into zero or more values of another type.
+func (s *Stream[T]) FlatMap[R any](mapper func(T) []R) *Stream[R] {
+	result := make([]R, 0, len(s.values))
 	for _, value := range s.values {
 		result = append(result, mapper(value)...)
 	}
+
+	return Of(result)
+}
+
+// ParallelMap maps values concurrently while preserving their original order.
+func (s *Stream[T]) ParallelMap[R any](mapper func(T) R, parallelism int) *Stream[R] {
+	values := s.values
+	if len(values) == 0 {
+		return Empty[R]()
+	}
+	if parallelism <= 1 || len(values) == 1 {
+		return s.Map(mapper)
+	}
+	if parallelism > len(values) {
+		parallelism = len(values)
+	}
+
+	const chunksPerWorker = 8
+
+	result := make([]R, len(values))
+	chunkSize := max(1, len(values)/parallelism/chunksPerWorker)
+	var next atomic.Int64
+	var wg sync.WaitGroup
+
+	wg.Add(parallelism)
+	for range parallelism {
+		go func() {
+			defer wg.Done()
+			for {
+				start := int(next.Add(int64(chunkSize))) - chunkSize
+				if start >= len(values) {
+					return
+				}
+
+				end := min(start+chunkSize, len(values))
+				for index := start; index < end; index++ {
+					result[index] = mapper(values[index])
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
 
 	return Of(result)
 }
@@ -220,13 +263,13 @@ func (s *Stream[T]) Sort(less func(a, b T) bool) *Stream[T] {
 	return Of(result)
 }
 
-// DistinctBy keeps the first value for each string key.
-func (s *Stream[T]) DistinctBy(key func(T) string) *Stream[T] {
+// DistinctBy keeps the first value for each comparable key.
+func (s *Stream[T]) DistinctBy[K comparable](key func(T) K) *Stream[T] {
 	if len(s.values) == 0 {
 		return Empty[T]()
 	}
 
-	seen := make(map[string]struct{}, len(s.values))
+	seen := make(map[K]struct{}, len(s.values))
 	result := make([]T, 0, len(s.values))
 	for _, value := range s.values {
 		k := key(value)
@@ -282,8 +325,8 @@ func (s *Stream[T]) Count() int {
 	return len(s.values)
 }
 
-// Reduce folds values into one value.
-func (s *Stream[T]) Reduce(initial T, reducer func(acc T, value T) T) T {
+// Reduce folds values into any result type.
+func (s *Stream[T]) Reduce[R any](initial R, reducer func(acc R, value T) R) R {
 	return uarray.Reduce(s.values, initial, reducer)
 }
 
@@ -307,9 +350,19 @@ func (s *Stream[T]) CollectToMultiMap(mapper func(T) (any, any)) map[any][]any {
 	return uarray.ToMultiMap(s.values, mapper)
 }
 
-// CollectWith collects stream values using a custom collector.
-func (s *Stream[T]) CollectWith(collector func([]T) any) any {
-	return collector(s.values)
+// CollectWith collects stream values into any result type.
+func (s *Stream[T]) CollectWith[R any](collector ResultCollector[T, R]) R {
+	return collector.Collect(s.values)
+}
+
+// ToMap collects stream values into a typed map. Duplicate keys are overwritten.
+func (s *Stream[T]) ToMap[K comparable, R any](mapper func(T) (K, R)) map[K]R {
+	return uarray.ToMap(s.values, mapper)
+}
+
+// ToMultiMap collects stream values into a typed grouped map.
+func (s *Stream[T]) ToMultiMap[K comparable, R any](mapper func(T) (K, R)) map[K][]R {
+	return uarray.ToMultiMap(s.values, mapper)
 }
 
 // ToTerminal converts a stream to a terminal stream.
@@ -424,78 +477,33 @@ func (s *TerminalStream[T]) CollectToMap(mapper func(T) (any, T)) map[any][]T {
 }
 
 // Map maps stream values into another type.
+// Deprecated: use stream.Map(mapper).
 func Map[T, R any](stream *Stream[T], mapper func(T) R) *Stream[R] {
-	values := stream.Collect()
-	result := make([]R, len(values))
-	for i, value := range values {
-		result[i] = mapper(value)
-	}
-
-	return Of(result)
+	return stream.Map(mapper)
 }
 
 // ParallelMap maps stream values concurrently while preserving their original order.
+// Deprecated: use stream.ParallelMap(mapper, parallelism).
 func ParallelMap[T, R any](stream *Stream[T], mapper func(T) R, parallelism int) *Stream[R] {
-	values := stream.Collect()
-	if len(values) == 0 {
-		return Empty[R]()
-	}
-	if parallelism <= 1 || len(values) == 1 {
-		return Map(stream, mapper)
-	}
-	if parallelism > len(values) {
-		parallelism = len(values)
-	}
-
-	const chunksPerWorker = 8
-
-	result := make([]R, len(values))
-	chunkSize := max(1, len(values)/parallelism/chunksPerWorker)
-	var next atomic.Int64
-	var wg sync.WaitGroup
-
-	wg.Add(parallelism)
-	for range parallelism {
-		go func() {
-			defer wg.Done()
-			for {
-				start := int(next.Add(int64(chunkSize))) - chunkSize
-				if start >= len(values) {
-					return
-				}
-
-				end := min(start+chunkSize, len(values))
-				for index := start; index < end; index++ {
-					result[index] = mapper(values[index])
-				}
-			}
-		}()
-	}
-
-	wg.Wait()
-
-	return Of(result)
+	return stream.ParallelMap(mapper, parallelism)
 }
 
 // FlatMap maps stream values into another type and flattens the result.
+// Deprecated: use stream.FlatMap(mapper).
 func FlatMap[T, R any](stream *Stream[T], mapper func(T) []R) *Stream[R] {
-	values := stream.Collect()
-	result := make([]R, 0, len(values))
-	for _, value := range values {
-		result = append(result, mapper(value)...)
-	}
-
-	return Of(result)
+	return stream.FlatMap(mapper)
 }
 
 // Reduce folds stream values into any result type.
+// Deprecated: use stream.Reduce(initial, reducer).
 func Reduce[T, R any](stream *Stream[T], initial R, reducer func(acc R, value T) R) R {
-	return uarray.Reduce(stream.Collect(), initial, reducer)
+	return stream.Reduce(initial, reducer)
 }
 
 // Collect applies a typed collector to a stream.
+// Deprecated: use stream.CollectWith(collector).
 func Collect[T, R any](stream *Stream[T], collector ResultCollector[T, R]) R {
-	return collector.Collect(stream.Collect())
+	return stream.CollectWith(collector)
 }
 
 // ToSlice creates a collector that returns stream values.
@@ -554,8 +562,9 @@ func Distinct[T comparable](stream *Stream[T]) *Stream[T] {
 }
 
 // DistinctBy keeps the first value for each comparable key.
+// Deprecated: use stream.DistinctBy(key).
 func DistinctBy[T any, K comparable](stream *Stream[T], key func(T) K) *Stream[T] {
-	return Of(uarray.Uniq(stream.Collect(), key))
+	return stream.DistinctBy(key)
 }
 
 // Compact removes zero values from a comparable stream.

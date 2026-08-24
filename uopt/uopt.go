@@ -48,31 +48,49 @@ func (o Opt[T]) IfPresent(f func(t T)) {
 	}
 }
 
-// Map transforms a present optional value, or returns Null when opt is empty.
-func Map[T, R any](opt Opt[T], mapper func(T) R) Opt[R] {
-	if !opt.Present() {
+// Map transforms a present optional value, or returns Null when the optional is empty.
+func (o Opt[T]) Map[R any](mapper func(T) R) Opt[R] {
+	if !o.Present() {
 		return Null[R]()
 	}
 
-	return Of(mapper(*opt.v))
+	return Of(mapper(*o.v))
 }
 
-// FlatMap transforms a present optional value into another optional value, or returns Null when opt is empty.
-func FlatMap[T, R any](opt Opt[T], mapper func(T) Opt[R]) Opt[R] {
-	if !opt.Present() {
+// FlatMap transforms a present value into another optional value, or returns Null when the optional is empty.
+func (o Opt[T]) FlatMap[R any](mapper func(T) Opt[R]) Opt[R] {
+	if !o.Present() {
 		return Null[R]()
 	}
 
-	return mapper(*opt.v)
+	return mapper(*o.v)
 }
 
 // Filter keeps a present value only when predicate returns true.
-func Filter[T any](opt Opt[T], predicate func(T) bool) Opt[T] {
-	if !opt.Present() || !predicate(*opt.v) {
+func (o Opt[T]) Filter(predicate func(T) bool) Opt[T] {
+	if !o.Present() || !predicate(*o.v) {
 		return Null[T]()
 	}
 
-	return opt
+	return o
+}
+
+// Map transforms a present optional value, or returns Null when opt is empty.
+// Deprecated: use opt.Map(mapper).
+func Map[T, R any](opt Opt[T], mapper func(T) R) Opt[R] {
+	return opt.Map(mapper)
+}
+
+// FlatMap transforms a present optional value into another optional value, or returns Null when opt is empty.
+// Deprecated: use opt.FlatMap(mapper).
+func FlatMap[T, R any](opt Opt[T], mapper func(T) Opt[R]) Opt[R] {
+	return opt.FlatMap(mapper)
+}
+
+// Filter keeps a present value only when predicate returns true.
+// Deprecated: use opt.Filter(predicate).
+func Filter[T any](opt Opt[T], predicate func(T) bool) Opt[T] {
+	return opt.Filter(predicate)
 }
 
 // Null creates an Opt with no value.

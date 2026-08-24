@@ -8,7 +8,6 @@ package ustream_test
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -55,11 +54,11 @@ func TestStream_FilterOut(t *testing.T) {
 func TestStream_Map(t *testing.T) {
 	values := []int{1, 2, 3}
 	stream := ustream.Of(values)
-	mapped := stream.Map(func(v int) any {
+	mapped := stream.Map(func(v int) string {
 		return fmt.Sprintf("Num: %d", v)
 	}).Collect()
 
-	expected := []interface{}{"Num: 1", "Num: 2", "Num: 3"}
+	expected := []string{"Num: 1", "Num: 2", "Num: 3"}
 	assert.Equal(t, expected, mapped, "Map function failed")
 }
 
@@ -121,27 +120,27 @@ func TestStream_FlatMapAndCompactFunc(t *testing.T) {
 func TestStream_GenericMapFlatMapReduceAndCollectors(t *testing.T) {
 	stream := ustream.From(1, 2, 3)
 
-	mapped := ustream.Map(stream, func(v int) string {
+	mapped := stream.Map(func(v int) string {
 		return fmt.Sprintf("n-%d", v)
 	})
 	assert.Equal(t, []string{"n-1", "n-2", "n-3"}, mapped.Collect())
 
-	flatMapped := ustream.FlatMap(stream, func(v int) []string {
+	flatMapped := stream.FlatMap(func(v int) []string {
 		return []string{fmt.Sprintf("%d", v), fmt.Sprintf("%d", v*10)}
 	})
 	assert.Equal(t, []string{"1", "10", "2", "20", "3", "30"}, flatMapped.Collect())
 
-	sum := ustream.Reduce(stream, 0, func(acc int, v int) int {
-		return acc + v
+	joined := stream.Reduce("", func(acc string, v int) string {
+		return fmt.Sprintf("%s%d", acc, v)
 	})
-	assert.Equal(t, 6, sum)
+	assert.Equal(t, "123", joined)
 
-	toMap := ustream.Collect(mapped, ustream.ToMap(func(v string) (int, string) {
+	toMap := mapped.CollectWith(ustream.ToMap(func(v string) (int, string) {
 		return len(v), v
 	}))
 	assert.Equal(t, map[int]string{3: "n-3"}, toMap)
 
-	grouped := ustream.Collect(stream, ustream.GroupingBy(func(v int) string {
+	grouped := stream.CollectWith(ustream.GroupingBy(func(v int) string {
 		if v%2 == 0 {
 			return "even"
 		}
@@ -149,13 +148,18 @@ func TestStream_GenericMapFlatMapReduceAndCollectors(t *testing.T) {
 	}))
 	assert.Equal(t, map[string][]int{"odd": {1, 3}, "even": {2}}, grouped)
 
-	counted := ustream.Collect(stream, ustream.CountingBy(func(v int) string {
+	counted := stream.CollectWith(ustream.CountingBy(func(v int) string {
 		if v%2 == 0 {
 			return "even"
 		}
 		return "odd"
 	}))
 	assert.Equal(t, map[string]int{"odd": 2, "even": 1}, counted)
+
+	distinct := stream.DistinctBy(func(v int) int {
+		return v % 2
+	})
+	assert.Equal(t, []int{1, 2}, distinct.Collect())
 }
 
 func TestStream_ParallelMapPreservesOrderAndBoundsConcurrency(t *testing.T) {
@@ -174,7 +178,7 @@ func TestStream_ParallelMapPreservesOrderAndBoundsConcurrency(t *testing.T) {
 	maxActive := 0
 	var mu sync.Mutex
 
-	mapped := ustream.ParallelMap(ustream.Of(values), func(value int) string {
+	mapped := ustream.Of(values).ParallelMap(func(value int) string {
 		mu.Lock()
 		calls[value]++
 		active++
@@ -199,7 +203,7 @@ func TestStream_ParallelMapPreservesOrderAndBoundsConcurrency(t *testing.T) {
 }
 
 func TestStream_ParallelMapEmpty(t *testing.T) {
-	mapped := ustream.ParallelMap(ustream.Empty[int](), func(value int) string {
+	mapped := ustream.Empty[int]().ParallelMap(func(value int) string {
 		t.Fatalf("mapper called for empty stream with value %d", value)
 		return ""
 	}, 4)
@@ -236,39 +240,30 @@ func TestStream_CollectCopyDoesNotExposeBackingArray(t *testing.T) {
 }
 
 func TestStream_CollectToMap(t *testing.T) {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
+	stream := ustream.Of([]int{1, 2, 3, 4})
 
-	var values []int
-	for i := 0; i < 1000; i++ {
-		values = append(values, rand.Intn(1000))
-	}
-
-	stream := ustream.Of(values)
-
-	// Perform operations on the stream
-	// Since Map returns a TerminalStream, we perform all transformations before mapping
-	filteredStream := stream.Filter(func(v int) bool {
-		return v%2 == 0 // Keep only even numbers
-	}).FilterOut(func(v int) bool {
-		return strings.Contains(fmt.Sprintf("%d", v), "100") // Remove numbers containing '100'
+	legacy := stream.CollectToMap(func(value int) (any, any) {
+		return value % 2, value
 	})
+	assert.Equal(t, map[any]any{0: 4, 1: 3}, legacy)
 
-	resultStream := filteredStream.Map(func(v int) any {
-		return fmt.Sprintf("Even-%d", v) // Convert to string with a prefix
+	typed := stream.ToMap(func(value int) (string, int) {
+		return fmt.Sprintf("value-%d", value), value
 	})
+	assert.Equal(t, map[string]int{
+		"value-1": 1,
+		"value-2": 2,
+		"value-3": 3,
+		"value-4": 4,
+	}, typed)
 
-	collectedMap := resultStream.CollectToMap(func(v any) (any, any) {
-		return len((v).(string)), v
+	grouped := stream.ToMultiMap(func(value int) (int, string) {
+		return value % 2, fmt.Sprintf("value-%d", value)
 	})
-
-	assert.NotEmpty(t, collectedMap, "CollectToMap should produce a non-empty map")
-	for key, valueSlice := range collectedMap {
-		assert.IsType(t, 0, key, "Keys in the map should be of int type")
-		assert.NotEmpty(t, valueSlice, "Value slices in the map should be non-empty")
-		for _, value := range valueSlice {
-			assert.IsType(t, "", value, "Values in the map should be of string type")
-		}
-	}
+	assert.Equal(t, map[int][]string{
+		0: {"value-2", "value-4"},
+		1: {"value-1", "value-3"},
+	}, grouped)
 }
 
 func TestTerminalStream_ParallelExecute(t *testing.T) {

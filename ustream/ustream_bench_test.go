@@ -136,12 +136,12 @@ func BenchmarkStream_GenericMapCollect(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		mapped := ustream.Map(stream, func(v int) int {
+		mapped := stream.Map(func(v int) int {
 			return v * 2
 		})
-		_ = ustream.Collect(mapped, ustream.ToMap(func(v int) (int, int) {
+		_ = mapped.ToMap(func(v int) (int, int) {
 			return v, v
-		}))
+		})
 	}
 }
 
@@ -160,13 +160,13 @@ func BenchmarkStream_MapVsParallelMap(b *testing.B) {
 	b.Run("cheap/Map", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			benchmarkMappedValues = ustream.Map(cheapStream, cheapMapper).Collect()
+			benchmarkMappedValues = cheapStream.Map(cheapMapper).Collect()
 		}
 	})
 	b.Run("cheap/ParallelMap-4", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			benchmarkMappedValues = ustream.ParallelMap(cheapStream, cheapMapper, 4).Collect()
+			benchmarkMappedValues = cheapStream.ParallelMap(cheapMapper, 4).Collect()
 		}
 	})
 
@@ -185,13 +185,13 @@ func BenchmarkStream_MapVsParallelMap(b *testing.B) {
 	b.Run("cpu/Map", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			benchmarkMappedValues = ustream.Map(cpuStream, cpuMapper).Collect()
+			benchmarkMappedValues = cpuStream.Map(cpuMapper).Collect()
 		}
 	})
 	b.Run("cpu/ParallelMap-4", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			benchmarkMappedValues = ustream.ParallelMap(cpuStream, cpuMapper, 4).Collect()
+			benchmarkMappedValues = cpuStream.ParallelMap(cpuMapper, 4).Collect()
 		}
 	})
 }

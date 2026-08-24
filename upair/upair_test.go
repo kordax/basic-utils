@@ -44,15 +44,21 @@ func TestPairSwap(t *testing.T) {
 func TestPairMap(t *testing.T) {
 	pair := Of(1, "test")
 
-	leftMapped := MapLeft(pair, func(v int) int {
-		return v * 2
+	leftMapped := pair.MapLeft(func(v int) float64 {
+		return float64(v) * 2
 	})
-	rightMapped := MapRight(pair, func(v string) int {
+	rightMapped := pair.MapRight(func(v string) int {
+		return len(v)
+	})
+	mapped := pair.Map(func(v int) float64 {
+		return float64(v) * 2
+	}, func(v string) int {
 		return len(v)
 	})
 
-	assert.Equal(t, Of(2, "test"), leftMapped)
+	assert.Equal(t, Of(2.0, "test"), leftMapped)
 	assert.Equal(t, Of(1, 4), rightMapped)
+	assert.Equal(t, Of(2.0, 4), mapped)
 }
 
 func TestNewCPair(t *testing.T) {
