@@ -80,7 +80,7 @@ Security Check:
     - set -x
     - *werf_init
     - export WERF_DOCKER_OPTIONS="-v ${SSH_AUTH_SOCK}:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent"
-    - werf run ci-tools -- sh -c 'go mod download && go mod verify && govulncheck ./... && gosec -concurrency=1 -exclude=G103,G115,G304 ./...' || { exit_code=$?; ssh-agent -k; exit $exit_code; }
+    - werf run ci-tools -- sh -c 'go mod download && go mod verify && govulncheck ./... && gosec -concurrency=1 -nosec-require-justification ./...' || { exit_code=$?; ssh-agent -k; exit $exit_code; }
     - ssh-agent -k
   except: [ schedules, triggers ]
   tags: [ werf-runner ]

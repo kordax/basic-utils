@@ -5,7 +5,7 @@ configVersion: 1
 ---
 
 image: ci-tools
-from: registry.casinomodule.org/casino27/ci-tools:go-tools-go1.26.6
+from: registry.casinomodule.org/casino27/ci-tools:go-tools-go1.27.0
 fromCacheVersion: "go-tools-build-base-v1{{- if eq (env "NOCACHE") "true" }}-{{ env "CI_JOB_STARTED_AT" }}{{- end }}"
 imageSpec:
   config:
@@ -22,7 +22,7 @@ git:
 ---
 image: builder
 final: false
-from: golang:1.26.6-alpine
+from: golang:1.27-alpine
 {{- if eq (env "NOCACHE") "true" }}
 fromCacheVersion: "{{ env "CI_JOB_STARTED_AT" }}"
 {{- end }}
