@@ -273,14 +273,16 @@ func TestTerminalStream_ParallelExecute(t *testing.T) {
 	stream.ToTerminal().ParallelExecute(fn, 4)
 }
 
-func TestTerminalStream_ParallelExecuteMutatesOriginalValues(t *testing.T) {
+func TestTerminalStream_ParallelExecuteUsesSnapshot(t *testing.T) {
 	stream := ustream.Of([]int{1, 2, 3})
+	terminal := stream.ToTerminal()
 
-	stream.ToTerminal().ParallelExecute(func(index int, value *int) {
+	terminal.ParallelExecute(func(index int, value *int) {
 		*value *= 10
 	}, 2)
 
-	assert.Equal(t, []int{10, 20, 30}, stream.Collect())
+	assert.Equal(t, []int{10, 20, 30}, terminal.Collect())
+	assert.Equal(t, []int{1, 2, 3}, stream.Collect())
 }
 
 func TestTerminalStream_ParallelExecuteWithInvalidParallelism(t *testing.T) {

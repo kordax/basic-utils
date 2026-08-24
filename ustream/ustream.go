@@ -8,6 +8,7 @@ package ustream
 
 import (
 	"cmp"
+	"iter"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -15,6 +16,8 @@ import (
 
 	"git.casinomodule.org/casino27/basic-utils/v4/uarray"
 )
+
+const unknownSizeHint = -1
 
 // Collector defines the legacy interface for collecting elements from a stream.
 type Collector[T any] interface {
@@ -35,14 +38,21 @@ func (f ResultCollectorFunc[T, R]) Collect(values []T) R {
 	return f(values)
 }
 
-// Stream wraps a slice and exposes fluent collection operations.
+// Stream describes a lazy, ordered and reusable sequence of values.
 type Stream[T any] struct {
-	values []T
+	seq      iter.Seq[T]
+	sizeHint int
 }
+
+func newStream[T any](seq iter.Seq[T], sizeHint int) *Stream[T] {
+	return &Stream[T]{seq: seq, sizeHint: sizeHint}
+}
+
+func emptySeq[T any](yield func(T) bool) {}
 
 // Empty creates a new empty Stream.
 func Empty[T any]() *Stream[T] {
-	return &Stream[T]{values: []T{}}
+	return newStream[T](emptySeq[T], 0)
 }
 
 // From creates a new Stream from variadic values.
@@ -50,269 +60,380 @@ func From[T any](values ...T) *Stream[T] {
 	return Of(values)
 }
 
-// Of creates a new Stream from the given slice.
+// Of creates a lazy Stream over the given slice.
 func Of[T any](values []T) *Stream[T] {
 	if values == nil {
-		values = []T{}
+		return Empty[T]()
 	}
 
-	return &Stream[T]{values: values}
+	return newStream(func(yield func(T) bool) {
+		for _, value := range values {
+			if !yield(value) {
+				return
+			}
+		}
+	}, len(values))
 }
 
-// Generate creates a Stream by calling supplier count times.
+// FromSeq creates a Stream backed by seq. Its replayability is determined by seq.
+func FromSeq[T any](seq iter.Seq[T]) *Stream[T] {
+	if seq == nil {
+		return Empty[T]()
+	}
+
+	return newStream(seq, unknownSizeHint)
+}
+
+// Seq returns the lazy sequence represented by the stream.
+func (s *Stream[T]) Seq() iter.Seq[T] {
+	if s == nil || s.seq == nil {
+		return emptySeq[T]
+	}
+
+	return s.seq
+}
+
+func (s *Stream[T]) allocationHint() int {
+	if s == nil || s.sizeHint < 0 {
+		return 0
+	}
+
+	return s.sizeHint
+}
+
+// Generate creates a lazy Stream by calling supplier at most count times per traversal.
 func Generate[T any](count int, supplier func(index int) T) *Stream[T] {
 	if count <= 0 {
 		return Empty[T]()
 	}
 
-	values := make([]T, count)
-	for i := 0; i < count; i++ {
-		values[i] = supplier(i)
-	}
-
-	return Of(values)
+	return newStream(func(yield func(T) bool) {
+		for index := 0; index < count; index++ {
+			if !yield(supplier(index)) {
+				return
+			}
+		}
+	}, count)
 }
 
-// Iterate creates a Stream by repeatedly applying next to the previous value.
+// Iterate creates a lazy Stream by repeatedly applying next to the previous value.
 func Iterate[T any](seed T, count int, next func(T) T) *Stream[T] {
 	if count <= 0 {
 		return Empty[T]()
 	}
 
-	values := make([]T, count)
-	values[0] = seed
-	for i := 1; i < count; i++ {
-		values[i] = next(values[i-1])
-	}
-
-	return Of(values)
-}
-
-// Filter keeps values matching predicate.
-func (s *Stream[T]) Filter(predicate func(T) bool) *Stream[T] {
-	if len(s.values) == 0 {
-		return Empty[T]()
-	}
-
-	result := make([]T, 0, len(s.values))
-	for _, value := range s.values {
-		if predicate(value) {
-			result = append(result, value)
+	return newStream(func(yield func(T) bool) {
+		value := seed
+		for index := 0; index < count; index++ {
+			if !yield(value) {
+				return
+			}
+			if index+1 < count {
+				value = next(value)
+			}
 		}
-	}
-
-	return Of(result)
+	}, count)
 }
 
-// FilterOut removes values matching predicate.
+// Filter lazily keeps values matching predicate.
+func (s *Stream[T]) Filter(predicate func(T) bool) *Stream[T] {
+	return newStream(func(yield func(T) bool) {
+		for value := range s.Seq() {
+			if predicate(value) && !yield(value) {
+				return
+			}
+		}
+	}, s.allocationHint())
+}
+
+// FilterOut lazily removes values matching predicate.
 func (s *Stream[T]) FilterOut(predicate func(T) bool) *Stream[T] {
 	return s.Filter(func(value T) bool {
 		return !predicate(value)
 	})
 }
 
-// Map maps values into another type.
+// Map lazily maps values into another type.
 func (s *Stream[T]) Map[R any](mapper func(T) R) *Stream[R] {
-	return Of(uarray.Map(s.values, mapper))
+	return newStream(func(yield func(R) bool) {
+		for value := range s.Seq() {
+			if !yield(mapper(value)) {
+				return
+			}
+		}
+	}, s.allocationHint())
 }
 
-// Transform maps values without changing their type.
+// Transform lazily maps values without changing their type.
 func (s *Stream[T]) Transform(mapper func(T) T) *Stream[T] {
-	if len(s.values) == 0 {
-		return Empty[T]()
-	}
-
-	result := make([]T, len(s.values))
-	for i, value := range s.values {
-		result[i] = mapper(value)
-	}
-
-	return Of(result)
+	return s.Map(mapper)
 }
 
-// FlatMap maps each value into zero or more values of another type.
+// FlatMap lazily maps each value into zero or more values of another type.
 func (s *Stream[T]) FlatMap[R any](mapper func(T) []R) *Stream[R] {
-	result := make([]R, 0, len(s.values))
-	for _, value := range s.values {
-		result = append(result, mapper(value)...)
-	}
-
-	return Of(result)
-}
-
-// ParallelMap maps values concurrently while preserving their original order.
-func (s *Stream[T]) ParallelMap[R any](mapper func(T) R, parallelism int) *Stream[R] {
-	values := s.values
-	if len(values) == 0 {
-		return Empty[R]()
-	}
-	if parallelism <= 1 || len(values) == 1 {
-		return s.Map(mapper)
-	}
-	if parallelism > len(values) {
-		parallelism = len(values)
-	}
-
-	const chunksPerWorker = 8
-
-	result := make([]R, len(values))
-	chunkSize := max(1, len(values)/parallelism/chunksPerWorker)
-	var next atomic.Int64
-	var wg sync.WaitGroup
-
-	wg.Add(parallelism)
-	for range parallelism {
-		go func() {
-			defer wg.Done()
-			for {
-				start := int(next.Add(int64(chunkSize))) - chunkSize
-				if start >= len(values) {
+	return newStream(func(yield func(R) bool) {
+		for value := range s.Seq() {
+			for _, mapped := range mapper(value) {
+				if !yield(mapped) {
 					return
 				}
-
-				end := min(start+chunkSize, len(values))
-				for index := start; index < end; index++ {
-					result[index] = mapper(values[index])
-				}
 			}
-		}()
-	}
-
-	wg.Wait()
-
-	return Of(result)
+		}
+	}, unknownSizeHint)
 }
 
-// Peek executes action for each value and returns the same stream values.
+// ParallelMap lazily schedules an ordered parallel mapping barrier.
+func (s *Stream[T]) ParallelMap[R any](mapper func(T) R, parallelism int) *Stream[R] {
+	if parallelism <= 1 {
+		return s.Map(mapper)
+	}
+
+	return newStream(func(yield func(R) bool) {
+		values := s.Collect()
+		if len(values) == 0 {
+			return
+		}
+		if len(values) == 1 {
+			yield(mapper(values[0]))
+			return
+		}
+
+		workers := min(parallelism, len(values))
+		const chunksPerWorker = 8
+
+		result := make([]R, len(values))
+		chunkSize := max(1, len(values)/workers/chunksPerWorker)
+		var next atomic.Int64
+		var wg sync.WaitGroup
+
+		wg.Add(workers)
+		for range workers {
+			go func() {
+				defer wg.Done()
+				for {
+					start := int(next.Add(int64(chunkSize))) - chunkSize
+					if start >= len(values) {
+						return
+					}
+
+					end := min(start+chunkSize, len(values))
+					for index := start; index < end; index++ {
+						result[index] = mapper(values[index])
+					}
+				}
+			}()
+		}
+
+		wg.Wait()
+
+		for _, value := range result {
+			if !yield(value) {
+				return
+			}
+		}
+	}, s.allocationHint())
+}
+
+// Peek lazily executes action as values are consumed.
 func (s *Stream[T]) Peek(action func(T)) *Stream[T] {
-	for _, value := range s.values {
-		action(value)
-	}
-
-	return s
+	return newStream(func(yield func(T) bool) {
+		for value := range s.Seq() {
+			action(value)
+			if !yield(value) {
+				return
+			}
+		}
+	}, s.allocationHint())
 }
 
-// Limit keeps at most n first values.
+// Limit lazily keeps at most n first values.
 func (s *Stream[T]) Limit(n int) *Stream[T] {
 	if n <= 0 {
 		return Empty[T]()
 	}
-	if n >= len(s.values) {
-		return Of(s.values)
+
+	sizeHint := n
+	if hint := s.allocationHint(); hint > 0 {
+		sizeHint = min(hint, n)
 	}
 
-	return Of(s.values[:n])
+	return newStream(func(yield func(T) bool) {
+		remaining := n
+		for value := range s.Seq() {
+			if !yield(value) {
+				return
+			}
+			remaining--
+			if remaining == 0 {
+				return
+			}
+		}
+	}, sizeHint)
 }
 
-// Skip removes n first values.
+// Skip lazily removes n first values.
 func (s *Stream[T]) Skip(n int) *Stream[T] {
 	if n <= 0 {
-		return Of(s.values)
-	}
-	if n >= len(s.values) {
-		return Empty[T]()
+		return s
 	}
 
-	return Of(s.values[n:])
+	sizeHint := unknownSizeHint
+	if s != nil && s.sizeHint >= 0 {
+		sizeHint = max(0, s.sizeHint-n)
+	}
+
+	return newStream(func(yield func(T) bool) {
+		skipped := 0
+		for value := range s.Seq() {
+			if skipped < n {
+				skipped++
+				continue
+			}
+			if !yield(value) {
+				return
+			}
+		}
+	}, sizeHint)
 }
 
-// TakeWhile keeps leading values while predicate returns true.
+// TakeWhile lazily keeps leading values while predicate returns true.
 func (s *Stream[T]) TakeWhile(predicate func(T) bool) *Stream[T] {
-	for i, value := range s.values {
-		if !predicate(value) {
-			return Of(s.values[:i])
+	return newStream(func(yield func(T) bool) {
+		for value := range s.Seq() {
+			if !predicate(value) || !yield(value) {
+				return
+			}
 		}
-	}
-
-	return Of(s.values)
+	}, s.allocationHint())
 }
 
-// DropWhile skips leading values while predicate returns true.
+// DropWhile lazily skips leading values while predicate returns true.
 func (s *Stream[T]) DropWhile(predicate func(T) bool) *Stream[T] {
-	for i, value := range s.values {
-		if !predicate(value) {
-			return Of(s.values[i:])
+	return newStream(func(yield func(T) bool) {
+		dropping := true
+		for value := range s.Seq() {
+			if dropping && predicate(value) {
+				continue
+			}
+			dropping = false
+			if !yield(value) {
+				return
+			}
 		}
-	}
-
-	return Empty[T]()
+	}, s.allocationHint())
 }
 
-// Reverse returns a reversed copy of stream values.
+// Reverse returns a lazy stream that buffers and reverses values when traversed.
 func (s *Stream[T]) Reverse() *Stream[T] {
-	result := slices.Clone(s.values)
-	slices.Reverse(result)
-
-	return Of(result)
+	return newStream(func(yield func(T) bool) {
+		values := s.Collect()
+		slices.Reverse(values)
+		for _, value := range values {
+			if !yield(value) {
+				return
+			}
+		}
+	}, s.allocationHint())
 }
 
-// Sort returns a sorted copy using less.
+// Sort returns a lazy stream that buffers and sorts values when traversed.
 func (s *Stream[T]) Sort(less func(a, b T) bool) *Stream[T] {
-	result := slices.Clone(s.values)
-	slices.SortFunc(result, func(a, b T) int {
-		switch {
-		case less(a, b):
-			return -1
-		case less(b, a):
-			return 1
-		default:
-			return 0
+	return newStream(func(yield func(T) bool) {
+		values := s.Collect()
+		slices.SortFunc(values, func(a, b T) int {
+			switch {
+			case less(a, b):
+				return -1
+			case less(b, a):
+				return 1
+			default:
+				return 0
+			}
+		})
+		for _, value := range values {
+			if !yield(value) {
+				return
+			}
 		}
-	})
-
-	return Of(result)
+	}, s.allocationHint())
 }
 
-// DistinctBy keeps the first value for each comparable key.
+// DistinctBy lazily keeps the first value for each comparable key.
 func (s *Stream[T]) DistinctBy[K comparable](key func(T) K) *Stream[T] {
-	if len(s.values) == 0 {
-		return Empty[T]()
-	}
-
-	seen := make(map[K]struct{}, len(s.values))
-	result := make([]T, 0, len(s.values))
-	for _, value := range s.values {
-		k := key(value)
-		if _, ok := seen[k]; ok {
-			continue
+	return newStream(func(yield func(T) bool) {
+		seen := make(map[K]struct{}, s.allocationHint())
+		for value := range s.Seq() {
+			k := key(value)
+			if _, ok := seen[k]; ok {
+				continue
+			}
+			seen[k] = struct{}{}
+			if !yield(value) {
+				return
+			}
 		}
-		seen[k] = struct{}{}
-		result = append(result, value)
-	}
-
-	return Of(result)
+	}, s.allocationHint())
 }
 
-// CompactFunc removes values matching empty.
+// CompactFunc lazily removes values matching empty.
 func (s *Stream[T]) CompactFunc(empty func(T) bool) *Stream[T] {
 	return s.FilterOut(empty)
 }
 
 // ForEach executes action for each value.
 func (s *Stream[T]) ForEach(action func(T)) {
-	for _, value := range s.values {
+	for value := range s.Seq() {
 		action(value)
 	}
 }
 
 // Find returns the first value matching predicate.
 func (s *Stream[T]) Find(predicate func(T) bool) *T {
-	return uarray.Find(s.values, predicate)
+	var result *T
+	for value := range s.Seq() {
+		if predicate(value) {
+			found := value
+			result = &found
+			break
+		}
+	}
+
+	return result
 }
 
 // FindIndex returns the first index matching predicate, or -1.
 func (s *Stream[T]) FindIndex(predicate func(T) bool) int {
-	return uarray.FindIndex(s.values, predicate)
+	index := 0
+	for value := range s.Seq() {
+		if predicate(value) {
+			return index
+		}
+		index++
+	}
+
+	return -1
 }
 
 // AnyMatch checks whether any value matches predicate.
 func (s *Stream[T]) AnyMatch(predicate func(T) bool) bool {
-	return uarray.AnyMatch(s.values, predicate)
+	for value := range s.Seq() {
+		if predicate(value) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // AllMatch checks whether all values match predicate.
 func (s *Stream[T]) AllMatch(predicate func(T) bool) bool {
-	return uarray.AllMatch(s.values, predicate)
+	for value := range s.Seq() {
+		if !predicate(value) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // NoneMatch checks whether no values match predicate.
@@ -320,57 +441,96 @@ func (s *Stream[T]) NoneMatch(predicate func(T) bool) bool {
 	return !s.AnyMatch(predicate)
 }
 
-// Count returns stream size.
+// Count returns the number of values produced by the pipeline.
 func (s *Stream[T]) Count() int {
-	return len(s.values)
+	count := 0
+	for range s.Seq() {
+		count++
+	}
+
+	return count
 }
 
 // Reduce folds values into any result type.
 func (s *Stream[T]) Reduce[R any](initial R, reducer func(acc R, value T) R) R {
-	return uarray.Reduce(s.values, initial, reducer)
+	result := initial
+	for value := range s.Seq() {
+		result = reducer(result, value)
+	}
+
+	return result
 }
 
-// Collect returns stream values.
+// Collect materializes stream values into a fresh slice.
 func (s *Stream[T]) Collect() []T {
-	return s.values
+	result := make([]T, 0, s.allocationHint())
+	for value := range s.Seq() {
+		result = append(result, value)
+	}
+
+	return result
 }
 
-// CollectCopy returns a copy of stream values.
+// CollectCopy materializes stream values into a fresh slice.
 func (s *Stream[T]) CollectCopy() []T {
-	return slices.Clone(s.values)
+	return s.Collect()
 }
 
 // CollectToMap collects stream values into a map. Duplicate keys are overwritten.
 func (s *Stream[T]) CollectToMap(mapper func(T) (any, any)) map[any]any {
-	return uarray.ToMap(s.values, mapper)
+	result := make(map[any]any, s.allocationHint())
+	for value := range s.Seq() {
+		key, mapped := mapper(value)
+		result[key] = mapped
+	}
+
+	return result
 }
 
 // CollectToMultiMap collects stream values into a grouped map.
 func (s *Stream[T]) CollectToMultiMap(mapper func(T) (any, any)) map[any][]any {
-	return uarray.ToMultiMap(s.values, mapper)
+	result := make(map[any][]any)
+	for value := range s.Seq() {
+		key, mapped := mapper(value)
+		result[key] = append(result[key], mapped)
+	}
+
+	return result
 }
 
-// CollectWith collects stream values into any result type.
+// CollectWith collects materialized stream values into any result type.
 func (s *Stream[T]) CollectWith[R any](collector ResultCollector[T, R]) R {
-	return collector.Collect(s.values)
+	return collector.Collect(s.Collect())
 }
 
 // ToMap collects stream values into a typed map. Duplicate keys are overwritten.
 func (s *Stream[T]) ToMap[K comparable, R any](mapper func(T) (K, R)) map[K]R {
-	return uarray.ToMap(s.values, mapper)
+	result := make(map[K]R, s.allocationHint())
+	for value := range s.Seq() {
+		key, mapped := mapper(value)
+		result[key] = mapped
+	}
+
+	return result
 }
 
 // ToMultiMap collects stream values into a typed grouped map.
 func (s *Stream[T]) ToMultiMap[K comparable, R any](mapper func(T) (K, R)) map[K][]R {
-	return uarray.ToMultiMap(s.values, mapper)
+	result := make(map[K][]R)
+	for value := range s.Seq() {
+		key, mapped := mapper(value)
+		result[key] = append(result[key], mapped)
+	}
+
+	return result
 }
 
-// ToTerminal converts a stream to a terminal stream.
+// ToTerminal materializes the pipeline into an execution-only snapshot.
 func (s *Stream[T]) ToTerminal() *TerminalStream[T] {
-	return NewTerminalStream(s.values)
+	return NewTerminalStream(s.Collect())
 }
 
-// TerminalStream represents a stream that can only be collected or executed.
+// TerminalStream represents a materialized stream that can only be collected or executed.
 type TerminalStream[T any] struct {
 	values []T
 }
@@ -393,7 +553,7 @@ func (s *TerminalStream[T]) ParallelExecute(fn func(int, *T), parallelism int) {
 	var wg sync.WaitGroup
 	in := make(chan int)
 
-	for i := 0; i < parallelism; i++ {
+	for range parallelism {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -403,8 +563,8 @@ func (s *TerminalStream[T]) ParallelExecute(fn func(int, *T), parallelism int) {
 		}()
 	}
 
-	for i := range s.values {
-		in <- i
+	for index := range s.values {
+		in <- index
 	}
 
 	close(in)
@@ -420,7 +580,7 @@ func (s *TerminalStream[T]) ParallelExecuteWithTimeout(fn func(int, T), cancel f
 	var wg sync.WaitGroup
 	in := make(chan int)
 
-	for i := 0; i < parallelism; i++ {
+	for range parallelism {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -454,8 +614,8 @@ func (s *TerminalStream[T]) ParallelExecuteWithTimeout(fn func(int, T), cancel f
 		}()
 	}
 
-	for i := range s.values {
-		in <- i
+	for index := range s.values {
+		in <- index
 	}
 	close(in)
 	wg.Wait()
@@ -548,26 +708,30 @@ func CountingBy[T any, K comparable](key func(T) K) ResultCollector[T, map[K]int
 	})
 }
 
-// Sorted sorts ordered stream values.
+// Sorted lazily sorts ordered stream values.
 func Sorted[T cmp.Ordered](stream *Stream[T]) *Stream[T] {
-	values := slices.Clone(stream.Collect())
-	slices.Sort(values)
-
-	return Of(values)
+	return stream.Sort(func(a, b T) bool {
+		return a < b
+	})
 }
 
-// Distinct keeps the first occurrence of each comparable value.
+// Distinct lazily keeps the first occurrence of each comparable value.
 func Distinct[T comparable](stream *Stream[T]) *Stream[T] {
-	return Of(uarray.Unique(stream.Collect()))
+	return stream.DistinctBy(func(value T) T {
+		return value
+	})
 }
 
-// DistinctBy keeps the first value for each comparable key.
+// DistinctBy lazily keeps the first value for each comparable key.
 // Deprecated: use stream.DistinctBy(key).
 func DistinctBy[T any, K comparable](stream *Stream[T], key func(T) K) *Stream[T] {
 	return stream.DistinctBy(key)
 }
 
-// Compact removes zero values from a comparable stream.
+// Compact lazily removes zero values from a comparable stream.
 func Compact[T comparable](stream *Stream[T]) *Stream[T] {
-	return Of(uarray.Compact(stream.Collect()))
+	var zero T
+	return stream.CompactFunc(func(value T) bool {
+		return value == zero
+	})
 }
