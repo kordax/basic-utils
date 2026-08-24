@@ -28,6 +28,18 @@ tasks:
     sources:
       - "**/*.go"
 
+  security:
+    desc: "Running security checks"
+    cmds:
+      - go mod download
+      - go mod verify
+      - govulncheck ./...
+      - gosec -nosec-require-justification -concurrency=1 ./...
+    sources:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+
   check-coverage:
     desc: "Checking test coverage"
     cmds:

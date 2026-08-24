@@ -12,15 +12,16 @@ import (
 //
 // Fields:
 // - input: The input channel to be watched for incoming messages.
-// - listeners: A slice of listeners channels for registered listeners.
+// - listeners: Registered callbacks indexed by subscription ID.
 // - m: A mutex to ensure that Register and other operations are thread-safe.
 // - started: An atomic boolean to ensure the Start method is only called once.
 type BroadcastWatcher[T any] struct {
 	input     <-chan T
-	listeners []watchFunc[T]
+	listeners map[uint64]watchFunc[T]
 
-	m       sync.Mutex
-	started atomic.Bool
+	m              sync.RWMutex
+	nextListenerID atomic.Uint64
+	started        atomic.Bool
 }
 
 // NewBroadcastWatcher creates a new instance of BroadcastWatcher.
@@ -29,17 +30,51 @@ type BroadcastWatcher[T any] struct {
 // Returns:
 // - A pointer to a newly created BroadcastWatcher instance.
 func NewBroadcastWatcher[T any](input <-chan T) *BroadcastWatcher[T] {
-	return &BroadcastWatcher[T]{input: input, listeners: make([]watchFunc[T], 0)}
+	return &BroadcastWatcher[T]{input: input, listeners: make(map[uint64]watchFunc[T])}
 }
 
-// Register registers a new listener and returns a read-only channel for the listener to receive messages.
-// This method is thread-safe and can be called concurrently by multiple goroutines. Note that using locks
-// can introduce contention and affect performance in highly concurrent environments.
-func (w *BroadcastWatcher[T]) Register(f watchFunc[T]) {
-	w.m.Lock()
-	defer w.m.Unlock()
+type broadcastSubscription struct {
+	once        sync.Once
+	unsubscribe func() bool
+}
 
-	w.listeners = append(w.listeners, f)
+func (s *broadcastSubscription) Unsubscribe() bool {
+	removed := false
+	s.once.Do(func() {
+		removed = s.unsubscribe()
+	})
+
+	return removed
+}
+
+// Subscribe registers a listener and returns an idempotent handle that can remove it.
+// A callback already dispatched when Unsubscribe is called may still finish.
+func (w *BroadcastWatcher[T]) Subscribe(f watchFunc[T]) Subscription {
+	id := w.nextListenerID.Add(1)
+
+	w.m.Lock()
+	if w.listeners == nil {
+		w.listeners = make(map[uint64]watchFunc[T])
+	}
+	w.listeners[id] = f
+	w.m.Unlock()
+
+	return &broadcastSubscription{unsubscribe: func() bool {
+		w.m.Lock()
+		defer w.m.Unlock()
+
+		if _, ok := w.listeners[id]; !ok {
+			return false
+		}
+
+		delete(w.listeners, id)
+		return true
+	}}
+}
+
+// Register registers a listener and keeps it subscribed for the lifetime of the watcher.
+func (w *BroadcastWatcher[T]) Register(f watchFunc[T]) {
+	w.Subscribe(f)
 }
 
 // Watch starts the broadcasting process, sending each message from the input channel to all registered listeners.
@@ -72,17 +107,21 @@ func (w *BroadcastWatcher[T]) Watch(ctx context.Context) bool {
 }
 
 func (w *BroadcastWatcher[T]) broadcast(ctx context.Context, msg T) {
-	w.m.Lock()
-	defer w.m.Unlock()
-
+	w.m.RLock()
+	listeners := make([]watchFunc[T], 0, len(w.listeners))
 	for _, listener := range w.listeners {
-		go func() {
+		listeners = append(listeners, listener)
+	}
+	w.m.RUnlock()
+
+	for _, listener := range listeners {
+		go func(listener watchFunc[T]) {
 			select {
 			case <-ctx.Done():
 				return
 			default:
 				listener(ctx, msg)
 			}
-		}()
+		}(listener)
 	}
 }

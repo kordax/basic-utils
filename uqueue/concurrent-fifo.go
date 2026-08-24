@@ -10,31 +10,30 @@ import (
 	"context"
 	"sync/atomic"
 	"time"
-	"unsafe"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v4/uopt"
 )
 
 type node[T any] struct {
 	value T
-	next  unsafe.Pointer
+	next  atomic.Pointer[node[T]]
 }
 
 // ConcurrentFIFOQueueImpl implementation that queues/dequeues items according to https://www.cs.rochester.edu/~scott/papers/1996_PODC_queues.pdf
 type ConcurrentFIFOQueueImpl[T any] struct {
-	head unsafe.Pointer
-	tail unsafe.Pointer
+	head atomic.Pointer[node[T]]
+	tail atomic.Pointer[node[T]]
 	ch   chan struct{}
 	l    atomic.Uint64
 }
 
 func NewConcurrentFIFOQueueImpl[T any]() *ConcurrentFIFOQueueImpl[T] {
 	n := &node[T]{}
-	return &ConcurrentFIFOQueueImpl[T]{
-		head: unsafe.Pointer(n),
-		tail: unsafe.Pointer(n),
-		ch:   make(chan struct{}, 1),
-	}
+	q := &ConcurrentFIFOQueueImpl[T]{ch: make(chan struct{}, 1)}
+	q.head.Store(n)
+	q.tail.Store(n)
+
+	return q
 }
 
 // Queue queues an item in the finite time. This operation is thread-safe yet is not "synchronized" by its nature.
@@ -122,7 +121,7 @@ func (q *ConcurrentFIFOQueueImpl[T]) Peek() uopt.Opt[T] {
 }
 
 func (q *ConcurrentFIFOQueueImpl[T]) Drain(limit ...int) []T {
-	n := int(q.Len())
+	n := int(q.Len()) // #nosec G115 -- a queue cannot contain more than the platform's addressable element count
 	if len(limit) > 0 && limit[0] >= 0 && limit[0] < n {
 		n = limit[0]
 	}
@@ -143,10 +142,8 @@ func (q *ConcurrentFIFOQueueImpl[T]) Drain(limit ...int) []T {
 }
 
 func (q *ConcurrentFIFOQueueImpl[T]) Clear() {
-	n := &node[T]{}
-	atomic.StorePointer(&q.head, unsafe.Pointer(n))
-	atomic.StorePointer(&q.tail, unsafe.Pointer(n))
-	q.l.Store(0)
+	for q.Fetch().Present() {
+	}
 }
 
 func (q *ConcurrentFIFOQueueImpl[T]) Empty() bool {
@@ -157,12 +154,12 @@ func (q *ConcurrentFIFOQueueImpl[T]) Len() uint64 {
 	return q.l.Load()
 }
 
-func load[T any](ptr *unsafe.Pointer) *node[T] {
-	return (*node[T])(atomic.LoadPointer(ptr))
+func load[T any](ptr *atomic.Pointer[node[T]]) *node[T] {
+	return ptr.Load()
 }
 
-func cas[T any](ptr *unsafe.Pointer, old, new *node[T]) bool {
-	return atomic.CompareAndSwapPointer(ptr, unsafe.Pointer(old), unsafe.Pointer(new))
+func cas[T any](ptr *atomic.Pointer[node[T]], old, new *node[T]) bool {
+	return ptr.CompareAndSwap(old, new)
 }
 
 func (q *ConcurrentFIFOQueueImpl[T]) notify() {

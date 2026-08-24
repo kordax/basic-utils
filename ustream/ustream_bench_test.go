@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/uarray"
-	"git.casinomodule.org/casino27/basic-utils/v3/ustream"
+	"git.casinomodule.org/casino27/basic-utils/v4/uarray"
+	"git.casinomodule.org/casino27/basic-utils/v4/ustream"
 )
 
 func BenchmarkTerminalStream_ParallelExecute(b *testing.B) {
@@ -143,4 +143,55 @@ func BenchmarkStream_GenericMapCollect(b *testing.B) {
 			return v, v
 		}))
 	}
+}
+
+var benchmarkMappedValues []int
+
+func BenchmarkStream_MapVsParallelMap(b *testing.B) {
+	cheapValues := make([]int, 10_000)
+	for i := range cheapValues {
+		cheapValues[i] = i
+	}
+	cheapStream := ustream.Of(cheapValues)
+	cheapMapper := func(value int) int {
+		return value * 2
+	}
+
+	b.Run("cheap/Map", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			benchmarkMappedValues = ustream.Map(cheapStream, cheapMapper).Collect()
+		}
+	})
+	b.Run("cheap/ParallelMap-4", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			benchmarkMappedValues = ustream.ParallelMap(cheapStream, cheapMapper, 4).Collect()
+		}
+	})
+
+	cpuValues := make([]int, 1_024)
+	for i := range cpuValues {
+		cpuValues[i] = i
+	}
+	cpuStream := ustream.Of(cpuValues)
+	cpuMapper := func(value int) int {
+		for range 2_048 {
+			value = value*1_664_525 + 1_013_904_223
+		}
+		return value
+	}
+
+	b.Run("cpu/Map", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			benchmarkMappedValues = ustream.Map(cpuStream, cpuMapper).Collect()
+		}
+	})
+	b.Run("cpu/ParallelMap-4", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			benchmarkMappedValues = ustream.ParallelMap(cpuStream, cpuMapper, 4).Collect()
+		}
+	})
 }

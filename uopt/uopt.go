@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	basicutils "git.casinomodule.org/casino27/basic-utils/v3/uconst"
-	"git.casinomodule.org/casino27/basic-utils/v3/uref"
+	basicutils "git.casinomodule.org/casino27/basic-utils/v4/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v4/uref"
 )
 
 // Opt represents a generic container for optional values.
@@ -511,9 +511,18 @@ func scalarInt(value reflect.Value) (int64, bool) {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		uintValue := value.Uint()
 		const maxInt64 = uint64(1<<63 - 1)
-		return int64(uintValue), uintValue <= maxInt64
+		if uintValue > maxInt64 {
+			return 0, false
+		}
+
+		return int64(uintValue), true
 	case reflect.Float32, reflect.Float64:
-		return int64(value.Float()), true
+		floatValue := value.Float()
+		if floatValue != floatValue || floatValue < -0x1p63 || floatValue >= 0x1p63 {
+			return 0, false
+		}
+
+		return int64(floatValue), true
 	default:
 		return 0, false
 	}
@@ -523,12 +532,20 @@ func scalarUint(value reflect.Value) (uint64, bool) {
 	switch value.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		intValue := value.Int()
-		return uint64(intValue), intValue >= 0
+		if intValue < 0 {
+			return 0, false
+		}
+
+		return uint64(intValue), true
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return value.Uint(), true
 	case reflect.Float32, reflect.Float64:
 		floatValue := value.Float()
-		return uint64(floatValue), floatValue >= 0
+		if floatValue != floatValue || floatValue < 0 || floatValue >= 0x1p64 {
+			return 0, false
+		}
+
+		return uint64(floatValue), true
 	default:
 		return 0, false
 	}

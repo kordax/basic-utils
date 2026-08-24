@@ -10,11 +10,12 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/ustream"
+	"git.casinomodule.org/casino27/basic-utils/v4/ustream"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -155,6 +156,55 @@ func TestStream_GenericMapFlatMapReduceAndCollectors(t *testing.T) {
 		return "odd"
 	}))
 	assert.Equal(t, map[string]int{"odd": 2, "even": 1}, counted)
+}
+
+func TestStream_ParallelMapPreservesOrderAndBoundsConcurrency(t *testing.T) {
+	const size = 32
+	const parallelism = 4
+
+	values := make([]int, size)
+	expected := make([]string, size)
+	for i := range values {
+		values[i] = i
+		expected[i] = fmt.Sprintf("n-%d", i)
+	}
+
+	calls := make([]int, size)
+	active := 0
+	maxActive := 0
+	var mu sync.Mutex
+
+	mapped := ustream.ParallelMap(ustream.Of(values), func(value int) string {
+		mu.Lock()
+		calls[value]++
+		active++
+		maxActive = max(maxActive, active)
+		mu.Unlock()
+
+		time.Sleep(time.Duration((size-value)%5+1) * time.Millisecond)
+
+		mu.Lock()
+		active--
+		mu.Unlock()
+
+		return fmt.Sprintf("n-%d", value)
+	}, parallelism)
+
+	assert.Equal(t, expected, mapped.Collect())
+	for value, count := range calls {
+		assert.Equalf(t, 1, count, "mapper calls for value %d", value)
+	}
+	assert.Greater(t, maxActive, 1)
+	assert.LessOrEqual(t, maxActive, parallelism)
+}
+
+func TestStream_ParallelMapEmpty(t *testing.T) {
+	mapped := ustream.ParallelMap(ustream.Empty[int](), func(value int) string {
+		t.Fatalf("mapper called for empty stream with value %d", value)
+		return ""
+	}, 4)
+
+	assert.Empty(t, mapped.Collect())
 }
 
 func TestStream_TopLevelDistinctSortedCompact(t *testing.T) {

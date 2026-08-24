@@ -15,8 +15,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/ucast"
-	"git.casinomodule.org/casino27/basic-utils/v3/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v4/ucast"
+	"git.casinomodule.org/casino27/basic-utils/v4/uconst"
 	"golang.org/x/exp/maps"
 )
 

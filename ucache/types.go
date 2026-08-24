@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/uarray"
-	"git.casinomodule.org/casino27/basic-utils/v3/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v4/uarray"
+	"git.casinomodule.org/casino27/basic-utils/v4/uconst"
 	"github.com/dgryski/go-farm"
 )
 
@@ -81,7 +81,7 @@ func (k StringKey) Key() int64 {
 }
 
 func (k StringKey) Keys() []uconst.Unique {
-	return []uconst.Unique{IntKey(farm.Hash64([]byte(k)))}
+	return []uconst.Unique{IntKey(farm.Hash64([]byte(k)))} // #nosec G115 -- preserves the complete 64-bit hash as a signed key
 }
 
 func (k StringKey) String() string {
@@ -103,7 +103,7 @@ func (k UIntKey) Equals(other uconst.Comparable) bool {
 }
 
 func (k UIntKey) Key() int64 {
-	return int64(k)
+	return int64(k) // #nosec G115 -- UIntKey intentionally preserves its complete 64-bit bit pattern
 }
 
 func (k UIntKey) Keys() []uconst.Unique {
@@ -129,7 +129,7 @@ func (k ComparableKey[T]) Key() int64 {
 	case int, int8, int16, int32, int64:
 		hash = 31*hash + reflect.ValueOf(value).Int()
 	case uint, uint8, uint16, uint32, uint64:
-		hash = 31*hash + int64(reflect.ValueOf(value).Uint())
+		hash = 31*hash + int64(reflect.ValueOf(value).Uint()) // #nosec G115 -- composite keys use modulo-2^64 hash arithmetic
 	case float32, float64:
 		hash = 31*hash + int64(reflect.ValueOf(value).Float())
 	case complex64, complex128:
@@ -232,7 +232,7 @@ func (k UIntCompositeKey) Equals(other uconst.Comparable) bool {
 func (k UIntCompositeKey) Keys() []int64 {
 	result := make([]int64, len(k.keys))
 	for i, key := range k.keys {
-		conv := IntKey(key)
+		conv := IntKey(key) // #nosec G115 -- UIntCompositeKey preserves each complete 64-bit key
 		result[i] = conv.Key()
 	}
 
@@ -514,7 +514,7 @@ func Hashed(obj any) FarmHash64Entity {
 
 func (e FarmHash64Entity) calculateHash() int64 {
 	if h, ok := e.obj.(interface{ HashKey() []byte }); ok {
-		return int64(farm.Hash64(h.HashKey()))
+		return int64(farm.Hash64(h.HashKey())) // #nosec G115 -- preserves the complete 64-bit hash as a signed key
 	}
 
 	b, err := json.Marshal(e.obj)
@@ -522,7 +522,7 @@ func (e FarmHash64Entity) calculateHash() int64 {
 		panic(err)
 	}
 
-	return int64(farm.Hash64(b))
+	return int64(farm.Hash64(b)) // #nosec G115 -- preserves the complete 64-bit hash as a signed key
 }
 
 func (e FarmHash64Entity) Equals(other uconst.Comparable) bool {

@@ -6,7 +6,7 @@
 
 package upair
 
-import "git.casinomodule.org/casino27/basic-utils/v3/uconst"
+import "git.casinomodule.org/casino27/basic-utils/v4/uconst"
 
 // Pair stores two related values.
 type Pair[L, R any] struct {

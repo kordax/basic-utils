@@ -10,9 +10,10 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/uarray"
-	"git.casinomodule.org/casino27/basic-utils/v3/uevent"
+	"git.casinomodule.org/casino27/basic-utils/v4/uarray"
+	"git.casinomodule.org/casino27/basic-utils/v4/uevent"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -102,7 +103,7 @@ func TestParallelWatcherWithNoMessages(t *testing.T) {
 }
 
 func TestParallelWatcherContextCancel(t *testing.T) {
-	inputCh := make(chan int)
+	inputCh := make(chan int, 10)
 	expectedResults := uarray.Range(0, 10)
 	expectedCount := len(expectedResults)
 
@@ -144,4 +145,21 @@ func TestParallelWatcherContextCancel(t *testing.T) {
 	}()
 
 	assert.ElementsMatch(t, []int{}, received, "Received messages do not match the expected results")
+}
+
+func TestParallelWatcherContextCancelStopsIdleWatcher(t *testing.T) {
+	inputCh := make(chan int)
+	watcher := uevent.NewParallelWatcher(inputCh, func(context.Context, int) {})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	require.True(t, watcher.Watch(ctx))
+	cancel()
+
+	restartedCtx, stopRestarted := context.WithCancel(context.Background())
+	require.Eventually(t, func() bool {
+		return watcher.Watch(restartedCtx)
+	}, time.Second, time.Millisecond)
+
+	stopRestarted()
+	close(inputCh)
 }

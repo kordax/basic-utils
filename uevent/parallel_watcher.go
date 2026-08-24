@@ -54,6 +54,10 @@ func (w *ParallelWatcher[T]) Register(f watchFunc[T]) {
 // Returns:
 // - A boolean indicating whether the watcher was successfully started.
 func (w *ParallelWatcher[T]) Watch(ctx context.Context) bool {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	w.m.Lock()
 	defer w.m.Unlock()
 
@@ -64,18 +68,17 @@ func (w *ParallelWatcher[T]) Watch(ctx context.Context) bool {
 	go func() {
 		defer w.watching.Store(false)
 		for {
-			orig, ok := <-w.ch
-			if !ok {
+			select {
+			case <-ctx.Done():
 				return
-			}
+			case orig, ok := <-w.ch:
+				if !ok || ctx.Err() != nil {
+					return
+				}
 
-			if ctx.Err() != nil {
-				continue
+				fptr := w.f.Load()
+				go (*fptr)(ctx, orig)
 			}
-
-			v := orig
-			fptr := w.f.Load()
-			go (*fptr)(ctx, v)
 		}
 	}()
 

@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/uconst"
-	"git.casinomodule.org/casino27/basic-utils/v3/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v4/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v4/uopt"
 )
 
 type BaseCache[K, T any] interface {

@@ -44,7 +44,7 @@ This is due to the usage of features and packages introduced in this version.
 Make sure you have Go installed on your machine. Then, use `go get` to install the package:
 
 ```shell
-go get -u git.casinomodule.org/casino27/basic-utils/v3
+go get -u git.casinomodule.org/casino27/basic-utils/v4
 ```
 
 ## Usage
@@ -53,13 +53,13 @@ You can import each module individually or import the main module and it depends
 queue library:
 
 ```shell
-go get -u git.casinomodule.org/casino27/basic-utils/v3/uqueue
+go get -u git.casinomodule.org/casino27/basic-utils/v4/uqueue
 ```
 
 then...
 
 ```go
-import "git.casinomodule.org/casino27/basic-utils/v3/uqueue"
+import "git.casinomodule.org/casino27/basic-utils/v4/uqueue"
 ```
 
 Then, refer to the individual documentation or code comments of each module for specific usage patterns.

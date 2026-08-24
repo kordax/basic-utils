@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v4/uopt"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"

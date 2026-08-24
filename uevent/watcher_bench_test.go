@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/uevent"
+	"git.casinomodule.org/casino27/basic-utils/v4/uevent"
 )
 
 func BenchmarkParallelWatcherDispatch(b *testing.B) {

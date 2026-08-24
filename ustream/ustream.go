@@ -10,9 +10,10 @@ import (
 	"cmp"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/uarray"
+	"git.casinomodule.org/casino27/basic-utils/v4/uarray"
 )
 
 // Collector defines the legacy interface for collecting elements from a stream.
@@ -429,6 +430,49 @@ func Map[T, R any](stream *Stream[T], mapper func(T) R) *Stream[R] {
 	for i, value := range values {
 		result[i] = mapper(value)
 	}
+
+	return Of(result)
+}
+
+// ParallelMap maps stream values concurrently while preserving their original order.
+func ParallelMap[T, R any](stream *Stream[T], mapper func(T) R, parallelism int) *Stream[R] {
+	values := stream.Collect()
+	if len(values) == 0 {
+		return Empty[R]()
+	}
+	if parallelism <= 1 || len(values) == 1 {
+		return Map(stream, mapper)
+	}
+	if parallelism > len(values) {
+		parallelism = len(values)
+	}
+
+	const chunksPerWorker = 8
+
+	result := make([]R, len(values))
+	chunkSize := max(1, len(values)/parallelism/chunksPerWorker)
+	var next atomic.Int64
+	var wg sync.WaitGroup
+
+	wg.Add(parallelism)
+	for range parallelism {
+		go func() {
+			defer wg.Done()
+			for {
+				start := int(next.Add(int64(chunkSize))) - chunkSize
+				if start >= len(values) {
+					return
+				}
+
+				end := min(start+chunkSize, len(values))
+				for index := start; index < end; index++ {
+					result[index] = mapper(values[index])
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
 
 	return Of(result)
 }

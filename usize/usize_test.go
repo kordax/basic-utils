@@ -9,7 +9,7 @@ package usize_test
 import (
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/usize"
+	"git.casinomodule.org/casino27/basic-utils/v4/usize"
 	"github.com/stretchr/testify/require"
 )
 

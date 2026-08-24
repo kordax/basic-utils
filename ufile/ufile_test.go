@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/ufile"
+	"git.casinomodule.org/casino27/basic-utils/v4/ufile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

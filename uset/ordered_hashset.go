@@ -6,7 +6,7 @@
 
 package uset
 
-import "git.casinomodule.org/casino27/basic-utils/v3/uconst"
+import "git.casinomodule.org/casino27/basic-utils/v4/uconst"
 
 // OrderedHashSet is a set implementation that preserves the order of elements as they were added.
 // This implementation is slower than a traditional HashSet or ComparableHashSet, therefore it's

@@ -3,7 +3,7 @@ package umap_test
 import (
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/umap"
+	"git.casinomodule.org/casino27/basic-utils/v4/umap"
 )
 
 func BenchmarkUniqueHashMultiMap_Set(b *testing.B) {

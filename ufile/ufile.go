@@ -20,7 +20,7 @@ import (
 // Use MustRead when you're confident the operation should not fail under normal conditions,
 // such as reading embedded resources or files that are guaranteed to exist.
 func MustRead(path string) []byte {
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) // #nosec G304 -- reading the caller-supplied path is this helper's contract
 	if err != nil {
 		panic(err)
 	}
@@ -52,7 +52,7 @@ func RemoveIfExists(path string) error {
 
 // ReadJSON reads path and unmarshals JSON into target.
 func ReadJSON[T any](path string) (*T, error) {
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) // #nosec G304 -- reading the caller-supplied path is this helper's contract
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func WriteJSON[T any](path string, value T, perm os.FileMode) error {
 // Returns an error if any operation fails.
 func CreateFile(path string, content *string) error {
 	// Create or truncate the file at the specified path.
-	file, err := os.Create(path)
+	file, err := os.Create(path) // #nosec G304 -- creating the caller-supplied path is this helper's contract
 	if err != nil {
 		// Return the error to the caller if file creation fails.
 		return err

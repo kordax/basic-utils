@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/uarray"
-	"git.casinomodule.org/casino27/basic-utils/v3/uconst"
-	"git.casinomodule.org/casino27/basic-utils/v3/umath"
+	"git.casinomodule.org/casino27/basic-utils/v4/uarray"
+	"git.casinomodule.org/casino27/basic-utils/v4/uconst"
+	"git.casinomodule.org/casino27/basic-utils/v4/umath"
 )
 
 // GetCPUs calculates and returns the number of CPU cores available to the application.
@@ -337,7 +337,7 @@ func getCGroupCPUs() (int, error) { // coverage-ignore
 }
 
 func readCgroupValue(path string) (float64, error) { // coverage-ignore
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path is selected internally from known cgroup control files
 	if err != nil {
 		return 0, err
 	}

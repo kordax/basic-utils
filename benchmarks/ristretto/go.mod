@@ -1,11 +1,9 @@
 module git.casinomodule.org/casino27/basic-utils-benchmarks/ristretto
 
-go 1.26
-
-toolchain go1.26.6
+go 1.27.0
 
 require (
-	git.casinomodule.org/casino27/basic-utils/v3 v3.0.0
+	git.casinomodule.org/casino27/basic-utils/v4 v4.0.0
 	github.com/dgraph-io/ristretto/v2 v2.4.0
 )
 
@@ -17,4 +15,4 @@ require (
 	golang.org/x/sys v0.45.0 // indirect
 )
 
-replace git.casinomodule.org/casino27/basic-utils/v3 => ../..
+replace git.casinomodule.org/casino27/basic-utils/v4 => ../..

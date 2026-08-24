@@ -19,7 +19,7 @@ func computeHash[V any](h hash.Hash, v V) int64 {
 	val := reflect.ValueOf(v)
 	writeHashData(h, val)
 	hashBytes := h.Sum(nil)
-	return int64(binary.LittleEndian.Uint64(hashBytes[:8]))
+	return int64(binary.LittleEndian.Uint64(hashBytes[:8])) // #nosec G115 -- preserves the complete 64-bit hash as a signed key
 }
 
 func writeHashData(h hash.Hash, val reflect.Value) {

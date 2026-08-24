@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v3/uopt"
+	"git.casinomodule.org/casino27/basic-utils/v4/uopt"
 )
 
 // container represents an individual item in the priority queue.
@@ -124,7 +124,9 @@ func (q *PriorityQueueImpl[T]) Peek() uopt.Opt[T] {
 }
 
 func (q *PriorityQueueImpl[T]) Drain(limit ...int) []T {
-	n := int(q.Len())
+	q.mu.Lock()
+	n := q.queue.Len()
+	q.mu.Unlock()
 	if len(limit) > 0 && limit[0] >= 0 && limit[0] < n {
 		n = limit[0]
 	}
@@ -162,7 +164,7 @@ func (q *PriorityQueueImpl[T]) Len() uint64 {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	return uint64(q.queue.Len())
+	return uint64(q.queue.Len()) // #nosec G115 -- heap length is non-negative and always fits uint64
 }
 
 func (q *PriorityQueueImpl[T]) notify() {
