@@ -315,6 +315,171 @@ func TestTerminalStream_CollectionOperations(t *testing.T) {
 	assert.Equal(t, map[any][]int{0: {20}, 1: {10, 30}}, actual)
 }
 
+func TestStream_MapMultiIsLazyOrderedAndReplayable(t *testing.T) {
+	mapperCalls := 0
+	stream := ustream.Of([]int{1, 2, 3, 4}).MapMulti(func(value int, emit func(int64) bool) {
+		mapperCalls++
+		if value%2 == 0 {
+			return
+		}
+		if !emit(int64(value)) {
+			return
+		}
+		emit(-int64(value))
+	})
+
+	assert.Zero(t, mapperCalls)
+	assert.Equal(t, []int64{1, -1, 3, -3}, stream.Collect())
+	assert.Equal(t, 4, mapperCalls)
+	assert.Equal(t, []int64{1, -1, 3, -3}, stream.Collect())
+	assert.Equal(t, 8, mapperCalls)
+}
+
+func TestStream_MapMultiPropagatesShortCircuit(t *testing.T) {
+	reads := 0
+	mapperCalls := 0
+	emitCalls := 0
+	stream := countedStream([]int{1, 2, 3, 4}, &reads).
+		MapMulti(func(value int, emit func(int) bool) {
+			mapperCalls++
+			emitCalls++
+			if !emit(value) {
+				return
+			}
+			emitCalls++
+			emit(-value)
+		}).
+		Limit(3)
+
+	assert.Equal(t, []int{1, -1, 2}, stream.Collect())
+	assert.Equal(t, 2, reads)
+	assert.Equal(t, 2, mapperCalls)
+	assert.Equal(t, 3, emitCalls)
+}
+
+func TestStream_MapMultiSuppressesEmissionsAfterStop(t *testing.T) {
+	mapperCalls := 0
+	emitCalls := 0
+	actual := ustream.Of([]int{1, 2}).
+		MapMulti(func(value int, emit func(int) bool) {
+			mapperCalls++
+			emitCalls++
+			emit(value)
+			emitCalls++
+			emit(-value)
+		}).
+		Limit(1).
+		Collect()
+
+	assert.Equal(t, []int{1}, actual)
+	assert.Equal(t, 1, mapperCalls)
+	assert.Equal(t, 2, emitCalls)
+}
+
+func TestStream_ConcatIsLazyOrderedAndShortCircuits(t *testing.T) {
+	leftReads := 0
+	rightReads := 0
+	stream := countedStream([]int{1, 2}, &leftReads).
+		Concat(countedStream([]int{3, 4}, &rightReads))
+
+	assert.Zero(t, leftReads)
+	assert.Zero(t, rightReads)
+	assert.Equal(t, []int{1, 2, 3, 4}, stream.Collect())
+	assert.Equal(t, 2, leftReads)
+	assert.Equal(t, 2, rightReads)
+
+	leftReads = 0
+	rightReads = 0
+	assert.Equal(t, []int{1}, stream.Limit(1).Collect())
+	assert.Equal(t, 1, leftReads)
+	assert.Zero(t, rightReads)
+}
+
+func TestStream_ConcatTreatsNilStreamsAsEmpty(t *testing.T) {
+	var nilStream *ustream.Stream[int]
+
+	assert.Equal(t, []int{1, 2}, nilStream.Concat(ustream.Of([]int{1, 2})).Collect())
+	assert.Equal(t, []int{1, 2}, ustream.Of([]int{1, 2}).Concat(nil).Collect())
+}
+
+func TestStream_FindFirstShortCircuitsAndHandlesEmpty(t *testing.T) {
+	reads := 0
+	first := countedStream([]int{7, 8, 9}, &reads).FindFirst()
+
+	require.NotNil(t, first)
+	assert.Equal(t, 7, *first)
+	assert.Equal(t, 1, reads)
+	assert.Nil(t, ustream.Empty[int]().FindFirst())
+}
+
+func TestStream_MinMaxUseFirstValueOnTies(t *testing.T) {
+	type scored struct {
+		name  string
+		score int
+	}
+	values := []scored{
+		{name: "middle", score: 2},
+		{name: "minimum-first", score: 1},
+		{name: "minimum-second", score: 1},
+		{name: "maximum-first", score: 3},
+		{name: "maximum-second", score: 3},
+	}
+	less := func(left, right scored) bool { return left.score < right.score }
+	stream := ustream.Of(values)
+
+	minimum := stream.Min(less)
+	maximum := stream.Max(less)
+	require.NotNil(t, minimum)
+	require.NotNil(t, maximum)
+	assert.Equal(t, "minimum-first", minimum.name)
+	assert.Equal(t, "maximum-first", maximum.name)
+	assert.Nil(t, ustream.Empty[scored]().Min(less))
+	assert.Nil(t, ustream.Empty[scored]().Max(less))
+}
+
+func TestStream_BufferingCollectIsLazyReplayableAndFresh(t *testing.T) {
+	tests := []struct {
+		name     string
+		pipeline func(*ustream.Stream[int]) *ustream.Stream[int]
+		expected []int
+	}{
+		{name: "reverse", pipeline: func(stream *ustream.Stream[int]) *ustream.Stream[int] {
+			return stream.Reverse()
+		}, expected: []int{2, 1, 3}},
+		{name: "sort", pipeline: func(stream *ustream.Stream[int]) *ustream.Stream[int] {
+			return stream.Sort(func(left, right int) bool { return left < right })
+		}, expected: []int{1, 2, 3}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			reads := 0
+			stream := test.pipeline(countedStream([]int{3, 1, 2}, &reads))
+			assert.Zero(t, reads)
+
+			first := stream.Collect()
+			assert.Equal(t, test.expected, first)
+			assert.Equal(t, 3, reads)
+			first[0] = 100
+
+			assert.Equal(t, test.expected, stream.Collect())
+			assert.Equal(t, 6, reads)
+		})
+	}
+}
+
+func TestStream_BufferingStageKeepsLazyDownstreamSemantics(t *testing.T) {
+	reads := 0
+	actual := countedStream([]int{1, 2, 3}, &reads).
+		Reverse().
+		Map(func(value int) int { return value * 10 }).
+		Limit(2).
+		Collect()
+
+	assert.Equal(t, []int{30, 20}, actual)
+	assert.Equal(t, 3, reads)
+}
+
 func countedStream(values []int, reads *int) *ustream.Stream[int] {
 	return ustream.FromSeq(iter.Seq[int](func(yield func(int) bool) {
 		for _, value := range values {

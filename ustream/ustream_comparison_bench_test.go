@@ -259,11 +259,24 @@ func BenchmarkStreamComparison_FlatMap(b *testing.B) {
 			benchmarkComparisonValues = result
 		}
 	})
-	b.Run("stream", func(b *testing.B) {
+	b.Run("flat-map", func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
 			benchmarkComparisonValues = ustream.Of(values).
 				FlatMap(func(value int) []int { return []int{value, -value} }).
+				Collect()
+		}
+	})
+	b.Run("map-multi", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			benchmarkComparisonValues = ustream.Of(values).
+				MapMulti(func(value int, emit func(int) bool) {
+					if !emit(value) {
+						return
+					}
+					emit(-value)
+				}).
 				Collect()
 		}
 	})

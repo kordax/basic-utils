@@ -2,7 +2,7 @@
 //
 // Constructors and intermediate operations do not traverse their source. A
 // terminal operation such as Collect, Count, Find, or ForEach starts traversal.
-// Stateless stages such as Map, Filter, FlatMap, Limit, and TakeWhile pass
+// Stateless stages such as Concat, Map, MapMulti, Filter, FlatMap, Limit, and TakeWhile pass
 // values directly to the next stage without allocating intermediate slices.
 //
 // Sort, Reverse, and ParallelMap are buffering barriers: they remain lazy, but

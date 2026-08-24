@@ -40,12 +40,27 @@ func (f ResultCollectorFunc[T, R]) Collect(values []T) R {
 
 // Stream describes a lazy, ordered and reusable sequence of values.
 type Stream[T any] struct {
-	seq      iter.Seq[T]
-	sizeHint int
+	seq         iter.Seq[T]
+	sizeHint    int
+	materialize func() []T
 }
 
 func newStream[T any](seq iter.Seq[T], sizeHint int) *Stream[T] {
 	return &Stream[T]{seq: seq, sizeHint: sizeHint}
+}
+
+func newMaterializingStream[T any](materialize func() []T, sizeHint int) *Stream[T] {
+	return &Stream[T]{
+		seq: func(yield func(T) bool) {
+			for _, value := range materialize() {
+				if !yield(value) {
+					return
+				}
+			}
+		},
+		sizeHint:    sizeHint,
+		materialize: materialize,
+	}
 }
 
 func emptySeq[T any](yield func(T) bool) {}
@@ -135,6 +150,32 @@ func Iterate[T any](seed T, count int, next func(T) T) *Stream[T] {
 	}, count)
 }
 
+// Concat lazily appends values from other after this stream.
+func (s *Stream[T]) Concat(other *Stream[T]) *Stream[T] {
+	sizeHint := unknownSizeHint
+	leftKnown := s == nil || s.sizeHint >= 0
+	rightKnown := other == nil || other.sizeHint >= 0
+	leftHint := s.allocationHint()
+	rightHint := other.allocationHint()
+	maxInt := int(^uint(0) >> 1)
+	if leftKnown && rightKnown && leftHint <= maxInt-rightHint {
+		sizeHint = leftHint + rightHint
+	}
+
+	return newStream(func(yield func(T) bool) {
+		for value := range s.Seq() {
+			if !yield(value) {
+				return
+			}
+		}
+		for value := range other.Seq() {
+			if !yield(value) {
+				return
+			}
+		}
+	}, sizeHint)
+}
+
 // Filter lazily keeps values matching predicate.
 func (s *Stream[T]) Filter(predicate func(T) bool) *Stream[T] {
 	return newStream(func(yield func(T) bool) {
@@ -180,6 +221,27 @@ func (s *Stream[T]) FlatMap[R any](mapper func(T) []R) *Stream[R] {
 			}
 		}
 	}, unknownSizeHint)
+}
+
+// MapMulti lazily emits zero or more mapped values without allocating a slice per input.
+// The mapper must emit synchronously, must not retain emit, and should return when emit returns false.
+func (s *Stream[T]) MapMulti[R any](mapper func(T, func(R) bool)) *Stream[R] {
+	return newStream(func(yield func(R) bool) {
+		stopped := false
+		s.Seq()(func(value T) bool {
+			mapper(value, func(mapped R) bool {
+				if stopped {
+					return false
+				}
+				if !yield(mapped) {
+					stopped = true
+					return false
+				}
+				return true
+			})
+			return !stopped
+		})
+	}, s.allocationHint())
 }
 
 // ParallelMap lazily schedules an ordered parallel mapping barrier.
@@ -325,20 +387,16 @@ func (s *Stream[T]) DropWhile(predicate func(T) bool) *Stream[T] {
 
 // Reverse returns a lazy stream that buffers and reverses values when traversed.
 func (s *Stream[T]) Reverse() *Stream[T] {
-	return newStream(func(yield func(T) bool) {
+	return newMaterializingStream(func() []T {
 		values := s.Collect()
 		slices.Reverse(values)
-		for _, value := range values {
-			if !yield(value) {
-				return
-			}
-		}
+		return values
 	}, s.allocationHint())
 }
 
 // Sort returns a lazy stream that buffers and sorts values when traversed.
 func (s *Stream[T]) Sort(less func(a, b T) bool) *Stream[T] {
-	return newStream(func(yield func(T) bool) {
+	return newMaterializingStream(func() []T {
 		values := s.Collect()
 		slices.SortFunc(values, func(a, b T) int {
 			switch {
@@ -350,11 +408,7 @@ func (s *Stream[T]) Sort(less func(a, b T) bool) *Stream[T] {
 				return 0
 			}
 		})
-		for _, value := range values {
-			if !yield(value) {
-				return
-			}
-		}
+		return values
 	}, s.allocationHint())
 }
 
@@ -399,6 +453,50 @@ func (s *Stream[T]) Find(predicate func(T) bool) *T {
 	}
 
 	return result
+}
+
+// FindFirst returns the first value, or nil when the stream is empty.
+func (s *Stream[T]) FindFirst() *T {
+	for value := range s.Seq() {
+		first := value
+		return &first
+	}
+
+	return nil
+}
+
+// Min returns the first minimum value according to less, or nil when the stream is empty.
+func (s *Stream[T]) Min(less func(a, b T) bool) *T {
+	var result T
+	found := false
+	for value := range s.Seq() {
+		if !found || less(value, result) {
+			result = value
+			found = true
+		}
+	}
+	if !found {
+		return nil
+	}
+
+	return &result
+}
+
+// Max returns the first maximum value according to less, or nil when the stream is empty.
+func (s *Stream[T]) Max(less func(a, b T) bool) *T {
+	var result T
+	found := false
+	for value := range s.Seq() {
+		if !found || less(result, value) {
+			result = value
+			found = true
+		}
+	}
+	if !found {
+		return nil
+	}
+
+	return &result
 }
 
 // FindIndex returns the first index matching predicate, or -1.
@@ -463,6 +561,10 @@ func (s *Stream[T]) Reduce[R any](initial R, reducer func(acc R, value T) R) R {
 
 // Collect materializes stream values into a fresh slice.
 func (s *Stream[T]) Collect() []T {
+	if s != nil && s.materialize != nil {
+		return s.materialize()
+	}
+
 	result := make([]T, 0, s.allocationHint())
 	for value := range s.Seq() {
 		result = append(result, value)
