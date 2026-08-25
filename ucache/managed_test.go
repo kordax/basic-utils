@@ -224,6 +224,33 @@ func TestManagedCache_WithOptionsAppliesTTL(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestManagedCache_DelegatesChangesAndKeys(t *testing.T) {
+	cache := ucache.NewInMemoryHashMapCache[ucache.IntKey, string](uopt.Null[time.Duration]())
+	managedCache := ucache.NewManagedCache(cache, time.Hour)
+	defer managedCache.Stop()
+
+	key := ucache.IntKey(7)
+	managedCache.Set(key, "value")
+
+	assert.Equal(t, []ucache.IntKey{key}, managedCache.Changes())
+	assert.Equal(t, []ucache.IntKey{key}, managedCache.Keys())
+	assert.False(t, managedCache.Outdated(uopt.Of(key)))
+}
+
+func TestManagedMultiCache_DelegatesPutChangesAndOutdated(t *testing.T) {
+	cache := ucache.NewInMemoryTreeMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
+	managedCache := ucache.NewManagedMultiCache(cache, time.Hour)
+	defer managedCache.Stop()
+
+	key := ucache.NewStrCompositeKey("section", "item")
+	value := DummyComparable{Val: 1}
+	managedCache.Put(key, value)
+
+	assert.Equal(t, []DummyComparable{value}, managedCache.Get(key))
+	assert.Equal(t, []ucache.StrCompositeKey{key}, managedCache.Changes())
+	assert.False(t, managedCache.Outdated(uopt.Of(key)))
+}
+
 func TestManagedCache_StopIdempotent(t *testing.T) {
 	cache := ucache.NewInMemoryComparableMapCache[string, int](uopt.Null[time.Duration]())
 	managedCache := ucache.NewManagedCache(cache, time.Hour)

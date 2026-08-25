@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -257,6 +258,65 @@ func TestOrDef(t *testing.T) {
 	if result != 24 {
 		assert.Fail(t, fmt.Sprintf("Expected OrElse to return 24, but got %v", result))
 	}
+}
+
+func TestDeprecatedFunctions(t *testing.T) {
+	mapped := uopt.Map(uopt.Of(2), func(v int) string {
+		return strconv.Itoa(v)
+	})
+	flat := uopt.FlatMap(uopt.Of(2), func(v int) uopt.Opt[string] {
+		return uopt.Of(strconv.Itoa(v))
+	})
+	filtered := uopt.Filter(uopt.Of(2), func(v int) bool { return v > 0 })
+
+	assert.True(t, mapped.Present())
+	assert.Equal(t, "2", mapped.OrElse(""))
+	assert.True(t, flat.Present())
+	assert.Equal(t, "2", flat.OrElse(""))
+	assert.True(t, filtered.Present())
+
+	require.Equal(t, uopt.Null[int](), uopt.Filter(uopt.Of(2), func(v int) bool { return v < 0 }))
+}
+
+func TestSetAndJSONRoundTrip(t *testing.T) {
+	o := uopt.Null[string]()
+	value := "changed"
+	o.Set(&value)
+	assert.True(t, o.Present())
+	assert.Equal(t, "changed", o.OrElse(""))
+
+	marshal, err := o.MarshalJSON()
+	require.NoError(t, err)
+	assert.Equal(t, `"changed"`, string(marshal))
+
+	var from uopt.Opt[string]
+	err = from.UnmarshalJSON(marshal)
+	require.NoError(t, err)
+	assert.Equal(t, "changed", from.OrElse(""))
+
+	err = from.UnmarshalJSON([]byte("null"))
+	require.NoError(t, err)
+	assert.False(t, from.Present())
+
+	toNull := uopt.Null[int]()
+	toNull.Set(nil)
+	assert.False(t, toNull.Present())
+}
+
+func TestSQLValueAndScan(t *testing.T) {
+	value := uopt.Of(7)
+	sqlValue, err := value.Value()
+	require.NoError(t, err)
+	assert.Equal(t, int64(7), sqlValue)
+
+	var scanned uopt.Opt[time.Time]
+	require.NoError(t, scanned.Scan(time.Unix(1710000000, 0)))
+	assert.True(t, scanned.Present())
+
+	require.NoError(t, value.Scan(nil))
+	assert.False(t, value.Present())
+
+	require.Error(t, value.Scan(struct{ A int }{}))
 }
 
 // TestGet tests the Get method.

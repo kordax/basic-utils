@@ -113,3 +113,22 @@ func TestSynchronizedHashSet_Clear(t *testing.T) {
 	wg.Wait()
 	assert.Equal(t, 0, s.Size())
 }
+
+func TestSynchronizedHashSet_NewFromSet(t *testing.T) {
+	t.Parallel()
+
+	base := uset.NewHashSet(1, 2, 3)
+	s := uset.NewSynchronizedHashSetFromSet(base)
+
+	assert.ElementsMatch(t, []int{1, 2, 3}, s.Values())
+}
+
+func TestSynchronizedHashSet_Values(t *testing.T) {
+	t.Parallel()
+
+	s := uset.NewSynchronizedHashSet[int]()
+	s.Add(1)
+	s.Add(2)
+
+	assert.ElementsMatch(t, []int{1, 2}, s.Values())
+}

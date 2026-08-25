@@ -473,6 +473,22 @@ func TestComparableMapCache_PutQuietly(t *testing.T) {
 	assert.Equal(t, *result, val)
 }
 
+func TestBufferedComparableMapCache_TTLDelegates(t *testing.T) {
+	cache := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
+	defer cache.CloseBuffered()
+
+	cache.Set("expired", 42)
+	cache.Wait()
+	cache.SetTTL(uopt.Of(time.Nanosecond))
+	time.Sleep(time.Millisecond)
+
+	assert.True(t, cache.Outdated(uopt.Of("expired")))
+	assert.Equal(t, 1, cache.RemoveOutdated())
+	value, ok := cache.Get("expired")
+	assert.False(t, ok)
+	assert.Nil(t, value)
+}
+
 func TestBufferedComparableMapCache_SetWait(t *testing.T) {
 	c := ucache.NewInMemoryBufferedComparableMapCache[string, int](uopt.Null[time.Duration]())
 	defer c.CloseBuffered()

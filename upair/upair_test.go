@@ -7,11 +7,17 @@
 package upair
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/kordax/basic-utils/v4/uconst"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type comparableValue struct{}
+
+func (comparableValue) Equals(_ uconst.Comparable) bool { return false }
 
 func TestNewPair(t *testing.T) {
 	pair := NewPair(1, "test")
@@ -80,4 +86,28 @@ func TestCOf(t *testing.T) {
 	assert.True(t, pair.Equals(COf(236, "ctest")))
 	assert.True(t, pair.Equals(NewCPair(236, "ctest")))
 	assert.False(t, pair.Equals(COf(236, "other")))
+}
+
+func TestPairDeprecatedMapFunctions(t *testing.T) {
+	pair := Of(3, "a")
+
+	mappedLeft := MapLeft(pair, func(v int) string {
+		return fmt.Sprintf("value-%d", v)
+	})
+	mappedRight := MapRight(pair, func(v string) int {
+		return len(v)
+	})
+
+	assert.Equal(t, Of("value-3", "a"), mappedLeft)
+	assert.Equal(t, Of(3, 1), mappedRight)
+}
+
+func TestCPair_EqualsBranches(t *testing.T) {
+	var _ uconst.Comparable = comparableValue{}
+
+	pair := COf("left", "right")
+
+	var ptr *CPair[string, string]
+	assert.False(t, pair.Equals(ptr))
+	assert.False(t, pair.Equals(comparableValue{}))
 }

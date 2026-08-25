@@ -555,6 +555,17 @@ func TestHashMapMultiCache_CompositeKey_LotsOfKeys(t *testing.T) {
 	}
 }
 
+func TestHashMapMultiCache_KeysReturnsStoredCompositeKeys(t *testing.T) {
+	cache := ucache.NewDefaultHashMapMultiCache[ucache.StrCompositeKey, DummyComparable](uopt.Null[time.Duration]())
+	first := ucache.NewStrCompositeKey("group", "first")
+	second := ucache.NewStrCompositeKey("group", "second")
+
+	cache.Put(first, DummyComparable{Val: 1})
+	cache.PutQuietly(second, DummyComparable{Val: 2})
+
+	assert.ElementsMatch(t, []ucache.StrCompositeKey{first, second}, cache.Keys())
+}
+
 func TestInMemoryHashMapMultiCache_Put(t *testing.T) {
 	c := ucache.NewDefaultHashMapMultiCache[SimpleCompositeKey[ucache.StringKey], DummyComparable](uopt.Null[time.Duration]())
 	key := NewSimpleCompositeKey[ucache.StringKey]("kp_1", "kp_2")

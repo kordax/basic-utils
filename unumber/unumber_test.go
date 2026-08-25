@@ -15,6 +15,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestValueTypeString(t *testing.T) {
+	assert.Equal(t, "Int", unumber.Int.String())
+	assert.Equal(t, "Float", unumber.Float.String())
+	assert.Equal(t, "Uint", unumber.Uint.String())
+	assert.Equal(t, "BigInt", unumber.BigInt.String())
+	assert.Equal(t, "BigFloat", unumber.BigFloat.String())
+	assert.Equal(t, "Unknown", unumber.ValueType(99).String())
+}
+
 func TestFromString(t *testing.T) {
 	tests := []struct {
 		input       string
@@ -269,4 +278,20 @@ func TestAsDenominated(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDenominatedFields(t *testing.T) {
+	var empty unumber.Denominated[int64]
+
+	require.Equal(t, 0, empty.Denominator())
+	require.Equal(t, int64(0), empty.Value())
+	require.False(t, empty.IsValid())
+
+	val := -12.34
+	denom, err := unumber.AsDenom[int64](val, 3)
+	require.NoError(t, err)
+	require.NotNil(t, denom)
+	require.Equal(t, 3, denom.Denominator())
+	require.Equal(t, int64(-12340), denom.Value())
+	require.True(t, denom.IsValid())
 }

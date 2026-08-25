@@ -458,3 +458,13 @@ func TestStreamToMultiMap(t *testing.T) {
 		"b": {"beta"},
 	}, grouped)
 }
+
+func TestStream_EmptySeq(t *testing.T) {
+	stream := (*ustream.Stream[int])(nil)
+
+	assert.Empty(t, stream.Collect())
+	assert.Empty(t, ustream.Empty[int]().Collect())
+	assert.Empty(t, ustream.From[int]().Collect())
+	assert.Empty(t, ustream.Of[int](nil).Collect())
+	assert.Empty(t, ustream.FromSeq[int](nil).Collect())
+}

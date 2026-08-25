@@ -1475,3 +1475,27 @@ func TestCustomSliceComparators(t *testing.T) {
 	assert.True(t, uarray.EqualValuesCompare([]item{{2, "two"}, {1, "one"}}, []item{{1, "one"}, {2, "two"}}, equal, less))
 	assert.False(t, uarray.EqualValuesCompare([]item{{1, "one"}}, []item{{1, "other"}}, equal, less))
 }
+
+func TestHasAndContains(t *testing.T) {
+	assert.True(t, uarray.Has([]string{"a", "b", "c"}, "b"))
+	assert.False(t, uarray.Has([]string{"a", "b", "c"}, "d"))
+
+	large := make([]int, 65536)
+	for i := range large {
+		large[i] = i
+	}
+
+	assert.True(t, uarray.Has(large, 65535))
+	assert.False(t, uarray.Has(large, 70000))
+}
+
+func TestEqualsCompareWithOrderAndOrder(t *testing.T) {
+	equal := func(v1, v2 string) bool { return v1 == v2 }
+	less := func(v1, v2 string) bool { return v1 < v2 }
+
+	assert.True(t, uarray.EqualsWithOrder([]string{"a", "b", "c"}, []string{"a", "b", "c"}))
+	assert.False(t, uarray.EqualsWithOrder([]string{"a", "b"}, []string{"a", "c"}))
+
+	assert.True(t, uarray.EqualValuesCompare([]string{"z", "a", "b"}, []string{"a", "b", "z"}, equal, less))
+	assert.False(t, uarray.EqualValuesCompare([]string{"a", "b"}, []string{"a", "c"}, equal, less))
+}

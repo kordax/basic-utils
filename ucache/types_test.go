@@ -6,14 +6,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/kordax/basic-utils/v4/ucache"
 	"github.com/kordax/basic-utils/v4/uconst"
 	"github.com/kordax/basic-utils/v4/uopt"
 	"github.com/kordax/basic-utils/v4/uref"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestScalarKeyStrings(t *testing.T) {
+	assert.Equal(t, "-7", ucache.IntKey(-7).String())
+	assert.Equal(t, "42", ucache.UIntKey(42).String())
+}
 
 func TestStringKey_Key(t *testing.T) {
 	uuid.EnableRandPool()

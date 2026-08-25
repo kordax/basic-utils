@@ -56,6 +56,11 @@ func TestStringHelpers(t *testing.T) {
 	require.Equal(t, "a b c", ustr.NormalizeSpace(" a\t b\n c "))
 }
 
+func TestConcat(t *testing.T) {
+	require.Equal(t, "abc", ustr.Concat("a", "b", "c"))
+	require.Equal(t, "", ustr.Concat())
+}
+
 func ptr(s string) *string {
 	return &s
 }

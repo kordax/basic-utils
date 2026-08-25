@@ -120,3 +120,9 @@ func TestNullComplex128(t *testing.T) {
 	assert.False(t, v.Present())
 	assert.Nil(t, v.Get())
 }
+
+func TestNullDuration(t *testing.T) {
+	v := uopt.NullDuration()
+	assert.False(t, v.Present())
+	assert.Nil(t, v.Get())
+}
