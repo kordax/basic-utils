@@ -8,11 +8,11 @@ package ustream
 
 import (
 	"cmp"
+	"context"
 	"iter"
 	"slices"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/kordax/basic-utils/v4/uarray"
 )
@@ -43,6 +43,38 @@ type Stream[T any] struct {
 	seq         iter.Seq[T]
 	sizeHint    int
 	materialize func() []T
+}
+
+type panicRelay struct {
+	once  sync.Once
+	done  chan struct{}
+	value any
+}
+
+func newPanicRelay() *panicRelay {
+	return &panicRelay{done: make(chan struct{})}
+}
+
+func (r *panicRelay) fail(value any) {
+	r.once.Do(func() {
+		r.value = value
+		close(r.done)
+	})
+}
+
+func (r *panicRelay) stopped() bool {
+	select {
+	case <-r.done:
+		return true
+	default:
+		return false
+	}
+}
+
+func (r *panicRelay) repanic() {
+	if r.stopped() {
+		panic(r.value)
+	}
 }
 
 func newStream[T any](seq iter.Seq[T], sizeHint int) *Stream[T] {
@@ -245,6 +277,7 @@ func (s *Stream[T]) MapMulti[R any](mapper func(T, func(R) bool)) *Stream[R] {
 }
 
 // ParallelMap lazily schedules an ordered parallel mapping barrier.
+// A mapper panic stops scheduling, waits for the workers, and is re-panicked by the caller.
 func (s *Stream[T]) ParallelMap[R any](mapper func(T) R, parallelism int) *Stream[R] {
 	if parallelism <= 1 {
 		return s.Map(mapper)
@@ -265,6 +298,7 @@ func (s *Stream[T]) ParallelMap[R any](mapper func(T) R, parallelism int) *Strea
 
 		result := make([]R, len(values))
 		chunkSize := max(1, len(values)/workers/chunksPerWorker)
+		relay := newPanicRelay()
 		var next atomic.Int64
 		var wg sync.WaitGroup
 
@@ -272,7 +306,17 @@ func (s *Stream[T]) ParallelMap[R any](mapper func(T) R, parallelism int) *Strea
 		for range workers {
 			go func() {
 				defer wg.Done()
+				defer func() {
+					if recovered := recover(); recovered != nil {
+						relay.fail(recovered)
+					}
+				}()
+
 				for {
+					if relay.stopped() {
+						return
+					}
+
 					start := int(next.Add(int64(chunkSize))) - chunkSize
 					if start >= len(values) {
 						return
@@ -280,6 +324,9 @@ func (s *Stream[T]) ParallelMap[R any](mapper func(T) R, parallelism int) *Strea
 
 					end := min(start+chunkSize, len(values))
 					for index := start; index < end; index++ {
+						if relay.stopped() {
+							return
+						}
 						result[index] = mapper(values[index])
 					}
 				}
@@ -287,6 +334,7 @@ func (s *Stream[T]) ParallelMap[R any](mapper func(T) R, parallelism int) *Strea
 		}
 
 		wg.Wait()
+		relay.repanic()
 
 		for _, value := range result {
 			if !yield(value) {
@@ -647,80 +695,81 @@ func NewTerminalStream[T any](values []T) *TerminalStream[T] {
 }
 
 // ParallelExecute executes fn concurrently on each stream value.
+// A callback panic stops scheduling, waits for the workers, and is re-panicked by the caller.
+// Mutations completed before a panic are not rolled back.
 func (s *TerminalStream[T]) ParallelExecute(fn func(int, *T), parallelism int) {
-	if parallelism <= 0 {
-		parallelism = 1
-	}
-
-	var wg sync.WaitGroup
-	in := make(chan int)
-
-	for range parallelism {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for index := range in {
-				fn(index, &s.values[index])
-			}
-		}()
-	}
-
-	for index := range s.values {
-		in <- index
-	}
-
-	close(in)
-	wg.Wait()
+	_ = s.ParallelExecuteContext(context.Background(), func(_ context.Context, index int, value *T) {
+		fn(index, value)
+	}, parallelism)
 }
 
-// ParallelExecuteWithTimeout executes fn concurrently and calls cancel when an item exceeds timeout.
-func (s *TerminalStream[T]) ParallelExecuteWithTimeout(fn func(int, T), cancel func(int, T), timeout time.Duration, parallelism int) {
+// ParallelExecuteContext executes fn concurrently and cooperatively stops on context cancellation.
+// Running callbacks must observe ctx for prompt cancellation. Completed mutations are not rolled back.
+// A callback panic takes precedence over cancellation and is re-panicked by the caller.
+func (s *TerminalStream[T]) ParallelExecuteContext(ctx context.Context, fn func(context.Context, int, *T), parallelism int) error {
+	if cause := context.Cause(ctx); cause != nil {
+		return cause
+	}
+	if len(s.values) == 0 {
+		return nil
+	}
 	if parallelism <= 0 {
 		parallelism = 1
 	}
+	parallelism = min(parallelism, len(s.values))
 
+	relay := newPanicRelay()
 	var wg sync.WaitGroup
 	in := make(chan int)
 
+	wg.Add(parallelism)
 	for range parallelism {
-		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for index := range in {
-				value := s.values[index]
-				if timeout <= 0 {
-					if cancel != nil {
-						cancel(index, value)
-					}
-					continue
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					relay.fail(recovered)
 				}
+			}()
 
-				done := make(chan struct{}, 1)
-				go func() {
-					fn(index, value)
-					done <- struct{}{}
-				}()
-
-				timer := time.NewTimer(timeout)
+			for {
 				select {
-				case <-done:
-					if !timer.Stop() {
-						<-timer.C
+				case <-ctx.Done():
+					return
+				case <-relay.done:
+					return
+				case index, ok := <-in:
+					if !ok {
+						return
 					}
-				case <-timer.C:
-					if cancel != nil {
-						cancel(index, value)
+					if relay.stopped() || context.Cause(ctx) != nil {
+						return
 					}
+					fn(ctx, index, &s.values[index])
 				}
 			}
 		}()
 	}
 
+	stopped := false
 	for index := range s.values {
-		in <- index
+		if stopped {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			stopped = true
+		case <-relay.done:
+			stopped = true
+		case in <- index:
+		}
 	}
+
 	close(in)
 	wg.Wait()
+	relay.repanic()
+
+	return context.Cause(ctx)
 }
 
 // Collect returns terminal stream values.

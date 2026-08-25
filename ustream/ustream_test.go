@@ -7,6 +7,8 @@
 package ustream_test
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -18,8 +20,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-type dummy = struct{}
 
 func TestStream_NewStream(t *testing.T) {
 	values := []int{1, 2, 3, 4, 5}
@@ -211,6 +211,42 @@ func TestStream_ParallelMapEmpty(t *testing.T) {
 	assert.Empty(t, mapped.Collect())
 }
 
+func TestStream_ParallelMapRepanicsWithoutEmittingPartialResults(t *testing.T) {
+	const panicValue = "parallel map panic"
+	const parallelism = 4
+
+	values := make([]int, 128)
+	for index := range values {
+		values[index] = index
+	}
+
+	started := make(chan struct{})
+	var processed atomic.Int32
+	var emitted atomic.Int32
+
+	mapped := ustream.Of(values).
+		ParallelMap(func(value int) int {
+			if value == 0 {
+				close(started)
+				panic(panicValue)
+			}
+
+			<-started
+			time.Sleep(time.Millisecond)
+			processed.Add(1)
+			return value
+		}, parallelism).
+		Peek(func(int) {
+			emitted.Add(1)
+		})
+
+	require.PanicsWithValue(t, panicValue, func() {
+		mapped.Collect()
+	})
+	assert.Zero(t, emitted.Load(), "partial mapped values reached downstream")
+	assert.Less(t, int(processed.Load()), len(values)-1, "mapping continued after the panic")
+}
+
 func TestStream_TopLevelDistinctSortedCompact(t *testing.T) {
 	assert.Equal(t, []int{1, 2, 3}, ustream.Sorted(ustream.From(3, 1, 2)).Collect())
 	assert.Equal(t, []int{1, 2, 3}, ustream.Distinct(ustream.From(1, 2, 1, 3)).Collect())
@@ -297,74 +333,117 @@ func TestTerminalStream_ParallelExecuteWithInvalidParallelism(t *testing.T) {
 	assert.EqualValues(t, 3, processed.Load())
 }
 
-func TestTerminalStream_ParallelExecuteWithTimeout(t *testing.T) {
-	data := make([]dummy, 100)
-	stream := ustream.NewTerminalStream(data)
+func TestTerminalStream_ParallelExecuteRepanicsAndStopsScheduling(t *testing.T) {
+	const panicValue = "parallel execute panic"
+	const parallelism = 4
 
-	var counter atomic.Int32
+	values := make([]int, 128)
+	started := make(chan struct{})
+	var processed atomic.Int32
 
-	mockFn := func(index int, item dummy) {
-		time.Sleep(1 * time.Millisecond) // Simulate some processing time
-		counter.Add(1)
-	}
-	cancel := func(i int, d dummy) {
-		assert.Fail(t, fmt.Sprintf("cancel for timeout called on item index %d", i))
-	}
+	require.PanicsWithValue(t, panicValue, func() {
+		ustream.NewTerminalStream(values).ParallelExecute(func(index int, value *int) {
+			if index == 0 {
+				close(started)
+				panic(panicValue)
+			}
 
-	stream.ParallelExecuteWithTimeout(mockFn, cancel, 3*time.Second, 10)
-
-	require.EqualValues(t, len(data), counter.Load(), "Not all items were processed as expected")
+			<-started
+			time.Sleep(time.Millisecond)
+			processed.Add(1)
+		}, parallelism)
+	})
+	assert.Less(t, int(processed.Load()), len(values)-1, "execution continued after the panic")
 }
 
-func TestTerminalStream_ParallelExecuteWithTimeoutUsesPerItemTimeout(t *testing.T) {
-	values := []int{1, 2, 3}
-	stream := ustream.NewTerminalStream(values)
+func TestTerminalStream_ParallelExecuteContext(t *testing.T) {
+	type contextKey struct{}
+	key := contextKey{}
+	ctx := context.WithValue(context.Background(), key, "expected")
+	stream := ustream.NewTerminalStream([]int{1, 2, 3})
+	var invalidContext atomic.Bool
 
-	var processed atomic.Int32
-	var canceled atomic.Int32
+	err := stream.ParallelExecuteContext(ctx, func(callbackCtx context.Context, index int, value *int) {
+		if callbackCtx.Value(key) != "expected" {
+			invalidContext.Store(true)
+		}
+		*value *= 10
+	}, 2)
 
-	stream.ParallelExecuteWithTimeout(func(index int, item int) {
-		if item == 1 {
-			time.Sleep(30 * time.Millisecond)
+	require.NoError(t, err)
+	assert.False(t, invalidContext.Load())
+	assert.Equal(t, []int{10, 20, 30}, stream.Collect())
+}
+
+func TestTerminalStream_ParallelExecuteContextEmpty(t *testing.T) {
+	var calls atomic.Int32
+
+	err := ustream.NewTerminalStream[int](nil).ParallelExecuteContext(context.Background(), func(context.Context, int, *int) {
+		calls.Add(1)
+	}, 4)
+
+	require.NoError(t, err)
+	assert.Zero(t, calls.Load())
+}
+
+func TestTerminalStream_ParallelExecuteContextReturnsExistingCancellation(t *testing.T) {
+	cause := errors.New("execution canceled")
+	ctx, cancel := context.WithCancelCause(context.Background())
+	cancel(cause)
+	var calls atomic.Int32
+
+	err := ustream.NewTerminalStream([]int{1, 2, 3}).ParallelExecuteContext(ctx, func(context.Context, int, *int) {
+		calls.Add(1)
+	}, 2)
+
+	require.ErrorIs(t, err, cause)
+	assert.Zero(t, calls.Load())
+}
+
+func TestTerminalStream_ParallelExecuteContextStopsScheduling(t *testing.T) {
+	cause := errors.New("stop execution")
+	ctx, cancel := context.WithCancelCause(context.Background())
+	values := make([]int, 128)
+	var calls atomic.Int32
+
+	err := ustream.NewTerminalStream(values).ParallelExecuteContext(ctx, func(callbackCtx context.Context, index int, value *int) {
+		calls.Add(1)
+		if index == 0 {
+			cancel(cause)
 			return
 		}
-		processed.Add(1)
-	}, func(index int, item int) {
-		canceled.Add(1)
-	}, 5*time.Millisecond, 1)
+		<-callbackCtx.Done()
+	}, 4)
 
-	require.EqualValues(t, 2, processed.Load(), "fast items should still run after one item times out")
-	require.EqualValues(t, 1, canceled.Load(), "only the slow item should be canceled")
+	require.ErrorIs(t, err, cause)
+	assert.Less(t, int(calls.Load()), len(values), "execution continued scheduling after cancellation")
 }
 
-func TestTerminalStream_ParallelExecuteWithTimeoutInvalidParallelism(t *testing.T) {
-	stream := ustream.NewTerminalStream([]int{1, 2, 3})
-	var processed atomic.Int32
+func TestTerminalStream_ParallelExecuteContextReturnsDeadline(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	var calls atomic.Int32
 
-	assert.NotPanics(t, func() {
-		stream.ParallelExecuteWithTimeout(func(index int, item int) {
-			processed.Add(1)
-		}, func(index int, item int) {
-			assert.Fail(t, "unexpected cancellation")
-		}, time.Second, 0)
+	err := ustream.NewTerminalStream([]int{1, 2, 3, 4}).ParallelExecuteContext(ctx, func(callbackCtx context.Context, index int, value *int) {
+		calls.Add(1)
+		<-callbackCtx.Done()
+	}, 2)
+
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.LessOrEqual(t, calls.Load(), int32(2))
+}
+
+func TestTerminalStream_ParallelExecuteContextPanicTakesPrecedence(t *testing.T) {
+	const panicValue = "context execution panic"
+	ctx, cancel := context.WithCancel(context.Background())
+
+	require.PanicsWithValue(t, panicValue, func() {
+		_ = ustream.NewTerminalStream([]int{1, 2, 3}).ParallelExecuteContext(ctx, func(callbackCtx context.Context, index int, value *int) {
+			if index == 0 {
+				cancel()
+				panic(panicValue)
+			}
+			<-callbackCtx.Done()
+		}, 2)
 	})
-	assert.EqualValues(t, 3, processed.Load())
-}
-
-func TestTerminalStream_ParallelExecuteWithTimeout_Timeout(t *testing.T) {
-	data := make([]dummy, 100)
-	stream := ustream.NewTerminalStream(data)
-
-	var counter atomic.Int32
-
-	mockFn := func(index int, item dummy) {
-		time.Sleep(10 * time.Millisecond) // Simulate some processing time
-	}
-	cancel := func(i int, d dummy) {
-		counter.Add(1)
-	}
-
-	stream.ParallelExecuteWithTimeout(mockFn, cancel, 0, 10)
-
-	require.EqualValues(t, len(data), counter.Load(), "Not all items were processed as expected")
 }

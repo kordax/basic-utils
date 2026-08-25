@@ -7,6 +7,7 @@
 package ustream_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -57,10 +58,10 @@ func BenchmarkTerminalStream_ParallelExecute_HigherOrder(b *testing.B) {
 	}
 }
 
-func BenchmarkTerminalStream_ParallelExecuteWithTimeout(b *testing.B) {
-	timeout := time.Second
+func BenchmarkTerminalStream_ParallelExecuteContext(b *testing.B) {
+	ctx := context.Background()
 	parallelisms := uarray.RangeWithStep(1, 40, 4)
-	fn := func(index int, value int) { time.Sleep(time.Nanosecond * 10000) } // Emulates the load
+	fn := func(context.Context, int, *int) { time.Sleep(time.Nanosecond * 10000) } // Emulates the load
 
 	for _, parallelism := range parallelisms {
 		sliceSize := parallelism * 10
@@ -73,16 +74,18 @@ func BenchmarkTerminalStream_ParallelExecuteWithTimeout(b *testing.B) {
 		b.Run(fmt.Sprintf("Parallelism-%d", parallelism), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				stream.ParallelExecuteWithTimeout(fn, nil, timeout, parallelism)
+				if err := stream.ParallelExecuteContext(ctx, fn, parallelism); err != nil {
+					b.Fatal(err)
+				}
 			}
 		})
 	}
 }
 
-func BenchmarkTerminalStream_ParallelExecuteWithTimeout_HigherOrder(b *testing.B) {
-	timeout := time.Second
+func BenchmarkTerminalStream_ParallelExecuteContext_HigherOrder(b *testing.B) {
+	ctx := context.Background()
 	parallelisms := uarray.RangeWithStep(1, 500, 100)
-	fn := func(index int, value int) { time.Sleep(time.Nanosecond * 10000) } // Emulates the load
+	fn := func(context.Context, int, *int) { time.Sleep(time.Nanosecond * 10000) } // Emulates the load
 
 	for _, parallelism := range parallelisms {
 		sliceSize := parallelism * 10
@@ -95,7 +98,9 @@ func BenchmarkTerminalStream_ParallelExecuteWithTimeout_HigherOrder(b *testing.B
 		b.Run(fmt.Sprintf("Parallelism-%d", parallelism), func(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				stream.ParallelExecuteWithTimeout(fn, nil, timeout, parallelism)
+				if err := stream.ParallelExecuteContext(ctx, fn, parallelism); err != nil {
+					b.Fatal(err)
+				}
 			}
 		})
 	}
