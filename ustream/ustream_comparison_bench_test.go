@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/v4/ustream"
+	"github.com/kordax/basic-utils/v4/ustream"
 )
 
 const comparisonStreamSize = 10_000

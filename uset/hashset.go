@@ -6,7 +6,7 @@
 
 package uset
 
-import "git.casinomodule.org/casino27/basic-utils/v4/umap"
+import "github.com/kordax/basic-utils/v4/umap"
 
 // HashSet is a generic set data structure that ensures all elements are unique.
 // It uses a map to provide efficient operations for adding, removing, and checking elements.

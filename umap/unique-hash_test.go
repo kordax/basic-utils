@@ -10,7 +10,7 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/v4/umap"
+	"github.com/kordax/basic-utils/v4/umap"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -1,4 +1,4 @@
-module git.casinomodule.org/casino27/basic-utils/v4
+module github.com/kordax/basic-utils/v4
 
 go 1.27.0
 

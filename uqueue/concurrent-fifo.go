@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v4/uopt"
+	"github.com/kordax/basic-utils/v4/uopt"
 )
 
 type node[T any] struct {

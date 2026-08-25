@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v4/ucache"
-	"git.casinomodule.org/casino27/basic-utils/v4/uopt"
+	"github.com/kordax/basic-utils/v4/ucache"
+	"github.com/kordax/basic-utils/v4/uopt"
 	"github.com/dgraph-io/ristretto/v2"
 )
 

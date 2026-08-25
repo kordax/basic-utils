@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	basicutils "git.casinomodule.org/casino27/basic-utils/v4/uconst"
-	"git.casinomodule.org/casino27/basic-utils/v4/uref"
+	basicutils "github.com/kordax/basic-utils/v4/uconst"
+	"github.com/kordax/basic-utils/v4/uref"
 )
 
 // Opt represents a generic container for optional values.

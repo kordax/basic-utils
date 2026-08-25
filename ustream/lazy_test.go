@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"git.casinomodule.org/casino27/basic-utils/v4/ustream"
+	"github.com/kordax/basic-utils/v4/ustream"
 )
 
 func TestStream_LazyPipelineIsReplayable(t *testing.T) {

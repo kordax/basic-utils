@@ -9,7 +9,7 @@ package ustr_test
 import (
 	"testing"
 
-	"git.casinomodule.org/casino27/basic-utils/v4/ustr"
+	"github.com/kordax/basic-utils/v4/ustr"
 	"github.com/stretchr/testify/require"
 )
 

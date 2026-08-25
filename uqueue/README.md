@@ -77,7 +77,7 @@ package myprogram
 import (
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v4/uqueue"
+	"github.com/kordax/basic-utils/v4/uqueue"
 )
 
 q := uqueue.NewFIFOQueue[int](1, 2, 3)
@@ -94,7 +94,7 @@ package myprogram
 import (
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v4/uqueue"
+	"github.com/kordax/basic-utils/v4/uqueue"
 )
 
 pq := uqueue.NewPriorityQueue[int]()

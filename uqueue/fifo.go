@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v4/uopt"
+	"github.com/kordax/basic-utils/v4/uopt"
 )
 
 // FIFOQueueImpl represents a generic implementation of a First-In-First-Out (FIFO) data structure.

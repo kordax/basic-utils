@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"git.casinomodule.org/casino27/basic-utils/v4/uconst"
-	"git.casinomodule.org/casino27/basic-utils/v4/uopt"
+	"github.com/kordax/basic-utils/v4/uconst"
+	"github.com/kordax/basic-utils/v4/uopt"
 )
 
 // ManagedCache provides a wrapper around a Cache implementation to manage

@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"sync"
 
-	"git.casinomodule.org/casino27/basic-utils/v4/upair"
+	"github.com/kordax/basic-utils/v4/upair"
 )
 
 // AsyncTask represents an asynchronous task that can be executed in the background.

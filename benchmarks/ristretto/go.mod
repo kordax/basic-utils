@@ -1,9 +1,9 @@
-module git.casinomodule.org/casino27/basic-utils-benchmarks/ristretto
+module github.com/kordax/basic-utils-benchmarks/ristretto
 
 go 1.27.0
 
 require (
-	git.casinomodule.org/casino27/basic-utils/v4 v4.0.0
+	github.com/kordax/basic-utils/v4 v4.0.0
 	github.com/dgraph-io/ristretto/v2 v2.4.0
 )
 
@@ -15,4 +15,4 @@ require (
 	golang.org/x/sys v0.45.0 // indirect
 )
 
-replace git.casinomodule.org/casino27/basic-utils/v4 => ../..
+replace github.com/kordax/basic-utils/v4 => ../..

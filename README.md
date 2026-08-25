@@ -1,6 +1,6 @@
-[![Tests](https://git.casinomodule.org/casino27/basic-utils/actions/workflows/Tests.yml/badge.svg?branch=main)](https://git.casinomodule.org/casino27/basic-utils/actions/workflows/Tests.yml)
-[![Go Report Card](https://goreportcard.com/badge/git.casinomodule.org/casino27/basic-utils)](https://goreportcard.com/report/git.casinomodule.org/casino27/basic-utils)
-[![Coverage](https://raw.githubusercontent.com/kordax/basic-utils/badges/.badges/main/coverage.svg)](https://git.casinomodule.org/casino27/basic-utils/tree/badges)
+[![Tests](https://github.com/kordax/basic-utils/actions/workflows/Tests.yml/badge.svg?branch=main)](https://github.com/kordax/basic-utils/actions/workflows/Tests.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kordax/basic-utils)](https://goreportcard.com/report/github.com/kordax/basic-utils)
+[![Coverage](https://raw.githubusercontent.com/kordax/basic-utils/badges/.badges/main/coverage.svg)](https://github.com/kordax/basic-utils/tree/badges)
 
 # Basic Utils
 
@@ -44,7 +44,7 @@ This is due to the usage of features and packages introduced in this version.
 Make sure you have Go installed on your machine. Then, use `go get` to install the package:
 
 ```shell
-go get -u git.casinomodule.org/casino27/basic-utils/v4
+go get -u github.com/kordax/basic-utils/v4
 ```
 
 ## Usage
@@ -53,13 +53,13 @@ You can import each module individually or import the main module and it depends
 queue library:
 
 ```shell
-go get -u git.casinomodule.org/casino27/basic-utils/v4/uqueue
+go get -u github.com/kordax/basic-utils/v4/uqueue
 ```
 
 then...
 
 ```go
-import "git.casinomodule.org/casino27/basic-utils/v4/uqueue"
+import "github.com/kordax/basic-utils/v4/uqueue"
 ```
 
 Then, refer to the individual documentation or code comments of each module for specific usage patterns.

@@ -11,7 +11,7 @@ import (
 	"math"
 	"sort"
 
-	basicutils "git.casinomodule.org/casino27/basic-utils/v4/uconst"
+	basicutils "github.com/kordax/basic-utils/v4/uconst"
 )
 
 // ClosestMatch finds the closest match in a slice. This implementation doesn't use Round.
