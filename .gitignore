@@ -24,3 +24,11 @@ target/
 .task/
 .gortex/
 .gortex.yaml
+
+# Local agent and release-review artifacts.
+/AGENTS.md
+/CLAUDE.md
+/CODEX.md
+/.claude/
+/.codex/
+/RELEASE_CHECKLIST.md
