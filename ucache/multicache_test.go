@@ -616,3 +616,22 @@ func TestManagedMultiCache_ForceCleanupPutQuietly(t *testing.T) {
 
 	assert.Empty(t, managed.Get(key))
 }
+
+func TestSha256HashMapMultiCache_Outdated(t *testing.T) {
+	key := ucache.NewStrCompositeKey("key")
+
+	withoutTTL := ucache.NewSha256HashMapMultiCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Null[time.Duration]())
+	assert.False(t, withoutTTL.Outdated(uopt.Null[ucache.StrCompositeKey]()))
+	assert.False(t, withoutTTL.Outdated(uopt.Of(key)))
+
+	fresh := ucache.NewSha256HashMapMultiCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(time.Hour))
+	fresh.Put(key, ucache.NewStringValue("value"))
+	assert.False(t, fresh.Outdated(uopt.Null[ucache.StrCompositeKey]()))
+	assert.False(t, fresh.Outdated(uopt.Of(key)))
+
+	expired := ucache.NewSha256HashMapMultiCache[ucache.StrCompositeKey, ucache.StringValue](uopt.Of(-time.Nanosecond))
+	assert.True(t, expired.Outdated(uopt.Null[ucache.StrCompositeKey]()))
+	assert.True(t, expired.Outdated(uopt.Of(key)))
+	expired.Put(key, ucache.NewStringValue("value"))
+	assert.True(t, expired.Outdated(uopt.Of(key)))
+}

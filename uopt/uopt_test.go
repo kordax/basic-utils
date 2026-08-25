@@ -1034,6 +1034,29 @@ func TestOpt_Scan(t *testing.T) {
 	}
 }
 
+func TestOptScanDuration(t *testing.T) {
+	testCases := []struct {
+		input    any
+		expected time.Duration
+	}{
+		{input: int64(42), expected: 42},
+		{input: float64(17), expected: 17},
+		{input: "1.5s", expected: 1500 * time.Millisecond},
+		{input: "99", expected: 99},
+	}
+
+	for _, testCase := range testCases {
+		var value uopt.Opt[time.Duration]
+
+		require.NoError(t, value.Scan(testCase.input))
+		require.True(t, value.Present())
+		assert.Equal(t, testCase.expected, *value.Get())
+	}
+
+	var invalid uopt.Opt[time.Duration]
+	assert.Error(t, invalid.Scan("not-a-duration"))
+}
+
 func TestOpt_ScanSQLJSONTypes(t *testing.T) {
 	t.Run("map from bytes", func(t *testing.T) {
 		var opt uopt.Opt[map[string]any]

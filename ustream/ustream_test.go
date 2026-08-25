@@ -447,3 +447,14 @@ func TestTerminalStream_ParallelExecuteContextPanicTakesPrecedence(t *testing.T)
 		}, 2)
 	})
 }
+
+func TestStreamToMultiMap(t *testing.T) {
+	grouped := ustream.From("alpha", "atom", "beta").CollectWith(ustream.ToMultiMap(func(value string) (string, string) {
+		return string(value[0]), value
+	}))
+
+	assert.Equal(t, map[string][]string{
+		"a": {"alpha", "atom"},
+		"b": {"beta"},
+	}, grouped)
+}

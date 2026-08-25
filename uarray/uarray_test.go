@@ -1458,3 +1458,20 @@ func TestCopyingUtilitiesAreConcurrentReadSafe(t *testing.T) {
 	wg.Wait()
 	assert.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, values)
 }
+
+func TestCustomSliceComparators(t *testing.T) {
+	type item struct {
+		id   int
+		name string
+	}
+
+	equal := func(left, right item) bool { return left == right }
+	less := func(left, right item) bool { return left.id < right.id }
+
+	assert.True(t, uarray.EqualsCompareWithOrder([]item{{1, "one"}, {2, "two"}}, []item{{1, "one"}, {2, "two"}}, equal))
+	assert.False(t, uarray.EqualsCompareWithOrder([]item{{1, "one"}}, []item{{1, "other"}}, equal))
+	assert.False(t, uarray.EqualsCompareWithOrder([]item{{1, "one"}}, []item{{1, "one"}, {2, "two"}}, equal))
+
+	assert.True(t, uarray.EqualValuesCompare([]item{{2, "two"}, {1, "one"}}, []item{{1, "one"}, {2, "two"}}, equal, less))
+	assert.False(t, uarray.EqualValuesCompare([]item{{1, "one"}}, []item{{1, "other"}}, equal, less))
+}
